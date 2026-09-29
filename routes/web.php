@@ -74,7 +74,31 @@ use App\Http\Controllers\FrontController;
 Route::middleware('maintenance.mode')->group(function () {
 
     Route::controller(FrontController::class)->group(function () {
-        Route::get('/', 'home')->name('home');
+        Route::view('/', 'front-pages.home')->name('home');
+        Route::view('/shop', 'front-pages.shop')->name('shop');
+        Route::view('/about', 'front-pages.about')->name('about');
+        Route::view('/accessories', 'front-pages.accessories')->name('accessories');
+        Route::view('/laptops', 'front-pages.laptops')->name('laptops');
+        Route::view('/mobile-phones', 'front-pages.mobile-phones')->name('mobile-phones');
+        Route::view('/repair', 'front-pages.repair')->name('repair');
+        Route::view('/warranty', 'front-pages.warranty')->name('warranty');
+        Route::view('/contact', 'front-pages.contact')->name('contact');
+        Route::view('/wishlist', 'front-pages.wishlist')->name('wishlist');
+        Route::view('/track-order', 'front-pages.track-order')->name('track-order');
+        Route::view('/account', 'front-pages.account')->name('account');
+        Route::view('/blog', 'front-pages.blog')->name('blog');
+        Route::view('/blog-detail', 'front-pages.blog-detail')->name('blog.detail');
+        Route::view('/cart', 'front-pages.cart')->name('cart');
+        Route::view('/checkout', 'front-pages.checkout')->name('checkout');
+        Route::view('/product', 'front-pages.product')->name('product');
+        Route::view('/thank-you', 'front-pages.thank-you')->name('thank-you');
+        Route::view('/categories', 'front-pages.categories')->name('categories');
+        Route::view('/exchange', 'front-pages.exchange')->name('exchange');
+        Route::view('/faq', 'front-pages.faq')->name('faq');
+        Route::view('/privacy', 'front-pages.privacy')->name('privacy');
+        Route::view('/terms', 'front-pages.terms')->name('terms');
+        Route::view('/returns', 'front-pages.returns')->name('returns');
+        Route::view('/shipping', 'front-pages.shipping')->name('shipping');
     });
 
 });
