@@ -2,17 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Helpers\MailHelper;
 use App\Http\Controllers\Controller;
-use App\Mail\OrderDeliveredMail;
-use App\Mail\OrderShippedMail;
 use App\Models\Courier;
 use App\Models\InvoiceSetting;
 use App\Models\Order;
 use App\Models\SmtpSetting;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Mail;
 
 class OrderController extends Controller
 {

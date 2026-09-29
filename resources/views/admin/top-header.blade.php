@@ -18,7 +18,7 @@
       <link rel="icon" type="image/png" href="{{ asset('storage/' . $favicon) }}">
       <link rel="shortcut icon" href="{{ asset('storage/' . $favicon) }}">
   @else
-      <link rel="icon" type="image/png" href="{{ asset('assets/img/corporate/wm-ecommerce/wmecommerce.webp') }}">
+      <link rel="icon" type="image/png" href="{{ asset('assets/img/logo.png') }}">
   @endif
 
   <!-- VENDOR CSS — exact same order as original -->
@@ -225,16 +225,6 @@ body {
         <div class="top-main-header">
             <!-- Logo -->
             <div class="admin-logo">
-              <!--  @php
-                    $dashboardLogo = $general?->admin_dashboard_logo;
-                @endphp
-
-                @if($dashboardLogo)
-                    <img src="{{ asset('storage/' . $dashboardLogo) }}" alt="Admin Logo">
-                @else
-                    <img src="{{ asset('assets/img/corporate/wm-ecommerce/wmecommerce.webp') }}" alt="WebMingo">
-                @endif -->
-
                 <div class="admin-logo-text">
                     <span class="admin-logo-brand">Vansh IT & Comm</span>
                     <span class="admin-logo-sub">Admin Panel</span>

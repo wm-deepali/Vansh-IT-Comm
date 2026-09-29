@@ -144,7 +144,7 @@
         @else
             
         @endif -->
-        <img src="{{ asset('assets/img/corporate/vanshit/vanshitcomm-logo.png') }}" alt="{{ $siteName }}">
+        <img src="{{ asset('assets/img/logo.png') }}" alt="{{ $siteName }}">
     </div>
 
     <h2>{{ $siteName }}</h2>

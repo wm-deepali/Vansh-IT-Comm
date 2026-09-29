@@ -1458,7 +1458,7 @@
         '{store_name}': 'Oudhyana Chikankaari Store',
         '{brand_name}': 'Oudhyana Chikankaari',
 
-        '{logo_url}': APP_URL + '/assets/img/corporate/Oudhyana_img/logo.png',
+        '{logo_url}': APP_URL + '/assets/img/logo.png',
         '{tagline}': 'Handcrafted, with heart.',
 
         '{shop_url}': APP_URL,

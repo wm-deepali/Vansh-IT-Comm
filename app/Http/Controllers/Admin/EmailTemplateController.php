@@ -123,7 +123,7 @@ class EmailTemplateController extends Controller
             // Store (global)
             '{store_name}' => 'Oudhyana Chikankaari Store',
             '{brand_name}' => 'Oudhyana Chikankaari',
-            '{logo_url}' => $appUrl .'/assets/img/corporate/Oudhyana_img/logo.png',
+            '{logo_url}' => $appUrl .'/assets/img/logo.png',
             '{tagline}' => 'Handcrafted, with heart.',
             '{shop_url}' => $appUrl, 
             '{login_url}' => $appUrl . '/user/login',
