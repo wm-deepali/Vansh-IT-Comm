@@ -203,8 +203,8 @@
               Popular Topics
             </h3>
             <div class="flex flex-wrap gap-2 text-xs">
-              <a href="{{ route('laptops') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Refurbished Laptops</a>
-              <a href="{{ route('mobile-phones') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Smartphones</a>
+              <a href="#" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Refurbished Laptops</a>
+              <a href="#" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Smartphones</a>
               <a href="{{ route('about') }}#refurbish-process" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">20-Point Testing</a>
               <a href="{{ route('warranty') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Warranty & Coverage</a>
               <a href="{{ route('repair') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Screen & Battery Repair</a>

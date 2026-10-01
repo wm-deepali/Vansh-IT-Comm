@@ -18,10 +18,10 @@ const Components = {
             <span class="hidden lg:flex items-center gap-1.5"><i class="fa-solid fa-screwdriver-wrench text-blue-400"></i> 20-Point Tested Devices</span>
           </div>
           <div class="flex items-center gap-2 sm:gap-3 lg:gap-4 text-[10px] sm:text-[11px] xl:text-xs font-medium flex-shrink-0">
-            <a href="track-order.html" class="hover:text-blue-400 transition-colors flex items-center gap-1 whitespace-nowrap">
+            <a href="{{ route('track-order') }}" class="hover:text-blue-400 transition-colors flex items-center gap-1 whitespace-nowrap">
               <i class="fa-solid fa-location-crosshairs text-[9px]"></i> Track Order
             </a>
-            <a href="contact.html" class="hover:text-blue-400 transition-colors hidden sm:flex items-center gap-1 whitespace-nowrap">
+            <a href="{{ route('contact') }}" class="hover:text-blue-400 transition-colors hidden sm:flex items-center gap-1 whitespace-nowrap">
               <i class="fa-solid fa-headset text-[9px]"></i> Help & Support
             </a>
           </div>
@@ -65,7 +65,7 @@ const Components = {
           <div class="flex items-center justify-between gap-2 sm:gap-3 lg:gap-6 py-2 sm:py-2.5 lg:py-3">
             
             <!-- Logo (Compact on mobile) -->
-            <a href="index.html" class="flex items-center flex-shrink-0 group text-decoration-none py-0.5" aria-label="VANSH IT & COMM">
+            <a href="{{ route('home') }}" class="flex items-center flex-shrink-0 group text-decoration-none py-0.5" aria-label="VANSH IT & COMM">
               <img 
                 src="img/vanshitcomm-logo.png" 
                 alt="VANSH IT & COMMUNICATION" 
@@ -75,7 +75,7 @@ const Components = {
 
             <!-- Desktop Search Bar (Hidden on mobile < md) -->
             <div class="flex-1 max-w-md lg:max-w-lg xl:max-w-2xl relative hidden md:block">
-              <form action="shop.html" method="GET" class="relative" onsubmit="App.handleSearchSubmit(event, this)">
+              <form action="{{ route('shop') }}" method="GET" class="relative" onsubmit="App.handleSearchSubmit(event, this)">
                 <div class="relative flex items-center">
                   <i class="fa-solid fa-magnifying-glass absolute left-3.5 lg:left-4 text-slate-400 text-xs lg:text-sm"></i>
                   <input 
@@ -101,7 +101,7 @@ const Components = {
             <div class="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 flex-shrink-0">
               <!-- Wishlist Link (Circular) -->
               <a 
-                href="wishlist.html" 
+                href="{{ route('wishlist') }}" 
                 class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-blue-600 transition-all flex items-center justify-center flex-shrink-0 border border-slate-200/60"
                 aria-label="Wishlist"
               >
@@ -121,7 +121,7 @@ const Components = {
 
               <!-- Cart Button (Circular) -->
               <a 
-                href="cart.html" 
+                href="{{ route('cart') }}" 
                 class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all flex items-center justify-center flex-shrink-0 border border-blue-100 shadow-2xs group"
                 aria-label="Shopping Cart"
               >
@@ -143,7 +143,7 @@ const Components = {
 
           <!-- Mobile Dedicated Search Bar (New Bottom Row for Mobile) -->
           <div class="block md:hidden pb-2.5 pt-0.5 relative">
-            <form action="shop.html" method="GET" class="relative" onsubmit="App.handleSearchSubmit(event, this)">
+            <form action="{{ route('shop') }}" method="GET" class="relative" onsubmit="App.handleSearchSubmit(event, this)">
               <div class="relative flex items-center">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-400 text-xs"></i>
                 <input 
@@ -169,26 +169,26 @@ const Components = {
           <nav class="hidden lg:flex items-center justify-center border-t border-slate-100 py-1" aria-label="Main Navigation">
             <ul class="flex items-center justify-center gap-0.5 xl:gap-1.5 font-medium whitespace-nowrap">
               <li>
-                <a href="index.html" class="nav-link ${activePage === 'home' ? 'active' : ''}">
+                <a href="{{ route('home') }}" class="nav-link ${activePage === 'home' ? 'active' : ''}">
                   <i class="fa-solid fa-house text-xs"></i> Home
                 </a>
               </li>
 
               <li>
-                <a href="categories.html" class="nav-link ${activePage === 'categories' ? 'active' : ''}">
+                <a href="{{ route('categories') }}" class="nav-link ${activePage === 'categories' ? 'active' : ''}">
                   <i class="fa-solid fa-layer-group text-xs"></i> Categories
                 </a>
               </li>
 
               <li>
-                <a href="shop.html" class="nav-link ${activePage === 'shop' ? 'active' : ''}">
+                <a href="{{ route('shop') }}" class="nav-link ${activePage === 'shop' ? 'active' : ''}">
                   All Products
                 </a>
               </li>
 
               <!-- Laptops with Mega Menu -->
               <li class="has-mega-menu">
-                <a href="laptops.html" class="nav-link ${activePage === 'laptops' ? 'active' : ''}">
+                <a href="{{ route('laptops') }}" class="nav-link ${activePage === 'laptops' ? 'active' : ''}">
                   <i class="fa-solid fa-laptop text-xs"></i> Laptops <i class="fa-solid fa-chevron-down text-[9px] opacity-60"></i>
                 </a>
 
@@ -200,12 +200,12 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">By Usage</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="laptops.html?use=gaming" class="hover:text-blue-600 transition-colors">Gaming Laptops</a></li>
-                          <li class="truncate"><a href="laptops.html?use=coding" class="hover:text-blue-600 transition-colors">Coding & Devs</a></li>
-                          <li class="truncate"><a href="laptops.html?use=business" class="hover:text-blue-600 transition-colors">Business Ultrabooks</a></li>
-                          <li class="truncate"><a href="laptops.html?use=students" class="hover:text-blue-600 transition-colors">Students & Study</a></li>
-                          <li class="truncate"><a href="laptops.html?use=design" class="hover:text-blue-600 transition-colors">Video & Design</a></li>
-                          <li class="truncate"><a href="laptops.html?use=wfh" class="hover:text-blue-600 transition-colors">Work From Home</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?use=gaming" class="hover:text-blue-600 transition-colors">Gaming Laptops</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?use=coding" class="hover:text-blue-600 transition-colors">Coding & Devs</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?use=business" class="hover:text-blue-600 transition-colors">Business Ultrabooks</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?use=students" class="hover:text-blue-600 transition-colors">Students & Study</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?use=design" class="hover:text-blue-600 transition-colors">Video & Design</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?use=wfh" class="hover:text-blue-600 transition-colors">Work From Home</a></li>
                         </ul>
                       </div>
 
@@ -213,10 +213,10 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">By RAM</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="laptops.html?ram=8" class="hover:text-blue-600 transition-colors">8 GB RAM</a></li>
-                          <li class="truncate"><a href="laptops.html?ram=16" class="hover:text-blue-600 transition-colors">16 GB (Popular)</a></li>
-                          <li class="truncate"><a href="laptops.html?ram=32" class="hover:text-blue-600 transition-colors">32 GB Workstation</a></li>
-                          <li class="truncate"><a href="laptops.html?ram=64" class="hover:text-blue-600 transition-colors">64 GB+ Ultra</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?ram=8" class="hover:text-blue-600 transition-colors">8 GB RAM</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?ram=16" class="hover:text-blue-600 transition-colors">16 GB (Popular)</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?ram=32" class="hover:text-blue-600 transition-colors">32 GB Workstation</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?ram=64" class="hover:text-blue-600 transition-colors">64 GB+ Ultra</a></li>
                         </ul>
                       </div>
 
@@ -224,10 +224,10 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">Storage</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="laptops.html?storage=256" class="hover:text-blue-600 transition-colors">256 GB SSD</a></li>
-                          <li class="truncate"><a href="laptops.html?storage=512" class="hover:text-blue-600 transition-colors">512 GB SSD</a></li>
-                          <li class="truncate"><a href="laptops.html?storage=1000" class="hover:text-blue-600 transition-colors">1 TB SSD / Dual</a></li>
-                          <li class="truncate"><a href="laptops.html?storage=2000" class="hover:text-blue-600 transition-colors">2 TB SSD</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?storage=256" class="hover:text-blue-600 transition-colors">256 GB SSD</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?storage=512" class="hover:text-blue-600 transition-colors">512 GB SSD</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?storage=1000" class="hover:text-blue-600 transition-colors">1 TB SSD / Dual</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?storage=2000" class="hover:text-blue-600 transition-colors">2 TB SSD</a></li>
                         </ul>
                       </div>
 
@@ -235,12 +235,12 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">Top Brands</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="laptops.html?brand=Dell" class="hover:text-blue-600 transition-colors font-medium">Dell Latitude</a></li>
-                          <li class="truncate"><a href="laptops.html?brand=Lenovo" class="hover:text-blue-600 transition-colors font-medium">Lenovo ThinkPad</a></li>
-                          <li class="truncate"><a href="laptops.html?brand=HP" class="hover:text-blue-600 transition-colors font-medium">HP EliteBook</a></li>
-                          <li class="truncate"><a href="laptops.html?brand=Apple" class="hover:text-blue-600 transition-colors font-medium">Apple MacBook</a></li>
-                          <li class="truncate"><a href="laptops.html?brand=Asus" class="hover:text-blue-600 transition-colors">Asus ROG / TUF</a></li>
-                          <li class="truncate"><a href="laptops.html?brand=Acer" class="hover:text-blue-600 transition-colors">Acer Aspire</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?brand=Dell" class="hover:text-blue-600 transition-colors font-medium">Dell Latitude</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?brand=Lenovo" class="hover:text-blue-600 transition-colors font-medium">Lenovo ThinkPad</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?brand=HP" class="hover:text-blue-600 transition-colors font-medium">HP EliteBook</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?brand=Apple" class="hover:text-blue-600 transition-colors font-medium">Apple MacBook</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?brand=Asus" class="hover:text-blue-600 transition-colors">Asus ROG / TUF</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?brand=Acer" class="hover:text-blue-600 transition-colors">Acer Aspire</a></li>
                         </ul>
                       </div>
 
@@ -248,11 +248,11 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">Budget Range</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="laptops.html?maxPrice=15000" class="hover:text-blue-600 font-semibold text-emerald-600">Under ₹15,000</a></li>
-                          <li class="truncate"><a href="laptops.html?minPrice=15000&maxPrice=25000" class="hover:text-blue-600">₹15K – ₹25K</a></li>
-                          <li class="truncate"><a href="laptops.html?minPrice=25000&maxPrice=35000" class="hover:text-blue-600">₹25K – ₹35K</a></li>
-                          <li class="truncate"><a href="laptops.html?minPrice=35000&maxPrice=50000" class="hover:text-blue-600">₹35K – ₹50K</a></li>
-                          <li class="truncate"><a href="laptops.html?minPrice=50000" class="hover:text-blue-600">Flagships ₹50K+</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?maxPrice=15000" class="hover:text-blue-600 font-semibold text-emerald-600">Under ₹15,000</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?minPrice=15000&maxPrice=25000" class="hover:text-blue-600">₹15K – ₹25K</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?minPrice=25000&maxPrice=35000" class="hover:text-blue-600">₹25K – ₹35K</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?minPrice=35000&maxPrice=50000" class="hover:text-blue-600">₹35K – ₹50K</a></li>
+                          <li class="truncate"><a href="{{ route('laptops') }}?minPrice=50000" class="hover:text-blue-600">Flagships ₹50K+</a></li>
                         </ul>
                       </div>
 
@@ -264,7 +264,7 @@ const Components = {
                           <p class="text-[10px] xl:text-[11px] text-slate-300 mb-2 leading-tight">Tested & 12-Mo Warranty.</p>
                           <div class="text-[11px] xl:text-xs font-extrabold text-emerald-400">From ₹14,499*</div>
                         </div>
-                        <a href="laptops.html" class="mt-2.5 btn-base btn-primary btn-sm text-[10px] xl:text-xs w-full py-1.5 justify-center font-bold">
+                        <a href="{{ route('laptops') }}" class="mt-2.5 btn-base btn-primary btn-sm text-[10px] xl:text-xs w-full py-1.5 justify-center font-bold">
                           Explore <i class="fa-solid fa-arrow-right text-[9px]"></i>
                         </a>
                       </div>
@@ -275,7 +275,7 @@ const Components = {
 
               <!-- Mobile Phones with Mega Menu -->
               <li class="has-mega-menu">
-                <a href="mobile-phones.html" class="nav-link ${activePage === 'mobiles' ? 'active' : ''}">
+                <a href="{{ route('mobile-phones') }}" class="nav-link ${activePage === 'mobiles' ? 'active' : ''}">
                   <i class="fa-solid fa-mobile-screen-button text-xs"></i> Mobile Phones <i class="fa-solid fa-chevron-down text-[9px] opacity-60"></i>
                 </a>
 
@@ -287,11 +287,11 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">Category</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="mobile-phones.html?type=premium" class="hover:text-blue-600 transition-colors">Premium Flagships</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?type=camera" class="hover:text-blue-600 transition-colors">Camera Specialists</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?type=gaming" class="hover:text-blue-600 transition-colors">Gaming Phones</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?type=battery" class="hover:text-blue-600 transition-colors">5000mAh+ Battery</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?type=everyday" class="hover:text-blue-600 transition-colors">Everyday Value</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?type=premium" class="hover:text-blue-600 transition-colors">Premium Flagships</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?type=camera" class="hover:text-blue-600 transition-colors">Camera Specialists</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?type=gaming" class="hover:text-blue-600 transition-colors">Gaming Phones</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?type=battery" class="hover:text-blue-600 transition-colors">5000mAh+ Battery</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?type=everyday" class="hover:text-blue-600 transition-colors">Everyday Value</a></li>
                         </ul>
                       </div>
 
@@ -299,10 +299,10 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">RAM</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="mobile-phones.html?ram=4" class="hover:text-blue-600 transition-colors">4 GB RAM</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?ram=6" class="hover:text-blue-600 transition-colors">6 GB RAM</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?ram=8" class="hover:text-blue-600 transition-colors">8 GB RAM</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?ram=12" class="hover:text-blue-600 transition-colors">12 GB+ Flagship</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?ram=4" class="hover:text-blue-600 transition-colors">4 GB RAM</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?ram=6" class="hover:text-blue-600 transition-colors">6 GB RAM</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?ram=8" class="hover:text-blue-600 transition-colors">8 GB RAM</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?ram=12" class="hover:text-blue-600 transition-colors">12 GB+ Flagship</a></li>
                         </ul>
                       </div>
 
@@ -310,10 +310,10 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">Storage</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="mobile-phones.html?storage=64" class="hover:text-blue-600 transition-colors">64 GB Storage</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?storage=128" class="hover:text-blue-600 transition-colors">128 GB (Popular)</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?storage=256" class="hover:text-blue-600 transition-colors">256 GB Pro</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?storage=512" class="hover:text-blue-600 transition-colors">512 GB / 1 TB</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?storage=64" class="hover:text-blue-600 transition-colors">64 GB Storage</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?storage=128" class="hover:text-blue-600 transition-colors">128 GB (Popular)</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?storage=256" class="hover:text-blue-600 transition-colors">256 GB Pro</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?storage=512" class="hover:text-blue-600 transition-colors">512 GB / 1 TB</a></li>
                         </ul>
                       </div>
 
@@ -321,12 +321,12 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">Top Brands</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="mobile-phones.html?brand=Apple" class="hover:text-blue-600 font-medium">Apple iPhone</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?brand=Samsung" class="hover:text-blue-600 font-medium">Samsung Galaxy</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?brand=OnePlus" class="hover:text-blue-600 font-medium">OnePlus 5G</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?brand=Google" class="hover:text-blue-600 font-medium">Google Pixel</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?brand=Xiaomi" class="hover:text-blue-600">Xiaomi / Redmi</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?brand=Realme" class="hover:text-blue-600">Realme & Vivo</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?brand=Apple" class="hover:text-blue-600 font-medium">Apple iPhone</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?brand=Samsung" class="hover:text-blue-600 font-medium">Samsung Galaxy</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?brand=OnePlus" class="hover:text-blue-600 font-medium">OnePlus 5G</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?brand=Google" class="hover:text-blue-600 font-medium">Google Pixel</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?brand=Xiaomi" class="hover:text-blue-600">Xiaomi / Redmi</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?brand=Realme" class="hover:text-blue-600">Realme & Vivo</a></li>
                         </ul>
                       </div>
 
@@ -334,11 +334,11 @@ const Components = {
                       <div>
                         <h4 class="text-[11px] xl:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-100 truncate">Budget Range</h4>
                         <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
-                          <li class="truncate"><a href="mobile-phones.html?maxPrice=10000" class="hover:text-blue-600 font-semibold text-emerald-600">Under ₹10,000</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?minPrice=10000&maxPrice=15000" class="hover:text-blue-600">₹10K – ₹15K</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?minPrice=15000&maxPrice=25000" class="hover:text-blue-600">₹15K – ₹25K</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?minPrice=25000&maxPrice=40000" class="hover:text-blue-600">₹25K – ₹40K</a></li>
-                          <li class="truncate"><a href="mobile-phones.html?minPrice=40000" class="hover:text-blue-600">Flagships ₹40K+</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?maxPrice=10000" class="hover:text-blue-600 font-semibold text-emerald-600">Under ₹10,000</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?minPrice=10000&maxPrice=15000" class="hover:text-blue-600">₹10K – ₹15K</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?minPrice=15000&maxPrice=25000" class="hover:text-blue-600">₹15K – ₹25K</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?minPrice=25000&maxPrice=40000" class="hover:text-blue-600">₹25K – ₹40K</a></li>
+                          <li class="truncate"><a href="{{ route('mobile-phones') }}?minPrice=40000" class="hover:text-blue-600">Flagships ₹40K+</a></li>
                         </ul>
                       </div>
 
@@ -350,7 +350,7 @@ const Components = {
                           <p class="text-[10px] xl:text-[11px] text-slate-300 mb-2 leading-tight">Original display & OEM parts.</p>
                           <div class="text-[11px] xl:text-xs font-extrabold text-emerald-400">From ₹6,999*</div>
                         </div>
-                        <a href="mobile-phones.html" class="mt-2.5 btn-base btn-primary btn-sm text-[10px] xl:text-xs w-full py-1.5 justify-center font-bold">
+                        <a href="{{ route('mobile-phones') }}" class="mt-2.5 btn-base btn-primary btn-sm text-[10px] xl:text-xs w-full py-1.5 justify-center font-bold">
                           Shop Mobiles <i class="fa-solid fa-arrow-right text-[9px]"></i>
                         </a>
                       </div>
@@ -360,19 +360,19 @@ const Components = {
               </li>
 
               <li>
-                <a href="accessories.html" class="nav-link ${activePage === 'accessories' ? 'active' : ''}">
+                <a href="{{ route('accessories') }}" class="nav-link ${activePage === 'accessories' ? 'active' : ''}">
                   <i class="fa-solid fa-headphones text-xs"></i> Accessories
                 </a>
               </li>
 
               <li>
-                <a href="repair.html" class="nav-link ${activePage === 'repair' ? 'active' : ''}">
+                <a href="{{ route('repair') }}" class="nav-link ${activePage === 'repair' ? 'active' : ''}">
                   <i class="fa-solid fa-wrench text-xs text-blue-600"></i> Repair Services
                 </a>
               </li>
 
               <li>
-                <a href="exchange.html" class="nav-link ${activePage === 'exchange' ? 'active' : ''}">
+                <a href="{{ route('exchange') }}" class="nav-link ${activePage === 'exchange' ? 'active' : ''}">
                   <i class="fa-solid fa-rotate text-xs text-emerald-600"></i> Exchange & Upgrade
                 </a>
               </li>
@@ -399,7 +399,7 @@ const Components = {
         <div class="mobile-drawer-panel p-5">
           <!-- Drawer Top: Logo & Close Button -->
           <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-            <a href="index.html" onclick="App.closeMobileDrawer()">
+            <a href="{{ route('home') }}" onclick="App.closeMobileDrawer()">
               <img src="img/vanshitcomm-logo.png" alt="VANSH IT & COMM" class="h-9 w-auto object-contain" />
             </a>
             <button type="button" onclick="App.closeMobileDrawer()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors">
@@ -408,7 +408,7 @@ const Components = {
           </div>
 
           <!-- Quick Search in Drawer -->
-          <form action="shop.html" method="GET" class="mb-5 relative" onsubmit="App.closeMobileDrawer()">
+          <form action="{{ route('shop') }}" method="GET" class="mb-5 relative" onsubmit="App.closeMobileDrawer()">
             <input 
               type="text" 
               name="search" 
@@ -420,50 +420,50 @@ const Components = {
 
           <!-- Drawer Navigation Links -->
           <nav class="space-y-1 text-xs font-semibold text-slate-700 flex-1">
-            <a href="index.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'home' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('home') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'home' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-house w-4 text-center text-slate-400"></i> Home
             </a>
-            <a href="categories.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'categories' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('categories') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'categories' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-layer-group w-4 text-center text-blue-600"></i> All Categories Hub
             </a>
-            <a href="shop.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'shop' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('shop') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'shop' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-store w-4 text-center text-slate-400"></i> All Products Catalog
             </a>
-            <a href="laptops.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'laptops' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('laptops') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'laptops' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-laptop w-4 text-center text-slate-400"></i> Refurbished Laptops
             </a>
-            <a href="mobile-phones.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'mobiles' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('mobile-phones') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'mobiles' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-mobile-screen-button w-4 text-center text-slate-400"></i> Mobile Phones
             </a>
-            <a href="accessories.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'accessories' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('accessories') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'accessories' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-headphones w-4 text-center text-slate-400"></i> Computer Accessories
             </a>
-            <a href="repair.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'repair' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('repair') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'repair' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-wrench w-4 text-center text-blue-600"></i> Repair Services
             </a>
-            <a href="exchange.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'exchange' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('exchange') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'exchange' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-rotate w-4 text-center text-emerald-600"></i> Exchange & Upgrade
             </a>
-            <a href="blog.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'blog' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('blog') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'blog' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-newspaper w-4 text-center text-slate-400"></i> Tech Blog & Guides
             </a>
-            <a href="about.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'about' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('about') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'about' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-circle-info w-4 text-center text-slate-400"></i> About Us & 20-Pt Testing
             </a>
-            <a href="contact.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'contact' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
+            <a href="{{ route('contact') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors ${activePage === 'contact' ? 'bg-blue-50 text-blue-600 font-bold' : ''}">
               <i class="fa-solid fa-headset w-4 text-center text-slate-400"></i> Contact Support
             </a>
-            <a href="faq.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+            <a href="{{ route('faq') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
               <i class="fa-solid fa-circle-question w-4 text-center text-slate-400"></i> Frequently Asked Questions
             </a>
-            <a href="terms.html" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+            <a href="{{ route('terms') }}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
               <i class="fa-solid fa-shield-halved w-4 text-center text-slate-400"></i> Terms & Store Policies
             </a>
           </nav>
 
           <!-- Drawer Bottom Contact & Action -->
           <div class="pt-4 border-t border-slate-100 space-y-2 mt-4">
-            <a href="contact.html" class="btn-base btn-secondary btn-sm w-full text-xs py-2 justify-center font-bold">
+            <a href="{{ route('contact') }}" class="btn-base btn-secondary btn-sm w-full text-xs py-2 justify-center font-bold">
               <i class="fa-solid fa-headset text-blue-600 mr-1.5"></i> Customer Desk
             </a>
             <button type="button" onclick="App.closeMobileDrawer(); App.openModal('auth-modal');" class="btn-base btn-primary btn-sm w-full text-xs py-2 justify-center font-bold">
@@ -479,26 +479,26 @@ const Components = {
     return `
       <!-- Mobile Bottom Navigation Bar (Fixed for Mobile Screens) -->
       <div class="mobile-bottom-nav">
-        <a href="index.html" class="flex flex-col items-center justify-center flex-1 py-1 text-center ${activePage === 'home' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
+        <a href="{{ route('home') }}" class="flex flex-col items-center justify-center flex-1 py-1 text-center ${activePage === 'home' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
           <i class="fa-solid fa-house text-base"></i>
           <span class="text-[10px] mt-0.5">Home</span>
         </a>
-        <a href="categories.html" class="flex flex-col items-center justify-center flex-1 py-1 text-center ${activePage === 'categories' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
+        <a href="{{ route('categories') }}" class="flex flex-col items-center justify-center flex-1 py-1 text-center ${activePage === 'categories' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
           <i class="fa-solid fa-layer-group text-base"></i>
           <span class="text-[10px] mt-0.5">Categories</span>
         </a>
-        <a href="shop.html" class="flex flex-col items-center justify-center flex-1 py-1 text-center ${activePage === 'shop' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
+        <a href="{{ route('shop') }}" class="flex flex-col items-center justify-center flex-1 py-1 text-center ${activePage === 'shop' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
           <i class="fa-solid fa-magnifying-glass text-base"></i>
           <span class="text-[10px] mt-0.5">Search</span>
         </a>
-        <a href="wishlist.html" class="flex flex-col items-center justify-center flex-1 py-1 text-center relative ${activePage === 'wishlist' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
+        <a href="{{ route('wishlist') }}" class="flex flex-col items-center justify-center flex-1 py-1 text-center relative ${activePage === 'wishlist' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
           <div class="relative inline-block">
             <i class="fa-regular fa-heart text-base"></i>
             <span class="wishlist-count-badge absolute -top-1.5 -right-2.5 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[9px] font-bold items-center justify-center hidden">0</span>
           </div>
           <span class="text-[10px] mt-0.5">Wishlist</span>
         </a>
-        <a href="cart.html" class="flex flex-col items-center justify-center flex-1 py-1 text-center relative ${activePage === 'cart' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
+        <a href="{{ route('cart') }}" class="flex flex-col items-center justify-center flex-1 py-1 text-center relative ${activePage === 'cart' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}">
           <div class="relative inline-block">
             <i class="fa-solid fa-cart-shopping text-base"></i>
             <span class="cart-count-badge absolute -top-1.5 -right-2.5 w-3.5 h-3.5 rounded-full bg-blue-600 text-white text-[9px] font-bold items-center justify-center hidden">0</span>
@@ -596,7 +596,7 @@ const Components = {
             
             <!-- Col 1: Brand & Contact (4 cols) -->
             <div class="sm:col-span-2 lg:col-span-4 space-y-4">
-              <a href="index.html" class="inline-block group" aria-label="VANSH IT & COMM">
+              <a href="{{ route('home') }}" class="inline-block group" aria-label="VANSH IT & COMM">
                 <img src="img/vanshitcomm-logo-white.png" alt="VANSH IT & COMMUNICATION" class="h-9 w-auto object-contain transition-transform group-hover:scale-105" />
               </a>
               <div>
@@ -637,12 +637,12 @@ const Components = {
                 Shop Hardware
               </h4>
               <ul class="space-y-2.5 font-body text-xs">
-                <li><a href="laptops.html" class="footer-link">Refurbished Laptops</a></li>
-                <li><a href="mobile-phones.html" class="footer-link">Refurbished Mobiles</a></li>
-                <li><a href="accessories.html" class="footer-link">Computer Accessories</a></li>
-                <li><a href="laptops.html?maxPrice=15000" class="footer-link text-emerald-400">Under ₹15,000 Budget</a></li>
-                <li><a href="shop.html" class="footer-link">Deals & Clearance Hub</a></li>
-                <li><a href="categories.html" class="footer-link">All Categories Hub</a></li>
+                <li><a href="{{ route('laptops') }}" class="footer-link">Refurbished Laptops</a></li>
+                <li><a href="{{ route('mobile-phones') }}" class="footer-link">Refurbished Mobiles</a></li>
+                <li><a href="{{ route('accessories') }}" class="footer-link">Computer Accessories</a></li>
+                <li><a href="{{ route('laptops') }}?maxPrice=15000" class="footer-link text-emerald-400">Under ₹15,000 Budget</a></li>
+                <li><a href="{{ route('shop') }}" class="footer-link">Deals & Clearance Hub</a></li>
+                <li><a href="{{ route('categories') }}" class="footer-link">All Categories Hub</a></li>
               </ul>
             </div>
 
@@ -652,12 +652,12 @@ const Components = {
                 Expert Services
               </h4>
               <ul class="space-y-2.5 font-body text-xs">
-                <li><a href="repair.html" class="footer-link">Screen & Battery Repair</a></li>
-                <li><a href="repair.html" class="footer-link">Motherboard Diagnostics</a></li>
-                <li><a href="exchange.html" class="footer-link">Old Device Exchange / Sell</a></li>
+                <li><a href="{{ route('repair') }}" class="footer-link">Screen & Battery Repair</a></li>
+                <li><a href="{{ route('repair') }}" class="footer-link">Motherboard Diagnostics</a></li>
+                <li><a href="{{ route('exchange') }}" class="footer-link">Old Device Exchange / Sell</a></li>
                 <li><a href="product.html#video-call-drawer" class="footer-link text-blue-400">Video Call Product Demo</a></li>
-                <li><a href="track-order.html" class="footer-link">Track Your Parcel</a></li>
-                <li><a href="warranty.html" class="footer-link">Warranty & Claims</a></li>
+                <li><a href="{{ route('track-order') }}" class="footer-link">Track Your Parcel</a></li>
+                <li><a href="{{ route('warranty') }}" class="footer-link">Warranty & Claims</a></li>
               </ul>
             </div>
 
@@ -667,11 +667,11 @@ const Components = {
                 Company & Trust
               </h4>
               <ul class="space-y-2.5 font-body text-xs">
-                <li><a href="about.html" class="footer-link">About VANSH IT & COMM</a></li>
+                <li><a href="{{ route('about') }}" class="footer-link">About VANSH IT & COMM</a></li>
                 <li><a href="about.html#refurbish-process" class="footer-link">20-Point QC Testing</a></li>
-                <li><a href="blog.html" class="footer-link">Tech Buying Guides & Blog</a></li>
-                <li><a href="faq.html" class="footer-link">Frequently Asked Questions</a></li>
-                <li><a href="contact.html" class="footer-link">Customer Helpdesk</a></li>
+                <li><a href="{{ route('blog') }}" class="footer-link">Tech Buying Guides & Blog</a></li>
+                <li><a href="{{ route('faq') }}" class="footer-link">Frequently Asked Questions</a></li>
+                <li><a href="{{ route('contact') }}" class="footer-link">Customer Helpdesk</a></li>
               </ul>
             </div>
 
@@ -682,11 +682,11 @@ const Components = {
               </h4>
               <ul class="space-y-2.5 font-body text-xs">
                 <li><a href="terms.html?tab=terms" class="footer-link">Terms & Conditions</a></li>
-                <li><a href="privacy.html" class="footer-link">Privacy & Data Security</a></li>
-                <li><a href="returns.html" class="footer-link">7-Day Replacement Policy</a></li>
-                <li><a href="shipping.html" class="footer-link">Shipping & Logistics Policy</a></li>
+                <li><a href="{{ route('privacy') }}" class="footer-link">Privacy & Data Security</a></li>
+                <li><a href="{{ route('returns') }}" class="footer-link">7-Day Replacement Policy</a></li>
+                <li><a href="{{ route('shipping') }}" class="footer-link">Shipping & Logistics Policy</a></li>
                 <li><a href="terms.html?tab=cookies" class="footer-link">Cookies Policy</a></li>
-                <li><a href="warranty.html" class="footer-link">Warranty Guidelines</a></li>
+                <li><a href="{{ route('warranty') }}" class="footer-link">Warranty Guidelines</a></li>
               </ul>
             </div>
 

@@ -69,36 +69,65 @@ use App\Http\Controllers\Admin\{
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\FrontController;
-
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\Auth\CustomerAuthController;
+use App\Http\Controllers\CheckoutController;
 
 Route::middleware('maintenance.mode')->group(function () {
 
     Route::controller(FrontController::class)->group(function () {
-        Route::view('/', 'front-pages.home')->name('home');
-        Route::view('/shop', 'front-pages.shop')->name('shop');
+        Route::get('/', 'home')->name('home');
+        Route::get('/shop', 'shop')->name('shop');
+        Route::get('/categories', 'categories')->name('categories');
+        Route::get('/category/{slug}', 'categoryShow')->name('category.show');
+        Route::get('/product/{slug}', 'productShow')->name('product.show');
+
         Route::view('/about', 'front-pages.about')->name('about');
-        Route::view('/accessories', 'front-pages.accessories')->name('accessories');
-        Route::view('/laptops', 'front-pages.laptops')->name('laptops');
-        Route::view('/mobile-phones', 'front-pages.mobile-phones')->name('mobile-phones');
         Route::view('/repair', 'front-pages.repair')->name('repair');
         Route::view('/warranty', 'front-pages.warranty')->name('warranty');
         Route::view('/contact', 'front-pages.contact')->name('contact');
         Route::view('/wishlist', 'front-pages.wishlist')->name('wishlist');
         Route::view('/track-order', 'front-pages.track-order')->name('track-order');
-        Route::view('/account', 'front-pages.account')->name('account');
+
         Route::view('/blog', 'front-pages.blog')->name('blog');
         Route::view('/blog-detail', 'front-pages.blog-detail')->name('blog.detail');
-        Route::view('/cart', 'front-pages.cart')->name('cart');
-        Route::view('/checkout', 'front-pages.checkout')->name('checkout');
-        Route::view('/product', 'front-pages.product')->name('product');
         Route::view('/thank-you', 'front-pages.thank-you')->name('thank-you');
-        Route::view('/categories', 'front-pages.categories')->name('categories');
         Route::view('/exchange', 'front-pages.exchange')->name('exchange');
         Route::view('/faq', 'front-pages.faq')->name('faq');
         Route::view('/privacy', 'front-pages.privacy')->name('privacy');
         Route::view('/terms', 'front-pages.terms')->name('terms');
         Route::view('/returns', 'front-pages.returns')->name('returns');
         Route::view('/shipping', 'front-pages.shipping')->name('shipping');
+    });
+
+
+    Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::get('/cart', [CartController::class, 'cart'])->name('cart');
+    Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
+    Route::post('/cart/update-quantity', [CartController::class, 'updateQuantity'])->name('cart.update');
+    Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
+    Route::post('/cart/apply-coupon', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
+    Route::post('/cart/remove-coupon', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
+
+    Route::get('/checkout', [CheckoutController::class, 'checkout'])->name('checkout');
+    Route::post('/checkout/address', [CheckoutController::class, 'storeAddress'])->name('checkout.address.store');
+    Route::post('/checkout/address/default', [CheckoutController::class, 'changeDefaultAddress'])->name('checkout.address.default');
+    Route::get('/checkout/cities/{state}', [CheckoutController::class, 'cities'])->name('checkout.cities');
+
+    Route::prefix('user')->name('user.')->group(function () {
+        Route::get('/login', [CustomerAuthController::class, 'loginForm'])->name('login');
+        Route::post('/login', [CustomerAuthController::class, 'login'])->name('login.submit');
+
+        Route::get('/register', [CustomerAuthController::class, 'registerForm'])->name('register');
+        Route::post('/register', [CustomerAuthController::class, 'register'])->name('register.submit');
+
+        Route::get('/auth/google', [CustomerAuthController::class, 'redirectToGoogle'])->name('google');
+        Route::get('/auth/google/callback', [CustomerAuthController::class, 'handleGoogleCallback'])->name('google.callback');
+
+        Route::middleware('customer')->group(function () {
+            Route::view('/account', 'front-pages.account')->name('account');
+            Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
+        });
     });
 
 });
@@ -135,7 +164,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('gifting-occasions', GiftingOccasionController::class);
 
         // product routes
-        Route::get('/products/suggestion-keywords', [ProductController::class, 'suggestionKeywords'])->name('products.suggestion-keywords');
         Route::view('/products/media-library', 'admin.products.media-library')->name('products.media-library');
         Route::get('products/subcategories/{category}', [ProductController::class, 'subcategories'])->name('products.subcategories');
         Route::get('products/category-attributes/{category}', [ProductController::class, 'categoryAttributes'])->name('products.category-attributes');

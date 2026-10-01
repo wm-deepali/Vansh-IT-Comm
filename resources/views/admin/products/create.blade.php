@@ -3,6 +3,12 @@
 <div class="main-section">
     @include('admin.header')
 
+    @php
+        // Checkbox helper: on a fresh form use $default, after a validation error use what was submitted
+        $hasOld = !empty(old());
+        $chk = fn ($key, $default = false) => $hasOld ? (bool) old($key) : $default;
+    @endphp
+
     <style>
         .cke_notifications_area,
         .cke_notification,
@@ -193,6 +199,19 @@
             margin-top: 4px;
         }
 
+        /* ── Two-column row inside a card ───────────────────────── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media(max-width:640px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* ── Slug prefix ────────────────────────────────────────── */
         .slug-wrap {
             position: relative;
@@ -217,7 +236,7 @@
         }
 
         .slug-input {
-            padding-left: 68px !important;
+            padding-left: 84px !important;
         }
 
         /* ── Pricing row ────────────────────────────────────────── */
@@ -581,7 +600,7 @@
             margin-bottom: 0;
         }
 
-        /* ── Variants table (dynamic) — also reused for Addon Options ── */
+        /* ── Variants table (dynamic) — also reused for Addon Options & Key Specs ── */
         .variants-table {
             width: 100%;
             border-collapse: collapse;
@@ -639,7 +658,7 @@
             background: #fafafa;
         }
 
-        /* ── Content tabs (Description / Fabric Care / Shipping & Delivery / Exchange Policy / Customization) ── */
+        /* ── Content tabs ── */
         .content-tabs {
             display: flex;
             flex-wrap: wrap;
@@ -801,99 +820,6 @@
         .variant-row-excluded select {
             background: #f1f2f4;
         }
-
-        /* ── Tag input (Search Suggestions) ─────────────────────────── */
-        .tag-input-wrap {
-            position: relative;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 8px 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            align-items: center;
-            background: var(--surface);
-            transition: border-color .15s, box-shadow .15s;
-        }
-
-        .tag-input-wrap:focus-within {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(48, 61, 137, .12);
-        }
-
-        .tag-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .tag-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--accent-light);
-            color: var(--accent);
-            border: 1px solid #c7cdf5;
-            border-radius: 20px;
-            padding: 4px 6px 4px 12px;
-            font-size: 12.5px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .tag-remove {
-            background: transparent;
-            border: none;
-            color: var(--accent);
-            cursor: pointer;
-            font-size: 14px;
-            line-height: 1;
-            padding: 2px 4px;
-            border-radius: 50%;
-        }
-
-        .tag-remove:hover {
-            background: var(--accent);
-            color: #fff;
-        }
-
-        .tag-input-field {
-            flex: 1;
-            min-width: 140px;
-            border: none;
-            outline: none;
-            font-size: 13.5px;
-            font-family: var(--font);
-            padding: 4px 0;
-            background: transparent;
-        }
-
-        .tag-suggestions-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            margin-top: 4px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, .1);
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 50;
-            display: none;
-        }
-
-        .tag-suggestion-item {
-            padding: 8px 12px;
-            font-size: 13px;
-            cursor: pointer;
-        }
-
-        .tag-suggestion-item:hover {
-            background: var(--accent-light);
-            color: var(--accent);
-        }
     </style>
 
     <div class="app-content content container-fluid">
@@ -961,19 +887,52 @@
                                 </div>
 
                                 <div class="field-group">
+                                    <label class="field-label">Brand</label>
+                                    <select name="brand_id" id="brand_id" class="field-select">
+                                        <option value="">— Select Brand —</option>
+                                        @foreach($brands as $brand)
+                                            <option value="{{ $brand->id }}" {{ old('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="field-group">
                                     <label class="field-label">Product Name <span class="req">*</span></label>
                                     <input type="text" name="name" id="product_name" class="field-input" required
-                                        value="{{ old('name') }}" placeholder="e.g. Hand-Knotted Wool Rug">
+                                        value="{{ old('name') }}" placeholder="e.g. Dell Latitude 5420 Business Laptop">
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Slug</label>
                                     <div class="slug-wrap">
-                                        <span class="slug-prefix">/p/</span>
+                                        <span class="slug-prefix">/product/</span>
                                         <input type="text" name="slug" id="slug" class="field-input slug-input"
                                             value="{{ old('slug') }}" placeholder="auto-generated">
                                     </div>
                                     <div class="field-hint">Optional — auto-generated from product name if left blank
+                                    </div>
+                                </div>
+
+                                <div class="two-col">
+                                    <div class="field-group">
+                                        <label class="field-label">Condition</label>
+                                        <select name="condition" class="field-select">
+                                            <option value="">— Select —</option>
+                                            @foreach(['New', 'Refurbished', 'Open Box'] as $cond)
+                                                <option value="{{ $cond }}" {{ old('condition') == $cond ? 'selected' : '' }}>{{ $cond }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="field-group">
+                                        <label class="field-label">Warranty</label>
+                                        <input type="text" name="warranty" class="field-input" list="warranty-options"
+                                            value="{{ old('warranty') }}" placeholder="e.g. 12 Month Warranty">
+                                        <datalist id="warranty-options">
+                                            <option value="3 Month Warranty">
+                                            <option value="6 Month Warranty">
+                                            <option value="12 Month Warranty">
+                                            <option value="3 Year Manufacturer Warranty">
+                                        </datalist>
                                     </div>
                                 </div>
 
@@ -986,6 +945,42 @@
                             </div>
                         </div>
 
+                        <!-- Key Specifications -->
+                        <div class="section-card">
+                            <div class="section-card-header">
+                                <h5>Key Specifications</h5>
+                                <button type="button" class="btn-secondary-dash" id="add-spec-row"
+                                    style="padding:5px 12px;font-size:11.5px;">
+                                    <i class="fa fa-plus"></i> Add Spec
+                                </button>
+                            </div>
+                            <div class="section-card-body" style="padding:0;overflow-x:auto">
+                                <table class="variants-table" id="spec-table" style="display:none">
+                                    <thead>
+                                        <tr>
+                                            <th>Label</th>
+                                            <th>Value</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="spec-table-body"></tbody>
+                                </table>
+                                <div class="field-hint" id="spec-empty-hint" style="padding:16px 20px">
+                                    No specs yet. Add free-text specs such as Display, Battery, Camera or Graphics.
+                                    Choice-based specs (RAM, Storage, Color, Processor, OS) come from the Attributes
+                                    section below.
+                                </div>
+                                <datalist id="spec-labels">
+                                    <option value="Display">
+                                    <option value="Battery">
+                                    <option value="Camera">
+                                    <option value="Graphics">
+                                    <option value="Ports">
+                                    <option value="Connectivity">
+                                </datalist>
+                            </div>
+                        </div>
+
                         <!-- Content -->
                         <div class="section-card">
                             <div class="section-card-header">
@@ -995,14 +990,12 @@
                             <div class="content-tabs">
                                 <button type="button" class="content-tab-btn active"
                                     data-tab="description">Description</button>
-                                <button type="button" class="content-tab-btn" data-tab="fabric_care">Fabric
-                                    Care</button>
+                                <button type="button" class="content-tab-btn" data-tab="condition_details">Condition
+                                    &amp; QC</button>
+                                <button type="button" class="content-tab-btn" data-tab="warranty_coverage">Warranty
+                                    &amp; Coverage</button>
                                 <button type="button" class="content-tab-btn" data-tab="shipping_delivery">Shipping
                                     &amp; Delivery</button>
-                                <button type="button" class="content-tab-btn" data-tab="exchange_policy">Exchange
-                                    Policy</button>
-                                <button type="button" class="content-tab-btn"
-                                    data-tab="customization_assistance">Customization/Assistance</button>
                             </div>
 
                             <div class="section-card-body">
@@ -1012,24 +1005,19 @@
                                         class="field-textarea">{{ old('description') }}</textarea>
                                 </div>
 
-                                <div class="content-tab-panel" data-panel="fabric_care">
-                                    <textarea name="fabric_care" id="fabric_care"
-                                        class="field-textarea">{{ old('fabric_care') }}</textarea>
+                                <div class="content-tab-panel" data-panel="condition_details">
+                                    <textarea name="condition_details" id="condition_details"
+                                        class="field-textarea">{{ old('condition_details') }}</textarea>
+                                </div>
+
+                                <div class="content-tab-panel" data-panel="warranty_coverage">
+                                    <textarea name="warranty_coverage" id="warranty_coverage"
+                                        class="field-textarea">{{ old('warranty_coverage') }}</textarea>
                                 </div>
 
                                 <div class="content-tab-panel" data-panel="shipping_delivery">
                                     <textarea name="shipping_delivery" id="shipping_delivery"
                                         class="field-textarea">{{ old('shipping_delivery') }}</textarea>
-                                </div>
-
-                                <div class="content-tab-panel" data-panel="exchange_policy">
-                                    <textarea name="exchange_policy" id="exchange_policy"
-                                        class="field-textarea">{{ old('exchange_policy') }}</textarea>
-                                </div>
-
-                                <div class="content-tab-panel" data-panel="customization_assistance">
-                                    <textarea name="customization_assistance" id="customization_assistance"
-                                        class="field-textarea">{{ old('customization_assistance') }}</textarea>
                                 </div>
 
                             </div>
@@ -1165,8 +1153,8 @@
                                         <div class="toggle-sub">Visible to customers</div>
                                     </div>
                                     <select name="status" class="field-select-sm">
-                                        <option value="1">Active</option>
-                                        <option value="0">Inactive</option>
+                                        <option value="1" {{ old('status', '1') == '1' ? 'selected' : '' }}>Active</option>
+                                        <option value="0" {{ old('status') === '0' ? 'selected' : '' }}>Inactive</option>
                                     </select>
                                 </div>
                             </div>
@@ -1184,11 +1172,6 @@
                                         <label class="field-label">SKU</label>
                                         <input type="text" name="sku" class="field-input" value="{{ old('sku') }}"
                                             placeholder="SKU-001">
-                                    </div>
-                                    <div class="field-group">
-                                        <label class="field-label">Product Code</label>
-                                        <input type="text" name="product_code" class="field-input"
-                                            value="{{ old('product_code') }}">
                                     </div>
                                     <div class="field-group">
                                         <label class="field-label">Stock</label>
@@ -1210,11 +1193,11 @@
 
                                 <div style="margin-top:4px">
                                     <label class="check-toggle">
-                                        <input type="checkbox" name="quality" {{ old('quality') ? 'checked' : '' }}>
-                                        <span>Quality Assurance</span>
+                                        <input type="checkbox" name="quality" {{ $chk('quality') ? 'checked' : '' }}>
+                                        <span>20-Point QC Certified</span>
                                     </label>
                                     <label class="check-toggle">
-                                        <input type="checkbox" name="pan_india" {{ old('pan_india') ? 'checked' : '' }}>
+                                        <input type="checkbox" name="pan_india" {{ $chk('pan_india') ? 'checked' : '' }}>
                                         <span>PAN India Delivery</span>
                                     </label>
                                 </div>
@@ -1222,18 +1205,30 @@
                             </div>
                         </div>
 
-                        <!-- Occasions -->
+                        <!-- Trust & Services -->
                         <div class="section-card">
                             <div class="section-card-header">
-                                <h5>Occasions</h5>
+                                <h5>Trust &amp; Services</h5>
                             </div>
                             <div class="section-card-body">
-                                @foreach($occasions as $o)
-                                    <label class="check-toggle">
-                                        <input type="checkbox" name="occasions[]" value="{{ $o->id }}" {{ in_array($o->id, old('occasions', [])) ? 'checked' : '' }}>
-                                        <span>{{ $o->title }}</span>
-                                    </label>
-                                @endforeach
+                                <label class="check-toggle">
+                                    <input type="checkbox" name="warranty_backed" value="1" {{ $chk('warranty_backed', true) ? 'checked' : '' }}>
+                                    <span>Warranty Backed</span>
+                                </label>
+                                <label class="check-toggle">
+                                    <input type="checkbox" name="seven_day_returns" value="1" {{ $chk('seven_day_returns', true) ? 'checked' : '' }}>
+                                    <span>7-Day Returns</span>
+                                </label>
+                                <label class="check-toggle">
+                                    <input type="checkbox" name="insured_transit" value="1" {{ $chk('insured_transit', true) ? 'checked' : '' }}>
+                                    <span>Insured Transit</span>
+                                </label>
+                                <label class="check-toggle" style="margin-bottom:0">
+                                    <input type="checkbox" name="video_call_demo" value="1" {{ $chk('video_call_demo', true) ? 'checked' : '' }}>
+                                    <span>Video Call Demo</span>
+                                </label>
+                                <div class="field-hint" style="margin-top:10px">Controls the trust bar and the Video Call
+                                    button on the product page.</div>
                             </div>
                         </div>
 
@@ -1271,27 +1266,6 @@
                             </div>
                         </div>
 
-                        <!-- Search Suggestions -->
-                        <div class="section-card">
-                            <div class="section-card-header">
-                                <h5>Search Suggestions</h5>
-                            </div>
-                            <div class="section-card-body">
-                                <div class="field-group" style="margin:0">
-                                    <label class="field-label">Enter Suggestions</label>
-                                    <div class="tag-input-wrap" id="suggestionsWrap">
-                                        <div class="tag-list" id="suggestionsTagList"></div>
-                                        <input type="text" id="suggestionsInput" class="tag-input-field"
-                                            placeholder="Type a keyword and press space…" autocomplete="off">
-                                        <div class="tag-suggestions-dropdown" id="suggestionsDropdown"></div>
-                                    </div>
-                                    <div id="suggestionsHidden"></div>
-                                    <div class="field-hint">Press spacebar after typing a keyword to add it as a tag.
-                                        These power the header search suggestions.</div>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
                 </div>
 
@@ -1313,18 +1287,15 @@
 
 <script>
     /* ── CKEditor ───────────────────────────────────────────────── */
-    /* Content section now has 5 independently-named fields, each its own
-     * editor, switched between via tabs (see .content-tab-* handler below).
-     * All 5 are initialized up front so their values are always present
-     * in the POST regardless of which tab was last open. */
+    /* Content section has 4 independently-named fields, each its own
+     * editor, switched between via tabs. All are initialized up front so
+     * their values are always present in the POST regardless of which tab
+     * was last open. */
     CKEDITOR.config.versionCheck = false;
     CKEDITOR.replace('description');
-    CKEDITOR.replace('fabric_care');
+    CKEDITOR.replace('condition_details');
+    CKEDITOR.replace('warranty_coverage');
     CKEDITOR.replace('shipping_delivery');
-    CKEDITOR.replace('exchange_policy');
-    CKEDITOR.replace('customization_assistance');
-
-    let initialSuggestions = [];
 
     /* ── Content tabs ────────────────────────────────────────────── */
     $(document).on('click', '.content-tab-btn', function () {
@@ -1361,7 +1332,7 @@
         $('#price-display').text('₹' + p.toFixed(2));
     }
     $('#mrp, #discount, #discount_type').on('keyup change', calcPrice);
-    calcPrice(); // ✅ run once on load — keeps hidden #price populated even if MRP/Discount are never touched
+    calcPrice(); // run once on load — keeps hidden #price populated even if MRP/Discount are never touched
 
     /* ── Submit spinner ─────────────────────────────────────────── */
     $(document).on('submit', '.save-form', function () {
@@ -1459,9 +1430,9 @@
 
 
     /* ── Variant image uploads (multiple, per variant row) ──────────
- * Keyed by the row's own prefix string (e.g. "variants_image[2]")
- * since that's already unique per row. Posted as {prefix}[images][].
- */
+     * Keyed by the row's own prefix string (e.g. "variants_image[2]")
+     * since that's already unique per row. Posted as {prefix}[images][].
+     */
     let variantImageFiles = {};
 
     $(document).on('change', '.variant-image-input', function (e) {
@@ -1502,6 +1473,46 @@
     }
 
 
+    /* ── Key Specifications (dynamic rows) ─────────────────────────
+     * Posted as key_specs[index][label] / key_specs[index][value].
+     * Rows with an empty label or value should be dropped by the controller. */
+    let specIndex = 0;
+
+    function addSpecRow(label, value) {
+        let i = specIndex++;
+        let $row = $(`
+        <tr id="spec-row-${i}">
+            <td><input type="text" name="key_specs[${i}][label]" class="field-input spec-label" list="spec-labels" placeholder="e.g. Display"></td>
+            <td><input type="text" name="key_specs[${i}][value]" class="field-input spec-value" placeholder="e.g. 14&quot; Full HD Anti-Glare"></td>
+            <td><button type="button" class="remove-btn" style="position:static" onclick="removeSpecRow(${i})">×</button></td>
+        </tr>`);
+        $row.find('.spec-label').val(label || '');
+        $row.find('.spec-value').val(value || '');
+        $('#spec-table-body').append($row);
+        toggleSpecTable();
+    }
+
+    function removeSpecRow(index) {
+        $('#spec-row-' + index).remove();
+        toggleSpecTable();
+    }
+
+    function toggleSpecTable() {
+        let hasRows = $('#spec-table-body tr').length > 0;
+        $('#spec-table').toggle(hasRows);
+        $('#spec-empty-hint').toggle(!hasRows);
+    }
+
+    $(document).on('click', '#add-spec-row', function () {
+        addSpecRow('', '');
+    });
+
+    // Restore rows after a validation error
+    (@json(old('key_specs', [])) || []).forEach(function (row) {
+        if (row) addSpecRow(row.label, row.value);
+    });
+
+
     /* ── Addon Options (dynamic rows) ──────────────────────────────
      * Posted as addons[index][detail] / addons[index][price] — an
      * independent array the controller can loop over to create/sync
@@ -1511,7 +1522,7 @@
     $(document).on('click', '#add-addon-row', function () {
         let row = `
         <tr id="addon-row-${addonIndex}">
-            <td><input type="text" name="addons[${addonIndex}][detail]" class="field-input" placeholder="e.g. Gift Wrapping"></td>
+            <td><input type="text" name="addons[${addonIndex}][detail]" class="field-input" placeholder="e.g. Extended Warranty (+6 Months)"></td>
             <td><input type="number" step="0.01" name="addons[${addonIndex}][price]" class="field-input" placeholder="0.00"></td>
             <td><button type="button" class="remove-btn" style="position:static" onclick="removeAddonRow(${addonIndex})">×</button></td>
         </tr>`;
@@ -1689,7 +1700,7 @@
         }
     });
 
-    /* ── Keep "N selected" badge live + auto-expand accordions that already have a selection restored (e.g. old()) ── */
+    /* ── Keep "N selected" badge live ── */
     function refreshAttrSelectedCount($accordion) {
         let count = $accordion.find('.attribute-value:checked').length;
         let $badge = $accordion.find('.attr-selected-count');
@@ -1789,7 +1800,7 @@
         if (type === 'price') headCols += '<th>MRP</th><th>Discount Type</th><th>Discount</th><th>Final Price</th>';
         if (type === 'stock') headCols += '<th>Stock</th>';
         if (type === 'image') headCols += '<th>Image</th>';
-        headCols += '<th>Available</th>'; // ✅ replaces the remove-button column
+        headCols += '<th>Available</th>';
 
         let rows = '';
 
@@ -1833,7 +1844,7 @@
             </td>`;
             }
 
-            // ✅ "Not offered" checkbox instead of a delete button — the row
+            // "Not offered" checkbox instead of a delete button — the row
             // (and its stock/price/etc data) is always submitted, but
             // checking this tells the controller to save it as is_available=0,
             // so it stays out of customer-facing stock matching without
@@ -1865,7 +1876,7 @@
     </div>`;
     }
 
-    // ✅ visually grey out a row when marked "Not offered"
+    // visually grey out a row when marked "Not offered"
     function toggleVariantRowStyle(checkbox) {
         $(checkbox).closest('tr').toggleClass('variant-row-excluded', checkbox.checked);
     }
@@ -1884,101 +1895,6 @@
             row.find('input[name$="[price]"]').val(finalPrice.toFixed(2));
         }
     );
-
-    /* ── Search Suggestions (tag input, spacebar-to-add, with autocomplete) ── */
-    (function () {
-        const input = document.getElementById('suggestionsInput');
-        const tagList = document.getElementById('suggestionsTagList');
-        const hiddenWrap = document.getElementById('suggestionsHidden');
-        const dropdown = document.getElementById('suggestionsDropdown');
-        const wrap = document.getElementById('suggestionsWrap');
-
-        let tags = Array.isArray(initialSuggestions) ? initialSuggestions.slice() : [];
-        let fetchTimer = null;
-
-        function renderTags() {
-            tagList.innerHTML = '';
-            hiddenWrap.innerHTML = '';
-            tags.forEach(function (tag, i) {
-                tagList.insertAdjacentHTML('beforeend',
-                    `<span class="tag-chip">${tag}<button type="button" class="tag-remove" data-index="${i}">×</button></span>`);
-                hiddenWrap.insertAdjacentHTML('beforeend',
-                    `<input type="hidden" name="suggestions[]" value="${tag.replace(/"/g, '&quot;')}">`);
-            });
-        }
-
-        function addTag(value) {
-            value = value.trim();
-            if (!value) return;
-            if (tags.some(t => t.toLowerCase() === value.toLowerCase())) {
-                input.value = '';
-                dropdown.style.display = 'none';
-                return;
-            }
-            tags.push(value);
-            renderTags();
-            input.value = '';
-            dropdown.style.display = 'none';
-        }
-
-        input.addEventListener('keydown', function (e) {
-            if (e.key === ' ' || e.code === 'Space') {
-                e.preventDefault();
-                addTag(input.value);
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                addTag(input.value);
-            } else if (e.key === 'Backspace' && input.value === '' && tags.length) {
-                tags.pop();
-                renderTags();
-            }
-        });
-
-        tagList.addEventListener('click', function (e) {
-            if (e.target.classList.contains('tag-remove')) {
-                let idx = +e.target.dataset.index;
-                tags.splice(idx, 1);
-                renderTags();
-            }
-        });
-
-        input.addEventListener('input', function () {
-            clearTimeout(fetchTimer);
-            let q = input.value.trim();
-
-            if (!q) {
-                dropdown.style.display = 'none';
-                return;
-            }
-
-            fetchTimer = setTimeout(function () {
-                $.get("{{ route('admin.products.suggestion-keywords') }}", { q: q }, function (res) {
-                    let matches = res.filter(k => !tags.some(t => t.toLowerCase() === k.toLowerCase()));
-
-                    if (matches.length) {
-                        dropdown.innerHTML = matches.map(k => `<div class="tag-suggestion-item">${k}</div>`).join('');
-                        dropdown.style.display = 'block';
-                    } else {
-                        dropdown.style.display = 'none';
-                    }
-                });
-            }, 200);
-        });
-
-        dropdown.addEventListener('click', function (e) {
-            if (e.target.classList.contains('tag-suggestion-item')) {
-                addTag(e.target.textContent);
-            }
-        });
-
-        document.addEventListener('click', function (e) {
-            if (!wrap.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
-        });
-
-        renderTags();
-    })();
 </script>
 
 @include('admin.footer')

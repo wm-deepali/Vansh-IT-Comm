@@ -13,22 +13,28 @@ class Product extends Model
 
         'category_id',
         'subcategory_id',
+        'brand_id',
 
         'name',
         'slug',
 
         'sku',
-        'product_code',
 
         'short_description',
         'description',
-        'delivery_returns',
-        'fabric_care',
 
-        // ✅ new Content-tab fields
+        // electronics fields
+        'condition',
+        'warranty',
+        'condition_details',
+        'warranty_coverage',
         'shipping_delivery',
-        'exchange_policy',
-        'customization_assistance',
+        'key_specs',
+
+        'warranty_backed',
+        'seven_day_returns',
+        'insured_transit',
+        'video_call_demo',
 
         'mrp',
         'discount_type',
@@ -56,6 +62,13 @@ class Product extends Model
         'quality' => 'boolean',
         'pan_india' => 'boolean',
 
+        'warranty_backed' => 'boolean',
+        'seven_day_returns' => 'boolean',
+        'insured_transit' => 'boolean',
+        'video_call_demo' => 'boolean',
+
+        'key_specs' => 'array',
+
     ];
 
     public function category()
@@ -66,6 +79,11 @@ class Product extends Model
     public function subcategory()
     {
         return $this->belongsTo(Category::class, 'subcategory_id');
+    }
+
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     /**
@@ -91,6 +109,38 @@ class Product extends Model
             : null;
     }
 
+    /**
+     * Attribute values grouped by attribute name, e.g.
+     * ['RAM' => '16 GB', 'Operating System' => 'Windows 11'].
+     * Needs attributeValues.attribute + attributeValues.value (eager load them).
+     */
+    public function attributeSummary(): array
+    {
+        return $this->attributeValues
+            ->filter(fn ($av) => $av->attribute && $av->value)
+            ->groupBy(fn ($av) => $av->attribute->name)
+            ->map(fn ($group) => $group->map(fn ($av) => $av->value->value)->implode(', '))
+            ->all();
+    }
+
+    /** Value of one attribute by name, or null. */
+    public function attr(string $name): ?string
+    {
+        return $this->attributeSummary()[$name] ?? null;
+    }
+
+    /** Value of one Key Specification row by label (case-insensitive), or null. */
+    public function keySpec(string $label): ?string
+    {
+        foreach ($this->key_specs ?? [] as $spec) {
+            if (strcasecmp($spec['label'] ?? '', $label) === 0) {
+                return $spec['value'] ?? null;
+            }
+        }
+
+        return null;
+    }
+
     public function attributeValues()
     {
         return $this->hasMany(ProductAttributeValue::class);
@@ -106,27 +156,16 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
-    // ✅ new: product videos (Media → Video)
+    // product videos (Media → Video)
     public function videos()
     {
         return $this->hasMany(ProductVideo::class);
     }
 
-    // ✅ new: addon options (Addon Options section)
+    // addon options (Addon Options section)
     public function addons()
     {
         return $this->hasMany(ProductAddon::class);
-    }
-
-    // OCCASIONS
-    public function occasions()
-    {
-        return $this->belongsToMany(
-            GiftingOccasion::class,
-            'occasion_product',
-            'product_id',
-            'occasion_id'
-        );
     }
 
     public function collections()
@@ -167,9 +206,7 @@ class Product extends Model
         return $this->hasMany(ProductReview::class)->where('status', 'approved');
     }
 
-    public function keywords()
-    {
-        return $this->hasMany(ProductKeyword::class);
-    }
+    public const CONDITIONS = ['New', 'Refurbished', 'Open Box'];
 
+    
 }

@@ -4,187 +4,92 @@
     @include('admin.header')
 
     <style>
-    /* ── Design Tokens ──────────────────────────────────────── */
     :root {
-        --bg:            #f1f2f4;
-        --surface:       #ffffff;
-        --border:        #e3e5e8;
-        --text-primary:  #202223;
-        --text-secondary:#6d7175;
-        --text-hint:     #8c9196;
-        --accent:        #303d89;
-        --accent-light:  #f0f1fc;
-        --green:         #007a5e;
-        --green-bg:      #e3f1ec;
-        --red:           #b22222;
-        --red-bg:        #fce8e8;
-        --radius-sm:     8px;
-        --radius-md:     12px;
-        --shadow-card:   0 1px 3px rgba(0,0,0,.08), 0 0 0 1px var(--border);
-        --font:          'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        --bg: #f1f2f4;
+        --surface: #ffffff;
+        --border: #e3e5e8;
+        --text-primary: #202223;
+        --text-secondary: #6d7175;
+        --text-hint: #8c9196;
+        --accent: #303d89;
+        --accent-light: #f0f1fc;
+        --red: #b22222;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --shadow-card: 0 1px 3px rgba(0,0,0,.08), 0 0 0 1px var(--border);
+        --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     .edit-page { background: var(--bg); padding: 24px 28px; min-height: 100vh; font-family: var(--font); color: var(--text-primary); }
     .edit-page * { box-sizing: border-box; }
 
-    /* ── Page header ────────────────────────────────────────── */
     .edit-page-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
-    .edit-page-header h1 { font-size: 20px; font-weight: 650; color: var(--text-primary); margin: 0; }
+    .edit-page-header h1 { font-size: 20px; font-weight: 650; margin: 0; }
     .crumb { font-size: 12.5px; color: var(--text-hint); margin-top: 3px; }
     .crumb a { color: var(--accent); text-decoration: none; }
     .crumb a:hover { text-decoration: underline; }
     .crumb span { margin: 0 5px; }
 
-    /* ── Category identity chip ─────────────────────────────── */
-    .cat-identity {
-        display: flex; align-items: center; gap: 12px;
-        background: var(--surface); border: 1px solid var(--border);
-        border-radius: var(--radius-md); padding: 12px 16px;
-        box-shadow: var(--shadow-card);
-    }
-    .cat-identity-thumb {
-        width: 48px; height: 48px; border-radius: var(--radius-sm);
-        object-fit: cover; border: 1px solid var(--border); flex-shrink: 0;
-    }
-    .cat-identity-placeholder {
-        width: 48px; height: 48px; border-radius: var(--radius-sm);
-        background: var(--bg); border: 1px solid var(--border);
-        display: flex; align-items: center; justify-content: center;
-        color: var(--text-hint); font-size: 18px; flex-shrink: 0;
-    }
-    .cat-identity-name { font-size: 14px; font-weight: 650; color: var(--text-primary); }
-    .cat-identity-id   { font-size: 12px; color: var(--text-hint); margin-top: 2px; }
+    .cat-identity { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 16px; box-shadow: var(--shadow-card); }
+    .cat-identity-thumb { width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; }
+    .cat-identity-placeholder { width: 48px; height: 48px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-hint); font-size: 18px; flex-shrink: 0; }
+    .cat-identity-name { font-size: 14px; font-weight: 650; }
+    .cat-identity-id { font-size: 12px; color: var(--text-hint); margin-top: 2px; }
 
-    /* ── Buttons ────────────────────────────────────────────── */
-    .btn-primary-dash {
-        display: inline-flex; align-items: center; gap: 6px;
-        background: var(--accent); color: #fff !important; border: none;
-        border-radius: var(--radius-sm); padding: 8px 18px;
-        font-size: 13px; font-weight: 600; cursor: pointer;
-        text-decoration: none !important; font-family: var(--font);
-        transition: background .15s, box-shadow .15s;
-        box-shadow: 0 1px 3px rgba(48,61,137,.25);
-    }
+    .btn-primary-dash { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #fff !important; border: none; border-radius: var(--radius-sm); padding: 8px 18px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none !important; font-family: var(--font); transition: background .15s; box-shadow: 0 1px 3px rgba(48,61,137,.25); }
     .btn-primary-dash:hover:not(:disabled) { background: #252f70; }
     .btn-primary-dash:disabled { opacity: .65; cursor: not-allowed; }
-
-    .btn-secondary-dash {
-        display: inline-flex; align-items: center; gap: 6px;
-        background: var(--surface); color: var(--text-primary) !important;
-        border: 1px solid var(--border); border-radius: var(--radius-sm);
-        padding: 8px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
-        text-decoration: none !important; font-family: var(--font);
-        transition: background .15s;
-    }
+    .btn-secondary-dash { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); color: var(--text-primary) !important; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 18px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none !important; font-family: var(--font); transition: background .15s; }
     .btn-secondary-dash:hover { background: var(--bg); }
 
-    /* ── Two-column layout ──────────────────────────────────── */
     .edit-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
     @media(max-width:900px) { .edit-layout { grid-template-columns: 1fr; } }
 
-    /* ── Section card ───────────────────────────────────────── */
-    .section-card {
-        background: var(--surface); border: 1px solid var(--border);
-        border-radius: var(--radius-md); box-shadow: var(--shadow-card);
-        overflow: hidden; margin-bottom: 16px;
-    }
+    .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); overflow: hidden; margin-bottom: 16px; }
     .section-card:last-child { margin-bottom: 0; }
-    .section-card-header {
-        padding: 14px 20px; border-bottom: 1px solid var(--border); background: #fafafa;
-    }
-    .section-card-header h5 { font-size: 13px; font-weight: 650; color: var(--text-primary); margin: 0; letter-spacing: .01em; }
+    .section-card-header { padding: 14px 20px; border-bottom: 1px solid var(--border); background: #fafafa; }
+    .section-card-header h5 { font-size: 13px; font-weight: 650; margin: 0; letter-spacing: .01em; }
     .section-card-body { padding: 20px; }
 
-    /* ── Form fields ────────────────────────────────────────── */
     .field-group { margin-bottom: 16px; }
     .field-group:last-child { margin-bottom: 0; }
     .field-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); letter-spacing: .03em; text-transform: uppercase; margin-bottom: 6px; }
     .field-label .req { color: var(--red); margin-left: 2px; }
-
-    .field-input, .field-select, .field-textarea {
-        width: 100%; height: 38px; border: 1px solid var(--border);
-        border-radius: var(--radius-sm); padding: 0 12px;
-        font-size: 13.5px; color: var(--text-primary);
-        background: var(--surface); outline: none;
-        transition: border-color .15s, box-shadow .15s;
-        font-family: var(--font);
-    }
-    .field-input:focus, .field-select:focus, .field-textarea:focus {
-        border-color: var(--accent); box-shadow: 0 0 0 3px rgba(48,61,137,.12);
-    }
+    .field-input, .field-select, .field-textarea { width: 100%; height: 38px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 12px; font-size: 13.5px; color: var(--text-primary); background: var(--surface); outline: none; transition: border-color .15s, box-shadow .15s; font-family: var(--font); }
+    .field-input:focus, .field-select:focus, .field-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(48,61,137,.12); }
     .field-textarea { height: auto; padding: 10px 12px; resize: vertical; min-height: 80px; }
     .field-hint { font-size: 11.5px; color: var(--text-hint); margin-top: 4px; }
+    .field-error { font-size: 11.5px; color: var(--red); margin-top: 4px; }
 
-    /* ── Slug field ─────────────────────────────────────────── */
     .slug-wrap { position: relative; }
-    .slug-prefix {
-        position: absolute; left: 0; top: 0; bottom: 0;
-        display: flex; align-items: center; padding: 0 10px;
-        background: var(--bg); border: 1px solid var(--border);
-        border-right: none; border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-        font-size: 12px; color: var(--text-hint); white-space: nowrap; pointer-events: none;
-    }
+    .slug-prefix { position: absolute; left: 0; top: 0; bottom: 0; display: flex; align-items: center; padding: 0 10px; background: var(--bg); border: 1px solid var(--border); border-right: none; border-radius: var(--radius-sm) 0 0 var(--radius-sm); font-size: 12px; color: var(--text-hint); white-space: nowrap; pointer-events: none; }
     .slug-input { padding-left: 76px !important; }
 
-    /* ── Image panel ────────────────────────────────────────── */
-    .current-image-wrap {
-        border: 1px solid var(--border); border-radius: var(--radius-sm);
-        padding: 12px; background: var(--bg); margin-bottom: 14px;
-        display: flex; align-items: center; gap: 12px;
-    }
-    .current-image-wrap img {
-        width: 64px; height: 64px; border-radius: var(--radius-sm);
-        object-fit: cover; border: 1px solid var(--border);
-    }
+    .current-image-wrap { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; background: var(--bg); margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
+    .current-image-wrap img { width: 64px; height: 64px; border-radius: var(--radius-sm); object-fit: cover; border: 1px solid var(--border); }
     .current-image-info { font-size: 12px; color: var(--text-secondary); }
     .current-image-info strong { display: block; font-size: 13px; color: var(--text-primary); margin-bottom: 2px; }
 
-    .file-upload-area {
-        border: 2px dashed var(--border); border-radius: var(--radius-md);
-        padding: 22px 20px; text-align: center; cursor: pointer;
-        transition: border-color .15s, background .15s; position: relative;
-    }
+    .file-upload-area { border: 2px dashed var(--border); border-radius: var(--radius-md); padding: 22px 20px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; position: relative; }
     .file-upload-area:hover { border-color: var(--accent); background: var(--accent-light); }
     .file-upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
     .file-upload-area .upload-icon { font-size: 22px; color: var(--text-hint); margin-bottom: 6px; }
     .file-upload-area p { font-size: 13px; color: var(--text-secondary); margin: 0; }
     .file-upload-area small { font-size: 11.5px; color: var(--text-hint); }
 
-    /* Preview after new file selected */
     #newPreviewWrap { display: none; margin-top: 12px; text-align: center; }
     #newPreviewWrap img { max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); }
     #newPreviewWrap button { font-size: 12px; color: var(--red); background: none; border: none; cursor: pointer; padding: 0; margin-top: 6px; }
 
-
-       #sizeChartPreviewWrap { display: none; margin-top: 12px; text-align: center; }
-    #sizeChartPreviewWrap img { max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-    #sizeChartPreviewWrap button { font-size: 12px; color: var(--red); background: none; border: none; cursor: pointer; padding: 0; margin-top: 6px; }
-
-    /* ── Settings toggle rows ───────────────────────────────── */
     .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--bg); }
     .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
     .toggle-row:first-child { padding-top: 0; }
-    .toggle-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
-    .toggle-sub   { font-size: 11.5px; color: var(--text-hint); margin-top: 2px; }
-
-    .field-select-sm {
-        height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-        padding: 0 28px 0 10px; font-size: 12.5px; color: var(--text-primary);
-        background: var(--surface); outline: none; font-family: var(--font);
-        transition: border-color .15s, box-shadow .15s; min-width: 90px;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238c9196'/%3E%3C/svg%3E");
-        background-repeat: no-repeat; background-position: right 9px center;
-    }
+    .toggle-label { font-size: 13px; font-weight: 500; }
+    .toggle-sub { font-size: 11.5px; color: var(--text-hint); margin-top: 2px; }
+    .field-select-sm { height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 28px 0 10px; font-size: 12.5px; color: var(--text-primary); background: var(--surface); outline: none; font-family: var(--font); transition: border-color .15s, box-shadow .15s; min-width: 90px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238c9196'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; }
     .field-select-sm:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(48,61,137,.12); }
 
-    /* ── Action bar ─────────────────────────────────────────── */
-    .action-bar {
-        background: var(--surface); border: 1px solid var(--border);
-        border-radius: var(--radius-md); box-shadow: var(--shadow-card);
-        padding: 14px 20px; display: flex; align-items: center;
-        justify-content: flex-end; gap: 10px; margin-top: 20px;
-    }
+    .action-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); padding: 14px 20px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
     @media(max-width:768px) { .edit-page { padding: 16px; } }
     </style>
@@ -192,7 +97,6 @@
     <div class="app-content content container-fluid">
         <div class="edit-page">
 
-            <!-- Page header -->
             <div class="edit-page-header">
                 <div>
                     <h1>Edit Category</h1>
@@ -205,12 +109,11 @@
                     </div>
                 </div>
 
-                <!-- Category identity pill in header -->
                 <div class="cat-identity">
                     @if($category->image)
                         <img src="{{ asset('storage/' . $category->image) }}" class="cat-identity-thumb" alt="{{ $category->name }}">
                     @else
-                        <div class="cat-identity-placeholder"><i class="fa fa-folder"></i></div>
+                        <div class="cat-identity-placeholder"><i class="fa {{ $category->icon ? 'fa-solid ' . $category->icon : 'fa fa-folder' }}"></i></div>
                     @endif
                     <div>
                         <div class="cat-identity-name">{{ $category->name }}</div>
@@ -226,39 +129,46 @@
 
                 <div class="edit-layout">
 
-                    <!-- ── LEFT column ──────────────────────────────── -->
+                    <!-- LEFT column -->
                     <div>
 
-                        <!-- Basic Info -->
                         <div class="section-card">
-                            <div class="section-card-header">
-                                <h5>Basic Information</h5>
-                            </div>
+                            <div class="section-card-header"><h5>Basic Information</h5></div>
                             <div class="section-card-body">
 
                                 <div class="field-group">
                                     <label class="field-label">Name <span class="req">*</span></label>
                                     <input type="text" name="name" id="name"
-                                        value="{{ $category->name }}"
-                                        class="field-input" required>
+                                        value="{{ old('name', $category->name) }}" class="field-input" required>
+                                    @error('name') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Slug</label>
                                     <div class="slug-wrap">
-                                        <span class="slug-prefix">/cat/</span>
+                                        <span class="slug-prefix">?cat=</span>
                                         <input type="text" name="slug" id="slug"
-                                            value="{{ $category->slug }}"
-                                            class="field-input slug-input">
+                                            value="{{ old('slug', $category->slug) }}" class="field-input slug-input">
                                     </div>
                                     <div class="field-hint">Edit to customise the URL slug.</div>
+                                    @error('slug') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Sub Title</label>
                                     <input type="text" name="sub_title"
-                                        value="{{ $category->sub_title }}"
-                                        class="field-input">
+                                        value="{{ old('sub_title', $category->sub_title) }}" class="field-input"
+                                        placeholder="Short description shown on the category card">
+                                    @error('sub_title') <div class="field-error">{{ $message }}</div> @enderror
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Icon</label>
+                                    <input type="text" name="icon"
+                                        value="{{ old('icon', $category->icon) }}" class="field-input"
+                                        placeholder="e.g. fa-laptop">
+                                    <div class="field-hint">Font Awesome class shown on the category card.</div>
+                                    @error('icon') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                                 <div class="field-group">
@@ -267,41 +177,39 @@
                                         <option value="">— None (top-level) —</option>
                                         @foreach($parents as $parent)
                                             <option value="{{ $parent->id }}"
-                                                {{ $category->parent_id == $parent->id ? 'selected' : '' }}>
+                                                {{ old('parent_id', $category->parent_id) == $parent->id ? 'selected' : '' }}>
                                                 {{ $parent->name }}
                                             </option>
                                         @endforeach
                                     </select>
+                                    @error('parent_id') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Sort Order</label>
                                     <input type="number" name="sort_order"
-                                        value="{{ $category->sort_order }}"
+                                        value="{{ old('sort_order', $category->sort_order) }}"
                                         class="field-input" style="max-width:120px">
                                     <div class="field-hint">Lower numbers appear first.</div>
+                                    @error('sort_order') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                             </div>
                         </div>
 
-                        <!-- SEO -->
                         <div class="section-card">
-                            <div class="section-card-header">
-                                <h5>SEO</h5>
-                            </div>
+                            <div class="section-card-header"><h5>SEO</h5></div>
                             <div class="section-card-body">
 
                                 <div class="field-group">
                                     <label class="field-label">Meta Title</label>
                                     <input type="text" name="meta_title"
-                                        value="{{ $category->meta_title }}"
-                                        class="field-input">
+                                        value="{{ old('meta_title', $category->meta_title) }}" class="field-input">
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Meta Description</label>
-                                    <textarea name="meta_description" class="field-textarea">{{ $category->meta_description }}</textarea>
+                                    <textarea name="meta_description" class="field-textarea">{{ old('meta_description', $category->meta_description) }}</textarea>
                                 </div>
 
                             </div>
@@ -309,14 +217,11 @@
 
                     </div>
 
-                    <!-- ── RIGHT column ─────────────────────────────── -->
+                    <!-- RIGHT column -->
                     <div>
 
-                        <!-- Image -->
                         <div class="section-card">
-                            <div class="section-card-header">
-                                <h5>Image</h5>
-                            </div>
+                            <div class="section-card-header"><h5>Image</h5></div>
                             <div class="section-card-body">
 
                                 @if($category->image)
@@ -333,8 +238,9 @@
                                     <input type="file" name="image" accept="image/*" id="imageInput">
                                     <div class="upload-icon"><i class="fa fa-cloud-upload"></i></div>
                                     <p>{{ $category->image ? 'Replace image' : 'Upload image' }}</p>
-                                    <small>PNG, JPG, WEBP — max 2 MB</small>
+                                    <small>PNG, JPG, WEBP — max 2 MB · recommended 800×500 (16:10)</small>
                                 </div>
+                                @error('image') <div class="field-error">{{ $message }}</div> @enderror
 
                                 <div id="newPreviewWrap">
                                     <img id="previewImg" src="" alt="New image preview">
@@ -345,59 +251,11 @@
                                     </div>
                                 </div>
 
-                                <hr style="margin:20px 0">
-
-<h6 style="font-size:13px;font-weight:600;margin-bottom:12px">
-    Size Chart Image
-</h6>
-
-@if($category->size_chart_image)
-    <div class="current-image-wrap" id="currentSizeChartWrap">
-        <img src="{{ asset('storage/'.$category->size_chart_image) }}">
-        <div class="current-image-info">
-            <strong>Current Size Chart</strong>
-            Upload a new image below to replace it.
-        </div>
-    </div>
-@endif
-
-<div class="file-upload-area" id="sizeChartUploadArea">
-    <input type="file"
-           name="size_chart_image"
-           accept="image/*"
-           id="sizeChartInput">
-
-    <div class="upload-icon">
-        <i class="fa fa-table"></i>
-    </div>
-
-    <p>
-        {{ $category->size_chart_image ? 'Replace Size Chart' : 'Upload Size Chart' }}
-    </p>
-
-    <small>PNG, JPG, WEBP</small>
-</div>
-
-<div id="sizeChartPreviewWrap" style="display:none;margin-top:12px;text-align:center">
-    <img id="sizeChartPreviewImg"
-         src=""
-         style="max-width:100%;border-radius:8px;border:1px solid #ddd;">
-
-    <div>
-        <button type="button" onclick="clearSizeChart()">
-            <i class="fa fa-times"></i> Remove
-        </button>
-    </div>
-</div>
-
                             </div>
                         </div>
 
-                        <!-- Settings -->
                         <div class="section-card">
-                            <div class="section-card-header">
-                                <h5>Settings</h5>
-                            </div>
+                            <div class="section-card-header"><h5>Settings</h5></div>
                             <div class="section-card-body" style="padding:16px 20px">
 
                                 <div class="toggle-row">
@@ -406,7 +264,7 @@
                                         <div class="toggle-sub">Visible to customers</div>
                                     </div>
                                     <select name="status" class="field-select-sm">
-                                        <option value="1" {{ $category->status  ? 'selected' : '' }}>Active</option>
+                                        <option value="1" {{ $category->status ? 'selected' : '' }}>Active</option>
                                         <option value="0" {{ !$category->status ? 'selected' : '' }}>Inactive</option>
                                     </select>
                                 </div>
@@ -418,7 +276,7 @@
                                     </div>
                                     <select name="is_popular" class="field-select-sm">
                                         <option value="0" {{ !$category->is_popular ? 'selected' : '' }}>No</option>
-                                        <option value="1" {{ $category->is_popular  ? 'selected' : '' }}>Yes</option>
+                                        <option value="1" {{ $category->is_popular ? 'selected' : '' }}>Yes</option>
                                     </select>
                                 </div>
 
@@ -429,7 +287,7 @@
                                     </div>
                                     <select name="is_featured" class="field-select-sm">
                                         <option value="0" {{ !$category->is_featured ? 'selected' : '' }}>No</option>
-                                        <option value="1" {{ $category->is_featured  ? 'selected' : '' }}>Yes</option>
+                                        <option value="1" {{ $category->is_featured ? 'selected' : '' }}>Yes</option>
                                     </select>
                                 </div>
 
@@ -440,7 +298,7 @@
                                     </div>
                                     <select name="show_in_navbar" class="field-select-sm">
                                         <option value="0" {{ !$category->show_in_navbar ? 'selected' : '' }}>No</option>
-                                        <option value="1" {{ $category->show_in_navbar  ? 'selected' : '' }}>Yes</option>
+                                        <option value="1" {{ $category->show_in_navbar ? 'selected' : '' }}>Yes</option>
                                     </select>
                                 </div>
 
@@ -450,14 +308,10 @@
                     </div>
                 </div>
 
-                <!-- Hidden redirect field -->
                 <input type="hidden" name="redirect" value="{{ $redirect ?? url()->previous() }}">
 
-                <!-- Action bar -->
                 <div class="action-bar">
-                    <a href="{{ route('admin.categories.index') }}" class="btn-secondary-dash">
-                        Cancel
-                    </a>
+                    <a href="{{ route('admin.categories.index') }}" class="btn-secondary-dash">Cancel</a>
                     <button type="submit" id="updateBtn" class="btn-primary-dash">
                         <i class="fa fa-save"></i> Update Category
                     </button>
@@ -472,7 +326,7 @@
 @include('admin.footer')
 
 <script>
-// Slug auto-generate
+// Slug auto-generate (only if the user hasn't touched it)
 let manualSlug = false;
 
 $('#slug').on('keyup', function () { manualSlug = true; });
@@ -515,46 +369,5 @@ function clearNewImage() {
     document.getElementById('uploadArea').style.display = 'block';
     const cur = document.getElementById('currentImageWrap');
     if (cur) cur.style.display = 'flex';
-}
-
-document.getElementById('sizeChartInput')?.addEventListener('change', function () {
-
-    const file = this.files[0];
-
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = function (e) {
-
-        document.getElementById('sizeChartPreviewImg').src = e.target.result;
-
-        document.getElementById('sizeChartPreviewWrap').style.display = 'block';
-
-        document.getElementById('sizeChartUploadArea').style.display = 'none';
-
-        const current = document.getElementById('currentSizeChartWrap');
-
-        if (current) {
-            current.style.display = 'none';
-        }
-    };
-
-    reader.readAsDataURL(file);
-});
-
-function clearSizeChart() {
-
-    document.getElementById('sizeChartInput').value = '';
-
-    document.getElementById('sizeChartPreviewWrap').style.display = 'none';
-
-    document.getElementById('sizeChartUploadArea').style.display = 'block';
-
-    const current = document.getElementById('currentSizeChartWrap');
-
-    if (current) {
-        current.style.display = 'flex';
-    }
 }
 </script>

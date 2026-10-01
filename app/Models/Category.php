@@ -14,10 +14,10 @@ class Category extends Model
         'slug',
         'parent_id',
         'sub_title',
+        'icon',
         'meta_title',
         'meta_description',
         'image',
-        'size_chart_image',
         'sort_order',
 
         'is_popular',
@@ -35,60 +35,16 @@ class Category extends Model
     |--------------------------------------------------------------------------
     */
 
-    // Parent
     public function parent()
     {
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
-    // Children
     public function children()
     {
         return $this->hasMany(Category::class, 'parent_id')
-            ->whereNull('deleted_at'); // ✅ ignore soft deleted
+            ->whereNull('deleted_at');
     }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SCOPES (🔥 VERY USEFUL)
-    |--------------------------------------------------------------------------
-    */
-
-    // Only active
-    public function scopeActive($query)
-    {
-        return $query->where('status', 1);
-    }
-
-    // Only parent categories
-    public function scopeParents($query)
-    {
-        return $query->whereNull('parent_id');
-    }
-
-    // Only subcategories
-    public function scopeSubCategories($query)
-    {
-        return $query->whereNotNull('parent_id');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | ACCESSORS (CLEAN UI)
-    |--------------------------------------------------------------------------
-    */
-
-    public function getIsParentAttribute()
-    {
-        return is_null($this->parent_id);
-    }
-
-    public function getIsChildAttribute()
-    {
-        return !is_null($this->parent_id);
-    }
-
 
     public function categoryAttributes()
     {
@@ -105,5 +61,58 @@ class Category extends Model
     public function subCategoryProducts()
     {
         return $this->hasMany(Product::class, 'subcategory_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SCOPES
+    |--------------------------------------------------------------------------
+    */
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 1);
+    }
+
+    public function scopeParents($query)
+    {
+        return $query->whereNull('parent_id');
+    }
+
+    public function scopeSubCategories($query)
+    {
+        return $query->whereNotNull('parent_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACCESSORS
+    |--------------------------------------------------------------------------
+    */
+
+    public function getIsParentAttribute()
+    {
+        return is_null($this->parent_id);
+    }
+
+    public function getIsChildAttribute()
+    {
+        return !is_null($this->parent_id);
+    }
+
+    // $category->image_url  → full URL or null
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image)
+            return null;
+
+        return str_starts_with($this->image, 'assets/')
+            ? asset($this->image)
+            : asset('storage/' . $this->image);
+    }
+
+    public function brands()
+    {
+        return $this->belongsToMany(Brand::class, 'brand_category');
     }
 }

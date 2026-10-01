@@ -23,20 +23,39 @@ return new class extends Migration {
                 ->constrained('categories')
                 ->nullOnDelete();
 
+            // Brand belongs to the product only (not to categories)
+            $table->foreignId('brand_id')
+                ->nullable()
+                ->constrained('brands')
+                ->nullOnDelete();
+
             $table->string('name');
 
             $table->string('slug')->unique();
 
             $table->string('sku')->nullable();
 
-            $table->string('product_code')->nullable();
-
             $table->text('short_description')->nullable();
 
             $table->longText('description')->nullable();
 
-            $table->longText('delivery_returns')->nullable();
+            // ── Electronics fields ──
+            $table->string('condition', 50)->nullable();          // New / Refurbished / Open Box
+            $table->string('warranty')->nullable();               // e.g. "12 Month Warranty"
 
+            $table->longText('condition_details')->nullable();    // Condition & QC tab
+            $table->longText('warranty_coverage')->nullable();    // Warranty & Coverage tab
+            $table->longText('shipping_delivery')->nullable();    // Shipping & Delivery tab
+
+            $table->json('key_specs')->nullable();                // [{label, value}, ...]
+
+            // Trust & Services
+            $table->boolean('warranty_backed')->default(true);
+            $table->boolean('seven_day_returns')->default(true);
+            $table->boolean('insured_transit')->default(true);
+            $table->boolean('video_call_demo')->default(true);
+
+            // ── Pricing ──
             $table->decimal('mrp', 12, 2)->default(0);
 
             $table->enum('discount_type', [
@@ -48,6 +67,7 @@ return new class extends Migration {
 
             $table->decimal('price', 12, 2)->default(0);
 
+            // ── Inventory ──
             $table->integer('stock')->default(0);
 
             $table->integer('min_qty')->default(1);
@@ -58,6 +78,7 @@ return new class extends Migration {
 
             $table->boolean('pan_india')->default(false);
 
+            // ── SEO ──
             $table->string('meta_title')->nullable();
 
             $table->text('meta_description')->nullable();

@@ -37,15 +37,15 @@
                                     condition grading, and reliable warranty support from VANSH IT & COMM.
                                 </p>
                                 <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
-                                    <a href="laptops.html"
+                                    <a href="#"
                                         class="btn-base btn-primary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-lg shadow-blue-600/30">
                                         <i class="fa-solid fa-laptop"></i> SHOP LAPTOPS
                                     </a>
-                                    <a href="mobile-phones.html"
+                                    <a href="#"
                                         class="btn-base btn-secondary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white">
                                         <i class="fa-solid fa-mobile-screen-button"></i> SHOP MOBILES
                                     </a>
-                                    <a href="repair.html"
+                                    <a href="#"
                                         class="inline-flex items-center gap-1.5 text-xs font-bold text-sky-400 hover:text-sky-300 py-1">
                                         Need a Repair? Book Now â†’
                                     </a>
@@ -136,7 +136,7 @@
                                     Latitudes engineered for developers, students, and businesses starting from â‚¹14,499.
                                 </p>
                                 <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
-                                    <a href="laptops.html"
+                                    <a href="#"
                                         class="btn-base btn-primary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-lg shadow-blue-600/30">
                                         <i class="fa-solid fa-laptop"></i> Shop Laptops
                                     </a>
@@ -235,15 +235,15 @@
                                     genuine parts, 85%+ battery health guarantee, and doorstep exchange bonus.
                                 </p>
                                 <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
-                                    <a href="mobile-phones.html"
+                                    <a href="#"
                                         class="btn-base btn-primary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-lg shadow-purple-600/30 bg-purple-600 hover:bg-purple-700">
                                         <i class="fa-solid fa-mobile-screen-button"></i> Shop Mobiles
                                     </a>
-                                    <a href="exchange.html"
+                                    <a href="{{ route('exchange') }}"
                                         class="btn-base btn-secondary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white">
                                         <i class="fa-solid fa-repeat text-pink-400"></i> Exchange Old Phone
                                     </a>
-                                    <a href="warranty.html"
+                                    <a href="{{ route('warranty') }}"
                                         class="inline-flex items-center gap-1.5 text-xs font-bold text-purple-300 hover:text-purple-200 py-1">
                                         Warranty Coverage â†’
                                     </a>
@@ -433,7 +433,7 @@
                         <p class="section-subtitle text-xs sm:text-sm">Verified laptops, smartphones, accessories, and
                             certified repair solutions.</p>
                     </div>
-                    <a href="shop.html"
+                    <a href="{{ route('shop') }}"
                         class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
                         View All Products <i class="fa-solid fa-arrow-right text-xs"></i>
                     </a>
@@ -442,7 +442,7 @@
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-4">
 
                     <!-- Category 1: Laptops -->
-                    <a href="laptops.html"
+                    <a href="#"
                         class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
                         <div
                             class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
@@ -466,7 +466,7 @@
                     </a>
 
                     <!-- Category 2: Mobile Phones -->
-                    <a href="mobile-phones.html"
+                    <a href="#"
                         class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
                         <div
                             class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
@@ -490,7 +490,7 @@
                     </a>
 
                     <!-- Category 3: Accessories -->
-                    <a href="accessories.html"
+                    <a href="#"
                         class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
                         <div
                             class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
@@ -538,7 +538,7 @@
                     </a>
 
                     <!-- Category 5: Repair Services -->
-                    <a href="repair.html"
+                    <a href="{{ route('repair') }}"
                         class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
                         <div
                             class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
@@ -562,7 +562,7 @@
                     </a>
 
                     <!-- Category 6: Device Exchange -->
-                    <a href="exchange.html"
+                    <a href="{{ route('exchange') }}"
                         class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
                         <div
                             class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
@@ -623,7 +623,7 @@
                             </div>
                         </div>
                         <div class="md:col-span-4 flex md:justify-end">
-                            <a href="shop.html"
+                            <a href="{{ route('shop') }}"
                                 class="btn-base btn-primary px-6 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold shadow-lg shadow-blue-600/30 w-full sm:w-auto text-center justify-center">
                                 Explore All Offerings <i class="fa-solid fa-arrow-right ml-2 text-xs"></i>
                             </a>
@@ -645,7 +645,7 @@
                         <p class="section-subtitle text-xs sm:text-sm">Tested technology for work, study, creativity, and
                             coding.</p>
                     </div>
-                    <a href="laptops.html"
+                    <a href="#"
                         class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
                         Browse All (10+) <i class="fa-solid fa-arrow-right text-xs"></i>
                     </a>
@@ -667,7 +667,7 @@
                     <i class="fa-solid fa-tags text-blue-600"></i> Shop Laptops By Budget
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-3 gap-3.5 sm:gap-4">
-                    <a href="laptops.html?maxPrice=15000"
+                    <a href="#?maxPrice=15000"
                         class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-blue-900 to-slate-900 text-white shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 block text-decoration-none">
                         <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-400">Entry &
                             Students</span>
@@ -680,7 +680,7 @@
                             Products â†’</span>
                     </a>
 
-                    <a href="laptops.html?minPrice=15000&maxPrice=25000"
+                    <a href="#?minPrice=15000&maxPrice=25000"
                         class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 block text-decoration-none">
                         <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-blue-300">Most
                             Popular</span>
@@ -693,7 +693,7 @@
                             Products â†’</span>
                     </a>
 
-                    <a href="laptops.html?minPrice=25000&maxPrice=35000"
+                    <a href="#?minPrice=25000&maxPrice=35000"
                         class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 text-white shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 block text-decoration-none">
                         <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-300">Pro &
                             Developers</span>
@@ -722,7 +722,7 @@
                         <p class="section-subtitle text-xs sm:text-sm">Flagships, gaming devices, and everyday smartphones
                             at smarter prices.</p>
                     </div>
-                    <a href="mobile-phones.html"
+                    <a href="#"
                         class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
                         Browse All (10+) <i class="fa-solid fa-arrow-right text-xs"></i>
                     </a>
@@ -801,7 +801,7 @@
                             </ul>
                         </div>
 
-                        <a href="laptops.html"
+                        <a href="#"
                             class="btn-base btn-primary w-full py-2.5 md:py-2.5 lg:py-3 text-xs md:text-xs lg:text-sm font-bold shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 group-hover:gap-3 transition-all rounded-xl">
                             <span>Find My Laptop</span> <i class="fa-solid fa-arrow-right text-xs"></i>
                         </a>
@@ -853,7 +853,7 @@
                             </ul>
                         </div>
 
-                        <a href="mobile-phones.html"
+                        <a href="#"
                             class="btn-base w-full py-2.5 md:py-2.5 lg:py-3 text-xs md:text-xs lg:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 group-hover:gap-3 transition-all rounded-xl">
                             <span>Find My Phone</span> <i class="fa-solid fa-arrow-right text-xs"></i>
                         </a>
@@ -904,7 +904,7 @@
                             </ul>
                         </div>
 
-                        <a href="repair.html"
+                        <a href="{{ route('repair') }}epair') }}"
                             class="btn-base w-full py-2.5 md:py-2.5 lg:py-3 text-xs md:text-xs lg:text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-md shadow-slate-900/20 flex items-center justify-center gap-2 group-hover:gap-3 transition-all rounded-xl">
                             <span>Book Repair Service</span> <i class="fa-solid fa-arrow-right text-xs"></i>
                         </a>
@@ -927,7 +927,7 @@
                         <p class="section-subtitle text-xs sm:text-sm">GaN fast chargers, NVMe SSDs, mechanical keyboards,
                             ergonomic stands, and audio.</p>
                     </div>
-                    <a href="accessories.html"
+                    <a href="#"
                         class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
                         View All <i class="fa-solid fa-arrow-right text-xs"></i>
                     </a>
@@ -953,7 +953,7 @@
                         <p class="section-subtitle text-xs sm:text-sm">Browse top laptop and smartphone manufacturers tested
                             across 20 diagnostic points.</p>
                     </div>
-                    <a href="shop.html"
+                    <a href="{{ route('shop') }}"
                         class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 font-body whitespace-nowrap">
                         View All <i class="fa-solid fa-arrow-right text-xs"></i>
                     </a>
@@ -984,7 +984,7 @@
                     </a>
 
                     <!-- 2. Dell -->
-                    <a href="laptops.html?brand=Dell"
+                    <a href="#?brand=Dell"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-blue-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center">
                             <svg class="h-5 sm:h-6 w-auto max-w-[85%] group-hover:scale-105 transition-transform duration-200"
@@ -1005,7 +1005,7 @@
                     </a>
 
                     <!-- 3. Lenovo -->
-                    <a href="laptops.html?brand=Lenovo"
+                    <a href="#?brand=Lenovo"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-red-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center">
                             <div
@@ -1025,7 +1025,7 @@
                     </a>
 
                     <!-- 4. HP -->
-                    <a href="laptops.html?brand=HP"
+                    <a href="#?brand=HP"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-sky-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center">
                             <svg class="h-8 sm:h-10 w-8 sm:w-10 max-w-[85%] group-hover:scale-110 transition-transform duration-200"
@@ -1052,7 +1052,7 @@
                     </a>
 
                     <!-- 5. Samsung -->
-                    <a href="mobile-phones.html?brand=Samsung"
+                    <a href="#?brand=Samsung"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-blue-800 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center px-1">
                             <svg class="h-4 sm:h-5 w-auto max-w-[90%] group-hover:scale-105 transition-transform duration-200"
@@ -1073,7 +1073,7 @@
                     </a>
 
                     <!-- 6. OnePlus -->
-                    <a href="mobile-phones.html?brand=OnePlus"
+                    <a href="#?brand=OnePlus"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-red-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center">
                             <div class="flex items-center gap-1.5 group-hover:scale-105 transition-transform duration-200">
@@ -1098,7 +1098,7 @@
                     </a>
 
                     <!-- 7. Google Pixel -->
-                    <a href="mobile-phones.html?brand=Google"
+                    <a href="#?brand=Google"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-blue-500 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center">
                             <svg class="h-8 sm:h-9 w-8 sm:w-9 max-w-[85%] group-hover:scale-110 transition-transform duration-200"
@@ -1126,7 +1126,7 @@
                     </a>
 
                     <!-- 8. Asus -->
-                    <a href="laptops.html?brand=Asus"
+                    <a href="#?brand=Asus"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-blue-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center px-1">
                             <svg class="h-4 sm:h-5 w-auto max-w-[90%] group-hover:scale-105 transition-transform duration-200"
@@ -1147,7 +1147,7 @@
                     </a>
 
                     <!-- 9. Xiaomi -->
-                    <a href="mobile-phones.html?brand=Xiaomi"
+                    <a href="#?brand=Xiaomi"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-orange-500 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center">
                             <div
@@ -1167,7 +1167,7 @@
                     </a>
 
                     <!-- 10. Realme -->
-                    <a href="mobile-phones.html?brand=Realme"
+                    <a href="#?brand=Realme"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-amber-500 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center">
                             <span
@@ -1185,7 +1185,7 @@
                     </a>
 
                     <!-- 11. Acer -->
-                    <a href="laptops.html?brand=Acer"
+                    <a href="#?brand=Acer"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-lime-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center px-1">
                             <svg class="h-5 sm:h-6 w-auto max-w-[90%] group-hover:scale-105 transition-transform duration-200"
@@ -1206,7 +1206,7 @@
                     </a>
 
                     <!-- 12. Microsoft -->
-                    <a href="laptops.html?brand=Microsoft"
+                    <a href="#?brand=Microsoft"
                         class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-sky-500 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
                         <div class="h-12 sm:h-14 flex items-center justify-center">
                             <div class="flex items-center gap-2 group-hover:scale-105 transition-transform duration-200">
@@ -1394,11 +1394,11 @@
                             wrong and our team can help identify the right solution.
                         </p>
                         <div class="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
-                            <a href="repair.html"
+                            <a href="{{ route('repair') }}"
                                 class="btn-base btn-primary px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold shadow-lg shadow-blue-600/30">
                                 <i class="fa-solid fa-wrench"></i> Book a Repair
                             </a>
-                            <a href="contact.html"
+                            <a href="{{ route('contact') }}"
                                 class="btn-base btn-secondary bg-white/10 text-white border-white/20 px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold hover:bg-white/20">
                                 <i class="fa-solid fa-comments"></i> Talk to Technician
                             </a>
@@ -1452,7 +1452,7 @@
                             </p>
                         </div>
                         <div class="col-span-12 md:col-span-4 flex md:justify-end">
-                            <a href="exchange.html"
+                            <a href="{{ route('exchange') }}"
                                 class="btn-base btn-success px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold shadow-md whitespace-nowrap">
                                 <i class="fa-solid fa-calculator mr-2"></i> Calculate Trade-In Value
                             </a>
@@ -1476,7 +1476,7 @@
                         <p class="section-subtitle text-xs sm:text-sm">Visit our experience store, service workshop, or
                             track express dispatch centers.</p>
                     </div>
-                    <a href="contact.html" class="text-xs font-bold text-blue-600 hover:underline whitespace-nowrap">
+                    <a href="{{ route('contact') }}" class="text-xs font-bold text-blue-600 hover:underline whitespace-nowrap">
                         View All Details â†’
                     </a>
                 </div>
@@ -1507,7 +1507,7 @@
                                 </div>
                             </div>
                         </div>
-                        <a href="contact.html"
+                        <a href="{{ route('contact') }}"
                             class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Contact Store</a>
                     </div>
 
@@ -1535,7 +1535,7 @@
                                         Available</span></div>
                             </div>
                         </div>
-                        <a href="repair.html" class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Book
+                        <a href="{{ route('repair') }}" class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Book
                             Service</a>
                     </div>
 
@@ -1564,7 +1564,7 @@
                                         Shipping</span></div>
                             </div>
                         </div>
-                        <a href="shop.html" class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Browse
+                        <a href="{{ route('shop') }}" class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Browse
                             Inventory</a>
                     </div>
 
@@ -1591,7 +1591,7 @@
                                         Packaging</span></div>
                             </div>
                         </div>
-                        <a href="track-order.html"
+                        <a href="{{ route('track-order') }}"
                             class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Track Dispatch</a>
                     </div>
 
@@ -1651,15 +1651,15 @@
                     Find the right device, get expert help, or give your current device a second life with VANSH IT & COMM.
                 </p>
                 <div class="flex flex-wrap items-center justify-center gap-3 pt-4">
-                    <a href="laptops.html"
+                    <a href="#"
                         class="btn-base btn-primary px-6 py-3 font-semibold shadow-lg shadow-blue-600/30">
                         Explore Laptops
                     </a>
-                    <a href="mobile-phones.html"
+                    <a href="#"
                         class="btn-base btn-secondary bg-white/10 text-white border-white/20 px-6 py-3 font-semibold hover:bg-white/20">
                         Explore Mobiles
                     </a>
-                    <a href="repair.html"
+                    <a href="{{ route('repair') }}"
                         class="btn-base btn-dark bg-slate-800 text-white border border-slate-700 px-6 py-3 font-semibold hover:bg-slate-700">
                         Book a Repair
                     </a>

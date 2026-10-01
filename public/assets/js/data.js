@@ -1115,7 +1115,7 @@ const BLOG_POSTS = [
       <h3>3. Dim Screen / Faint Image (No Backlight)</h3>
       <p>Caused by a blown motherboard backlight fuse, damaged LED driver IC, or faulty panel circuitry.</p>
 
-      <p>Need your laptop diagnosed? Visit our <a href="repair.html" class="text-blue-600 font-bold underline">Repair Services page</a> to book a free diagnostic test with genuine parts warranty.</p>
+      <p>Need your laptop diagnosed? Visit our <a href="{{ route('repair') }}" class="text-blue-600 font-bold underline">Repair Services page</a> to book a free diagnostic test with genuine parts warranty.</p>
     `
   }
 ];

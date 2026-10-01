@@ -9,6 +9,7 @@ class Attribute extends Model
     protected $fillable = [
         'name',
         'slug',
+        'icon',
         'type',
         'has_values',
         'status',
@@ -16,8 +17,8 @@ class Attribute extends Model
     ];
 
     protected $casts = [
-        'has_values'     => 'boolean',
-        'status'         => 'boolean',
+        'has_values' => 'boolean',
+        'status' => 'boolean',
         'show_in_navbar' => 'boolean', // added
     ];
 

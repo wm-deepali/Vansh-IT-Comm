@@ -7,7 +7,7 @@
 
             <!-- Breadcrumb -->
             <nav class="flex items-center gap-2 text-xs text-slate-500 mb-6" aria-label="Breadcrumb">
-                <a href="index.html" class="hover:text-blue-600">Home</a>
+                <a href="{{ route('home') }}" class="hover:text-blue-600">Home</a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
                 <span class="text-slate-800 font-semibold">About Us</span>
             </nav>
@@ -285,7 +285,7 @@
                                 sign-off sheet and serial-linked warranty.</p>
                         </div>
                     </div>
-                    <a href="shop.html" class="btn-base btn-primary btn-sm text-xs py-2 px-4 whitespace-nowrap">
+                    <a href="{{ route('shop') }}" class="btn-base btn-primary btn-sm text-xs py-2 px-4 whitespace-nowrap">
                         Shop Tested Tech <i class="fa-solid fa-arrow-right ml-1 text-[10px]"></i>
                     </a>
                 </div>

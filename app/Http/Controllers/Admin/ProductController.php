@@ -4,17 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
-use App\Models\GiftingOccasion;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\CategoryAttribute;
 use Illuminate\Support\Facades\Storage;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Imports\ProductImport;
-use Symfony\Component\HttpFoundation\StreamedResponse;
-use ZipArchive;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\ProductImage;
@@ -99,6 +94,22 @@ class ProductController extends Controller
         ];
     }
 
+    /**
+     * Drops empty rows from the Key Specifications repeater and returns a
+     * clean [{label, value}, ...] list ready for the JSON column.
+     */
+    protected function cleanKeySpecs(Request $request): array
+    {
+        return collect($request->input('key_specs', []))
+            ->filter(fn ($row) => filled($row['label'] ?? null) && filled($row['value'] ?? null))
+            ->map(fn ($row) => [
+                'label' => trim($row['label']),
+                'value' => trim($row['value']),
+            ])
+            ->values()
+            ->all();
+    }
+
     public function index(Request $request)
     {
         $query = Product::with('images');
@@ -165,16 +176,18 @@ class ProductController extends Controller
             ->orderBy('name')
             ->get();
 
-        $occasions = GiftingOccasion::where('status', 1)->get();
-
         $collections = Collection::where('status', 1)
             ->orderBy('sort_order')
             ->get();
 
+        $brands = Brand::where('status', 1)
+            ->orderBy('name')
+            ->get();
+
         return view('admin.products.create', compact(
             'categories',
-            'occasions',
-            'collections'
+            'collections',
+            'brands'
         ));
 
     }
@@ -212,7 +225,10 @@ class ProductController extends Controller
     {
         $request->validate([
             'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'name' => 'required|string|max:255',
+            'condition' => 'nullable|in:New,Refurbished,Open Box',
+            'warranty' => 'nullable|string|max:255',
             'mrp' => 'nullable|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
             'discount_type' => 'nullable|in:amount,percentage',
@@ -220,15 +236,16 @@ class ProductController extends Controller
             'stock' => 'nullable|integer|min:0',
             'min_qty' => 'nullable|integer|min:1',
             'sku' => 'nullable|string|max:255',
-            'product_code' => 'nullable|string|max:255',
             'images.*' => 'nullable|image|max:2048',
 
-            // ✅ new: videos + addon options
+            'key_specs.*.label' => 'nullable|string|max:100',
+            'key_specs.*.value' => 'nullable|string|max:255',
+
             'videos.*' => 'nullable|mimes:mp4,webm,mov,avi|max:20480',
             'addons.*.detail' => 'nullable|string|max:255',
             'addons.*.price' => 'nullable|numeric|min:0',
 
-            // ✅ new: multiple images per image-type variant
+            // multiple images per image-type variant
             'variants_image.*.images.*' => 'nullable|image|max:2048',
         ]);
 
@@ -240,19 +257,26 @@ class ProductController extends Controller
             $product = Product::create([
                 'category_id' => $request->category_id,
                 'subcategory_id' => $request->subcategory_id,
+                'brand_id' => $request->brand_id ?: null,
                 'name' => $request->name,
                 'slug' => $request->slug
                     ? $this->generateUniqueSlug($request->slug)
                     : $this->generateUniqueSlug($request->name),
                 'short_description' => $request->short_description,
                 'description' => $request->description,
-                'delivery_returns' => $request->delivery_returns,
-                'fabric_care' => $request->fabric_care,
 
-                // ✅ new Content-tab fields
+                // ✅ electronics fields
+                'condition' => $request->condition ?: null,
+                'warranty' => $request->warranty,
+                'condition_details' => $request->condition_details,
+                'warranty_coverage' => $request->warranty_coverage,
                 'shipping_delivery' => $request->shipping_delivery,
-                'exchange_policy' => $request->exchange_policy,
-                'customization_assistance' => $request->customization_assistance,
+                'key_specs' => $this->cleanKeySpecs($request),
+
+                'warranty_backed' => $request->boolean('warranty_backed'),
+                'seven_day_returns' => $request->boolean('seven_day_returns'),
+                'insured_transit' => $request->boolean('insured_transit'),
+                'video_call_demo' => $request->boolean('video_call_demo'),
 
                 // ✅ blank MRP/Discount/Price never get inserted as '' into decimal columns
                 'mrp' => $request->mrp !== null && $request->mrp !== '' ? $request->mrp : 0,
@@ -263,7 +287,6 @@ class ProductController extends Controller
                 'sku' => $request->sku,
                 'stock' => $request->stock !== null && $request->stock !== '' ? $request->stock : 0,
                 'min_qty' => $request->min_qty !== null && $request->min_qty !== '' ? $request->min_qty : 1,
-                'product_code' => $request->product_code,
                 'delivery_time' => $request->delivery_time,
 
                 'quality' => $request->has('quality'),
@@ -343,16 +366,6 @@ class ProductController extends Controller
                 }
             }
 
-
-            if ($request->filled('suggestions')) {
-                foreach ($request->suggestions as $keyword) {
-                    $keyword = trim($keyword);
-                    if ($keyword !== '') {
-                        $product->keywords()->create(['keyword' => $keyword]);
-                    }
-                }
-            }
-
             /*
             |--------------------------------------------------------------------------
             | Product Attributes
@@ -390,16 +403,9 @@ class ProductController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Occasions
+            | Collections
             |--------------------------------------------------------------------------
             */
-
-            if ($request->filled('occasions')) {
-
-                $product->occasions()->sync(
-                    $request->occasions
-                );
-            }
 
             if ($request->filled('collections')) {
 
@@ -444,7 +450,7 @@ class ProductController extends Controller
             'variants.values.attributeValue',
             'variants.images',
 
-            'occasions',
+            'collections',
 
         ]);
 
@@ -461,7 +467,12 @@ class ProductController extends Controller
             ->orderBy('name')
             ->get();
 
-        $occasions = GiftingOccasion::where('status', 1)->get();
+        // Active brands, plus this product's current brand even if it was deactivated later
+        $brands = Brand::where('status', 1)
+            ->orWhere('id', $product->brand_id)
+            ->orderBy('name')
+            ->get();
+
         $attributes = CategoryAttribute::with([
             'attribute.values'
         ])
@@ -473,11 +484,6 @@ class ProductController extends Controller
         $selectedAttributeValues = $product
             ->attributeValues
             ->pluck('attribute_value_id')
-            ->toArray();
-
-        $selectedOccasions = $product
-            ->occasions
-            ->pluck('id')
             ->toArray();
 
         // ✅ Existing variants grouped by type, so the edit form can
@@ -541,21 +547,17 @@ class ProductController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        $existingKeywords = $product->keywords->pluck('keyword')->toArray();
-
         return view(
             'admin.products.edit',
             compact(
                 'product',
                 'categories',
                 'subcategories',
+                'brands',
                 'attributes',
                 'selectedAttributeValues',
-                'selectedOccasions',
-                'occasions',
                 'existingVariantsByType',
-                'collections',
-                'existingKeywords'
+                'collections'
             )
         );
     }
@@ -565,7 +567,10 @@ class ProductController extends Controller
 
         $request->validate([
             'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'name' => 'required|string|max:255',
+            'condition' => 'nullable|in:New,Refurbished,Open Box',
+            'warranty' => 'nullable|string|max:255',
             'mrp' => 'nullable|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
             'discount_type' => 'nullable|in:amount,percentage',
@@ -573,15 +578,16 @@ class ProductController extends Controller
             'stock' => 'nullable|integer|min:0',
             'min_qty' => 'nullable|integer|min:1',
             'sku' => 'nullable|string|max:255',
-            'product_code' => 'nullable|string|max:255',
             'images.*' => 'nullable|image|max:2048',
 
-            // ✅ new: videos + addon options
+            'key_specs.*.label' => 'nullable|string|max:100',
+            'key_specs.*.value' => 'nullable|string|max:255',
+
             'videos.*' => 'nullable|mimes:mp4,webm,mov,avi|max:20480',
             'addons.*.detail' => 'nullable|string|max:255',
             'addons.*.price' => 'nullable|numeric|min:0',
 
-            // ✅ new: multiple images per image-type variant + per-image delete
+            // multiple images per image-type variant + per-image delete
             'variants_image.*.images.*' => 'nullable|image|max:2048',
             'delete_variant_images.*' => 'nullable|integer',
         ]);
@@ -593,19 +599,26 @@ class ProductController extends Controller
 
                 'category_id' => $request->category_id,
                 'subcategory_id' => $request->subcategory_id,
+                'brand_id' => $request->brand_id ?: null,
 
                 'name' => $request->name,
                 'slug' => $this->resolveSlugOnUpdate($product, $request->slug, $request->name),
 
                 'short_description' => $request->short_description,
                 'description' => $request->description,
-                'delivery_returns' => $request->delivery_returns,
-                'fabric_care' => $request->fabric_care,
 
-                // ✅ new Content-tab fields
+                // ✅ electronics fields
+                'condition' => $request->condition ?: null,
+                'warranty' => $request->warranty,
+                'condition_details' => $request->condition_details,
+                'warranty_coverage' => $request->warranty_coverage,
                 'shipping_delivery' => $request->shipping_delivery,
-                'exchange_policy' => $request->exchange_policy,
-                'customization_assistance' => $request->customization_assistance,
+                'key_specs' => $this->cleanKeySpecs($request),
+
+                'warranty_backed' => $request->boolean('warranty_backed'),
+                'seven_day_returns' => $request->boolean('seven_day_returns'),
+                'insured_transit' => $request->boolean('insured_transit'),
+                'video_call_demo' => $request->boolean('video_call_demo'),
 
                 // ✅ blank MRP/Discount/Price never get written as '' into decimal columns
                 'mrp' => $request->mrp !== null && $request->mrp !== '' ? $request->mrp : 0,
@@ -616,7 +629,6 @@ class ProductController extends Controller
                 'sku' => $request->sku,
                 'stock' => $request->stock !== null && $request->stock !== '' ? $request->stock : 0,
                 'min_qty' => $request->min_qty !== null && $request->min_qty !== '' ? $request->min_qty : 1,
-                'product_code' => $request->product_code,
                 'delivery_time' => $request->delivery_time,
 
                 'quality' => $request->has('quality'),
@@ -770,18 +782,6 @@ class ProductController extends Controller
                 }
             }
 
-            $product->keywords()->delete();
-
-            if ($request->filled('suggestions')) {
-                foreach ($request->suggestions as $keyword) {
-                    $keyword = trim($keyword);
-                    if ($keyword !== '') {
-                        $product->keywords()->create(['keyword' => $keyword]);
-                    }
-                }
-            }
-
-
             /*
             |--------------------------------------------------------------------------
             | Product Attributes (SYNC)
@@ -837,13 +837,9 @@ class ProductController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Occasions
+            | Collections
             |--------------------------------------------------------------------------
             */
-
-            $product->occasions()->sync(
-                $request->occasions ?? []
-            );
 
             $product->collections()->sync(
                 $request->collections ?? []
@@ -1156,23 +1152,6 @@ class ProductController extends Controller
 
         // Only regenerate + check uniqueness if it actually changed.
         return $this->generateUniqueSlug($source, $product->id);
-    }
-
-    public function suggestionKeywords(Request $request)
-    {
-        $query = trim($request->get('q', ''));
-
-        if ($query === '') {
-            return response()->json([]);
-        }
-
-        $keywords = \App\Models\ProductKeyword::where('keyword', 'like', "%{$query}%")
-            ->distinct()
-            ->orderBy('keyword')
-            ->limit(15)
-            ->pluck('keyword');
-
-        return response()->json($keywords);
     }
 
 }
