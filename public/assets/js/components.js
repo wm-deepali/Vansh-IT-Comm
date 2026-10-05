@@ -18,7 +18,7 @@ const Components = {
             <span class="hidden lg:flex items-center gap-1.5"><i class="fa-solid fa-screwdriver-wrench text-blue-400"></i> 20-Point Tested Devices</span>
           </div>
           <div class="flex items-center gap-2 sm:gap-3 lg:gap-4 text-[10px] sm:text-[11px] xl:text-xs font-medium flex-shrink-0">
-            <a href="{{ route('track-order') }}" class="hover:text-blue-400 transition-colors flex items-center gap-1 whitespace-nowrap">
+            <a href="{{ route('user.track-order') }}" class="hover:text-blue-400 transition-colors flex items-center gap-1 whitespace-nowrap">
               <i class="fa-solid fa-location-crosshairs text-[9px]"></i> Track Order
             </a>
             <a href="{{ route('contact') }}" class="hover:text-blue-400 transition-colors hidden sm:flex items-center gap-1 whitespace-nowrap">
@@ -656,7 +656,7 @@ const Components = {
                 <li><a href="{{ route('repair') }}" class="footer-link">Motherboard Diagnostics</a></li>
                 <li><a href="{{ route('exchange') }}" class="footer-link">Old Device Exchange / Sell</a></li>
                 <li><a href="product.html#video-call-drawer" class="footer-link text-blue-400">Video Call Product Demo</a></li>
-                <li><a href="{{ route('track-order') }}" class="footer-link">Track Your Parcel</a></li>
+                <li><a href="{{ route('user.track-order') }}" class="footer-link">Track Your Parcel</a></li>
                 <li><a href="{{ route('warranty') }}" class="footer-link">Warranty & Claims</a></li>
               </ul>
             </div>

@@ -404,7 +404,8 @@
                     <div>
                         <div class="attr-identity-name">{{ $attribute->name }}</div>
                         <div class="attr-identity-id">ID #{{ $attribute->id }} &nbsp;·&nbsp;
-                            {{ ucfirst($attribute->type) }}</div>
+                            {{ ucfirst($attribute->type) }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -429,6 +430,22 @@
                                     <label class="field-label">Name <span class="req">*</span></label>
                                     <input type="text" name="name" class="field-input"
                                         value="{{ old('name', $attribute->name) }}" required>
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Icon</label>
+                                    <div style="display:flex;align-items:center;gap:10px">
+                                        <div
+                                            style="width:38px;height:38px;flex-shrink:0;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px">
+                                            <i id="icon-preview"
+                                                class="{{ old('icon', $attribute->icon) ?: 'fa fa-tag' }}"></i>
+                                        </div>
+                                        <input type="text" name="icon" id="icon-input" class="field-input"
+                                            value="{{ old('icon', $attribute->icon) }}" maxlength="100"
+                                            placeholder="e.g. fa fa-tag">
+                                    </div>
+                                    <div class="field-hint">Font Awesome class, e.g. <code>fa fa-tag</code>. Shown in
+                                        the navbar menu.</div>
                                 </div>
 
                                 <div class="field-group">

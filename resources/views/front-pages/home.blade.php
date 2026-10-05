@@ -1591,7 +1591,7 @@
                                         Packaging</span></div>
                             </div>
                         </div>
-                        <a href="{{ route('track-order') }}"
+                        <a href="{{ route('user.track-order') }}"
                             class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Track Dispatch</a>
                     </div>
 

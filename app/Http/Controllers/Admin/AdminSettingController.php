@@ -27,8 +27,8 @@ class AdminSettingController extends Controller
         $states = State::all();
         $couriers = Courier::latest()->get();
         $activeTab = $request->tab ?? 'general';
-        
-         $google_setting = GoogleSetting::current(); // 👈 new
+
+        $google_setting = GoogleSetting::current(); // 👈 new
 
         return view(
             'admin.admin-settings.index',
@@ -328,10 +328,10 @@ class AdminSettingController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'website_url' => 'nullable|url|max:255',
+            'icon' => 'nullable|string|max:100',
         ]);
 
-        $validated['is_active'] =
-            $request->has('is_active');
+        $validated['is_active'] = $request->has('is_active');
 
         Courier::updateOrCreate(
             ['id' => $request->id],
@@ -339,14 +339,8 @@ class AdminSettingController extends Controller
         );
 
         return redirect()
-            ->route(
-                'admin.admin-setting.index',
-                ['tab' => 'couriers']
-            )
-            ->with(
-                'success',
-                'Courier saved successfully.'
-            );
+            ->route('admin.admin-setting.index', ['tab' => 'couriers'])
+            ->with('success', 'Courier saved successfully.');
     }
 
     public function courierDelete(Courier $courier)
@@ -363,7 +357,7 @@ class AdminSettingController extends Controller
                 'Courier deleted successfully.'
             );
     }
-    
+
     public function googleSettingStore(Request $request)
     {
         $request->validate([
@@ -420,5 +414,5 @@ class AdminSettingController extends Controller
             ->route('admin.admin-setting.index', ['tab' => 'tracking'])
             ->with('success', 'Tracking settings saved successfully.');
     }
-    
+
 }

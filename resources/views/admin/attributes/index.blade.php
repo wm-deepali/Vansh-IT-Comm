@@ -73,6 +73,15 @@
     .attr-table tbody tr:hover { background: #fafbfc; }
     .attr-table tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middle; }
 
+    /* ── Name + icon ────────────────────────────────────────── */
+    .name-cell { display: flex; align-items: center; gap: 10px; }
+    .name-icon {
+        width: 30px; height: 30px; flex-shrink: 0; border-radius: var(--radius-sm);
+        background: var(--accent-light); color: var(--accent);
+        display: flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+    .name-icon.empty { background: var(--bg); color: var(--text-hint); }
+
     /* ── ID chip ────────────────────────────────────────────── */
     .id-chip {
         display: inline-block; background: var(--bg); color: var(--text-secondary);
@@ -142,6 +151,16 @@
     @media(max-width:768px) { .attr-page { padding: 16px; } }
     </style>
 
+    @php
+        $typeIcons = [
+            'button'       => 'fa-square-o',
+            'dropdown'     => 'fa-caret-square-o-down',
+            'image'        => 'fa-image',
+            'color_swatch' => 'fa-paint-brush',
+            'radio'        => 'fa-dot-circle-o',
+        ];
+    @endphp
+
     <div class="app-content content container-fluid">
         <div class="attr-page">
 
@@ -183,27 +202,24 @@
                                     <td><span class="id-chip">{{ $attribute->id }}</span></td>
 
                                     <td>
-                                        <span style="font-weight:600;color:var(--text-primary)">
-                                            {{ $attribute->name }}
-                                        </span>
+                                        <div class="name-cell">
+                                            @if($attribute->icon)
+                                                <span class="name-icon"><i class="{{ $attribute->icon }}"></i></span>
+                                            @else
+                                                <span class="name-icon empty"><i class="fa fa-minus"></i></span>
+                                            @endif
+                                            <span style="font-weight:600;color:var(--text-primary)">
+                                                {{ $attribute->name }}
+                                            </span>
+                                        </div>
                                     </td>
 
                                     <td><span class="slug-code">{{ $attribute->slug }}</span></td>
 
                                     <td>
                                         <span class="type-badge">
-                                            @php
-                                                $typeIcons = [
-                                                    'text'   => 'fa-font',
-                                                    'color'  => 'fa-paint-brush',
-                                                    'select' => 'fa-list',
-                                                    'radio'  => 'fa-dot-circle-o',
-                                                    'checkbox' => 'fa-check-square-o',
-                                                ];
-                                                $icon = $typeIcons[$attribute->type] ?? 'fa-tag';
-                                            @endphp
-                                            <i class="fa {{ $icon }}"></i>
-                                            {{ ucfirst($attribute->type) }}
+                                            <i class="fa {{ $typeIcons[$attribute->type] ?? 'fa-tag' }}"></i>
+                                            {{ ucfirst(str_replace('_', ' ', $attribute->type)) }}
                                         </span>
                                     </td>
 
@@ -220,10 +236,10 @@
                                     </td>
 
                                     <td>
-    {!! $attribute->show_in_navbar
-        ? '<span class="pill pill-yes">Yes</span>'
-        : '<span class="pill pill-no">No</span>' !!}
-</td>
+                                        {!! $attribute->show_in_navbar
+                                            ? '<span class="pill pill-yes">Yes</span>'
+                                            : '<span class="pill pill-no">No</span>' !!}
+                                    </td>
 
                                     <td>
                                         <div style="display:flex;gap:6px">

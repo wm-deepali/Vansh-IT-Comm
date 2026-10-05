@@ -16,6 +16,7 @@ use App\Models\PaymentSetting;
 use App\Models\CustomerAddress;
 use Illuminate\Support\Facades\DB;
 use App\Services\StockAlertService;
+use App\Http\Requests\AddressRequest;
 use App\Http\Controllers\Admin\AdminSettingController;
 
 class CheckoutController extends Controller
@@ -78,37 +79,29 @@ class CheckoutController extends Controller
             )
         );
     }
-    public function storeAddress(Request $request)
+
+    public function storeAddress(AddressRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email',
-            'phone' => 'required',
-            'address_line_1' => 'required',
-            'state_id' => 'required|exists:states,id',
-            'city_id' => 'required|exists:cities,id',
-            'pincode' => 'required',
-            'address_type' => 'nullable|in:home,work,other',
-        ]);
-
         $customer = auth('customer')->user();
+        $data = $request->validated();
 
-        CustomerAddress::where('customer_id', $customer->id)->update(['is_default' => 0]);
+        DB::transaction(function () use ($customer, $data) {
+            CustomerAddress::where('customer_id', $customer->id)->update(['is_default' => 0]);
 
-        CustomerAddress::create([
-            'customer_id' => $customer->id,
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address_line_1' => $request->address_line_1,
-            'address_line_2' => $request->address_line_2,
-            'country' => 'India',
-            'state_id' => $request->state_id,
-            'city_id' => $request->city_id,
-            'pincode' => $request->pincode,
-            'address_type' => $request->address_type ?? 'home',
-            'is_default' => 1,
-        ]);
+            CustomerAddress::create([
+                'customer_id' => $customer->id,
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'],
+                'address_line_1' => $data['address_line_1'],
+                'address_line_2' => $data['address_line_2'] ?? null,
+                'state_id' => $data['state_id'],
+                'city_id' => $data['city_id'],
+                'pincode' => $data['pincode'],
+                'address_type' => $data['address_type'] ?? 'home',
+                'is_default' => 1,
+            ]);
+        });
 
         $cart = Cart::where('user_id', $customer->id)->first();
 
@@ -173,6 +166,18 @@ class CheckoutController extends Controller
             'payment_method' => 'required|in:cod,razorpay',
         ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | COD is managed by admin (Settings → cod_enabled)
+        |--------------------------------------------------------------------------
+        */
+        if ($request->payment_method === 'cod' && !Setting::first()?->cod_enabled) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cash on Delivery is currently unavailable.',
+            ], 422);
+        }
+
         $address = null;
 
         /*
@@ -197,17 +202,9 @@ class CheckoutController extends Controller
 
         if (!$address) {
 
-            $request->validate([
-
-                'name' => 'required|string|max:255',
-                'email' => 'required|email',
-                'phone' => 'required',
-
-                'address_line_1' => 'required',
-                'state_id' => 'required|exists:states,id',
-                'city_id' => 'required|exists:cities,id',
-                'pincode' => 'required',
-            ]);
+            $request->validate(
+                collect((new AddressRequest)->rules())->except(['address_type', 'is_default'])->all()
+            );
 
             CustomerAddress::where(
                 'customer_id',
@@ -326,7 +323,8 @@ class CheckoutController extends Controller
                 'remarks' => 'Order placed successfully',
                 'triggered_by' => 'Customer',
             ]);
-            // ADD THIS — admin notification
+
+            // Admin notification
             \App\Models\AdminNotification::notify([
                 'type' => 'order',
                 'title' => 'New order placed',
@@ -450,7 +448,7 @@ class CheckoutController extends Controller
 
                 DB::commit();
 
-                // 👇 new — Meta CAPI purchase event, dispatched after commit so order is guaranteed saved
+                // Meta CAPI purchase event, dispatched after commit so order is guaranteed saved
                 \App\Jobs\SendMetaCapiPurchase::dispatch(
                     $order->id,
                     $request->ip(),
@@ -611,8 +609,25 @@ class CheckoutController extends Controller
 
         try {
 
+            // Only the customer who owns this order can complete its payment
             $order = Order::with('items')
+                ->where('customer_id', auth('customer')->id())
                 ->findOrFail($request->order_id);
+
+            // Already processed (double submit / page refresh) — don't run stock + invoice twice
+            if ($order->payment_status === 'paid') {
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'redirect_url' => route('order.success', $order->id),
+                ]);
+            }
+
+            // The Razorpay order must be the one created for this order
+            if ($order->razorpay_order_id !== $request->razorpay_order_id) {
+                throw new \Exception('Payment does not match this order.');
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -722,7 +737,6 @@ class CheckoutController extends Controller
                 ],
             ]);
 
-            // ADD THIS
             \App\Models\AdminNotification::notify([
                 'type' => 'payment',
                 'title' => 'Payment received',
@@ -829,8 +843,6 @@ class CheckoutController extends Controller
 
             // Razorpay — deduct stock after payment verified, before committing
             $this->deductOrderStock($order);
-            // $this->alertService->sendAlertEmailIfNeeded(); // ← add this
-
 
             $this->logPayment([
                 'order_id' => $order->id,
@@ -850,8 +862,7 @@ class CheckoutController extends Controller
 
             DB::commit();
 
-
-            // 👇 new — Meta CAPI purchase event
+            // Meta CAPI purchase event
             \App\Jobs\SendMetaCapiPurchase::dispatch(
                 $order->id,
                 $request->ip(),
@@ -889,8 +900,6 @@ class CheckoutController extends Controller
                 'meta' => $request->only(['razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature']),
             ]);
 
-
-
             return response()->json([
 
                 'success' => false,
@@ -903,12 +912,15 @@ class CheckoutController extends Controller
 
     public function orderSuccess(Order $order)
     {
+        // Customers can only view their own order confirmation
+        abort_unless($order->customer_id === auth('customer')->id(), 403);
+
         // Pixel/GA purchase event — rendered as an inline script tag on the thank-you view
         $purchaseScript = \App\Services\Tracking\PixelTracker::purchaseScript($order);
 
         return view(
             'front-pages.thank-you',
-            compact('order', 'purchaseScript') // 👈 new
+            compact('order', 'purchaseScript')
         );
     }
 

@@ -72,9 +72,15 @@ use App\Http\Controllers\FrontController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\Auth\CustomerAuthController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\TrackOrderController;
+
+
 
 Route::middleware('maintenance.mode')->group(function () {
 
+    // ── Public pages ──
     Route::controller(FrontController::class)->group(function () {
         Route::get('/', 'home')->name('home');
         Route::get('/shop', 'shop')->name('shop');
@@ -86,12 +92,9 @@ Route::middleware('maintenance.mode')->group(function () {
         Route::view('/repair', 'front-pages.repair')->name('repair');
         Route::view('/warranty', 'front-pages.warranty')->name('warranty');
         Route::view('/contact', 'front-pages.contact')->name('contact');
-        Route::view('/wishlist', 'front-pages.wishlist')->name('wishlist');
-        Route::view('/track-order', 'front-pages.track-order')->name('track-order');
 
         Route::view('/blog', 'front-pages.blog')->name('blog');
         Route::view('/blog-detail', 'front-pages.blog-detail')->name('blog.detail');
-        Route::view('/thank-you', 'front-pages.thank-you')->name('thank-you');
         Route::view('/exchange', 'front-pages.exchange')->name('exchange');
         Route::view('/faq', 'front-pages.faq')->name('faq');
         Route::view('/privacy', 'front-pages.privacy')->name('privacy');
@@ -100,7 +103,7 @@ Route::middleware('maintenance.mode')->group(function () {
         Route::view('/shipping', 'front-pages.shipping')->name('shipping');
     });
 
-
+    // ── Cart & wishlist: public (guests use the session) ──
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
     Route::get('/cart', [CartController::class, 'cart'])->name('cart');
     Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
@@ -109,11 +112,11 @@ Route::middleware('maintenance.mode')->group(function () {
     Route::post('/cart/apply-coupon', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
     Route::post('/cart/remove-coupon', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
 
-    Route::get('/checkout', [CheckoutController::class, 'checkout'])->name('checkout');
-    Route::post('/checkout/address', [CheckoutController::class, 'storeAddress'])->name('checkout.address.store');
-    Route::post('/checkout/address/default', [CheckoutController::class, 'changeDefaultAddress'])->name('checkout.address.default');
-    Route::get('/checkout/cities/{state}', [CheckoutController::class, 'cities'])->name('checkout.cities');
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist');
+    Route::delete('/wishlist/clear', [WishlistController::class, 'clear'])->name('wishlist.clear');
+    Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
 
+    // ── Guest auth pages ──
     Route::prefix('user')->name('user.')->group(function () {
         Route::get('/login', [CustomerAuthController::class, 'loginForm'])->name('login');
         Route::post('/login', [CustomerAuthController::class, 'login'])->name('login.submit');
@@ -123,9 +126,27 @@ Route::middleware('maintenance.mode')->group(function () {
 
         Route::get('/auth/google', [CustomerAuthController::class, 'redirectToGoogle'])->name('google');
         Route::get('/auth/google/callback', [CustomerAuthController::class, 'handleGoogleCallback'])->name('google.callback');
+    });
 
-        Route::middleware('customer')->group(function () {
-            Route::view('/account', 'front-pages.account')->name('account');
+    // ── Logged-in customer only ──
+    Route::middleware('customer')->group(function () {
+
+        Route::get('/checkout', [CheckoutController::class, 'checkout'])->name('checkout');
+        Route::post('/checkout/address', [CheckoutController::class, 'storeAddress'])->name('checkout.address.store');
+        Route::post('/checkout/address/default', [CheckoutController::class, 'changeDefaultAddress'])->name('checkout.address.default');
+        Route::get('/checkout/cities/{state}', [CheckoutController::class, 'cities'])->name('checkout.cities');
+        Route::post('/checkout/place-order', [CheckoutController::class, 'placeOrder'])->name('checkout.place');
+        Route::post('/checkout/razorpay/success', [CheckoutController::class, 'razorpaySuccess'])->name('checkout.razorpay.success');
+        Route::get('/order-success/{order}', [CheckoutController::class, 'orderSuccess'])->name('order.success');
+
+        Route::prefix('user')->name('user.')->group(function () {
+            Route::get('/account', [AccountController::class, 'index'])->name('account');
+            Route::get('/track-order', [TrackOrderController::class, 'index'])->name('track-order');
+            Route::get('/account/cities/{state}', [AccountController::class, 'cities'])->name('account.cities');
+            Route::post('/account/addresses', [AccountController::class, 'storeAddress'])->name('account.addresses.store');
+            Route::put('/account/addresses/{id}', [AccountController::class, 'updateAddress'])->name('account.addresses.update');
+            Route::post('/account/addresses/{id}/default', [AccountController::class, 'setDefaultAddress'])->name('account.addresses.default');
+            Route::delete('/account/addresses/{id}', [AccountController::class, 'destroyAddress'])->name('account.addresses.destroy');
             Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
         });
     });

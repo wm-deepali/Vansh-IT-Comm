@@ -103,7 +103,7 @@
               Enter your AWB or order number to see live GPS updates.
             </p>
             <div class="pt-2">
-              <a href="{{ route('track-order') }}" class="btn-base btn-primary btn-sm text-xs w-full py-2 justify-center font-bold text-white">
+              <a href="{{ route('user.track-order') }}" class="btn-base btn-primary btn-sm text-xs w-full py-2 justify-center font-bold text-white">
                 <i class="fa-solid fa-truck-fast mr-1.5"></i> Track Your Parcel
               </a>
             </div>

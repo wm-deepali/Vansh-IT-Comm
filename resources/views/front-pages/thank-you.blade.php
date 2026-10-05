@@ -1,9 +1,39 @@
 @extends('layouts.app')
 
 @section('title', 'Order Confirmed — Thank You | VANSH IT & COMM')
-@section('meta_description', 'Your order has been placed successfully. Track your parcel dispatch and view your GST invoice summary.')
+@section('meta_description', 'Your order has been placed successfully. Track your parcel dispatch and view your order summary.')
 
 @section('content')
+
+  @php
+    $currency = config('shop.currency', '₹');
+    $money = fn($n) => $currency . number_format((float) $n, 2);
+    $fallback = asset('assets/img/product-1588872657578-7efd1f1555ed.jpg'); // placeholder only
+
+    $order->loadMissing([
+      'items.product.images',
+      'items.imageVariant',
+      'items.addons',
+      'state',
+      'city',
+      'invoice',
+    ]);
+
+    $isPaid = $order->payment_status === 'paid';
+    $isCod = $order->payment_method === 'cod';
+
+    $paymentLabel = $isPaid ? 'Paid Online' : ($isCod ? 'Cash on Delivery' : ucfirst($order->payment_status ?? 'Pending'));
+    $paymentBadge = $isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
+
+    $fullAddress = collect([
+      $order->address_line_1,
+      $order->address_line_2,
+      $order->city?->name,
+      $order->state?->name,
+    ])->filter()->implode(', ') . ($order->pincode ? ' - ' . $order->pincode : '');
+
+    $itemCount = $order->items->count();
+  @endphp
 
   <main class="flex-grow py-8 sm:py-12">
     <div class="container-custom max-w-4xl">
@@ -27,23 +57,29 @@
           </h1>
           <p class="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto mb-6">
             We have received your order. Our engineering team is conducting the final 20-Point QC inspection before handing your parcel to our express courier partner.
+            A confirmation has been sent to <strong class="text-slate-700">{{ $order->customer_email }}</strong>.
           </p>
 
           <!-- Order Meta Quick Pill -->
           <div class="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-medium">
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-bold">Order ID</span>
-              <strong class="text-blue-600 text-sm font-extrabold" id="ty-order-id">VIC2026-XXXX</strong>
+              <strong class="text-blue-600 text-sm font-extrabold">{{ $order->order_number }}</strong>
+            </div>
+            <div class="hidden sm:block text-slate-300">|</div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-bold">Order Date</span>
+              <strong class="text-slate-900 text-xs font-bold">{{ $order->created_at->format('d M Y') }}</strong>
             </div>
             <div class="hidden sm:block text-slate-300">|</div>
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-bold">Estimated Delivery</span>
-              <strong class="text-slate-900 text-xs font-bold" id="ty-delivery-date">3–5 Business Days</strong>
+              <strong class="text-slate-900 text-xs font-bold">3–5 Business Days</strong>
             </div>
             <div class="hidden sm:block text-slate-300">|</div>
             <div>
-              <span class="text-slate-400 block text-[10px] uppercase font-bold">Payment Status</span>
-              <span class="badge bg-emerald-100 text-emerald-800 text-[10px] font-extrabold" id="ty-payment-mode">Paid (Demo)</span>
+              <span class="text-slate-400 block text-[10px] uppercase font-bold">Payment</span>
+              <span class="badge {{ $paymentBadge }} text-[10px] font-extrabold">{{ $paymentLabel }}</span>
             </div>
           </div>
         </div>
@@ -58,11 +94,55 @@
             <h2 class="text-base font-bold text-slate-900 font-heading flex items-center gap-2">
               <i class="fa-solid fa-box-open text-blue-600"></i> Items in This Order
             </h2>
-            <span class="text-xs text-slate-500" id="ty-item-count">0 items</span>
+            <span class="text-xs text-slate-500">{{ $itemCount }} item{{ $itemCount === 1 ? '' : 's' }}</span>
           </div>
 
-          <div id="ty-items-container" class="space-y-3 divide-y divide-slate-100">
-            <!-- Dynamically populated from order history -->
+          <div class="space-y-3 divide-y divide-slate-100">
+            @foreach($order->items as $item)
+              @php
+                $product = $item->product;
+
+                // Thumbnail: image variant > product default image > placeholder
+                if ($item->imageVariant && $item->imageVariant->image) {
+                  $imgUrl = asset('storage/' . $item->imageVariant->image);
+                } else {
+                  $img = $product?->images?->sortByDesc('is_default')->first();
+                  $imgUrl = $img ? asset('storage/' . $img->image) : $fallback;
+                }
+
+                $attrs = $item->selected_attributes;
+                $attrs = is_array($attrs) ? $attrs : (json_decode($attrs ?? '[]', true) ?: []);
+
+                $addonsTotal = $item->addons->sum('price');
+                $lineTotal = ($item->price * $item->quantity) + $addonsTotal;
+              @endphp
+
+              <div class="flex items-center gap-3 pt-3 text-xs first:pt-0">
+                <img src="{{ $imgUrl }}" alt="{{ $item->product_name }}"
+                  class="w-14 h-14 object-contain rounded-xl bg-slate-100 p-1 border border-slate-200 flex-shrink-0"
+                  onerror="this.onerror=null; this.src='{{ $fallback }}';" />
+                <div class="flex-1 min-w-0">
+                  <h4 class="font-bold text-slate-900 truncate">{{ $item->product_name }}</h4>
+
+                  @if(count($attrs))
+                    <div class="text-[11px] text-slate-500 truncate">
+                      {{ collect($attrs)->map(fn($a) => is_array($a) ? (($a['attribute'] ?? '') . ': ' . ($a['value'] ?? '')) : $a)->implode(' • ') }}
+                    </div>
+                  @endif
+
+                  @foreach($item->addons as $addon)
+                    <div class="text-[11px] text-slate-500 truncate">+ {{ $addon->detail }} ({{ $money($addon->price) }})</div>
+                  @endforeach
+
+                  <div class="text-[11px] text-slate-500 mt-0.5">
+                    Qty: <strong>{{ $item->quantity }}</strong> × {{ $money($item->price) }}
+                  </div>
+                </div>
+                <div class="text-right font-extrabold text-slate-900">
+                  {{ $money($lineTotal) }}
+                </div>
+              </div>
+            @endforeach
           </div>
         </section>
 
@@ -75,12 +155,10 @@
               <i class="fa-solid fa-location-dot text-blue-600"></i> Shipping Details
             </h3>
             <div class="space-y-1 text-slate-600">
-              <div class="font-bold text-slate-900 text-sm" id="ty-customer-name">Demo Customer</div>
-              <div id="ty-customer-phone">+91 98765 43210</div>
-              <div id="ty-customer-email" class="text-slate-500">customer@example.com</div>
-              <div class="pt-2 text-slate-700 font-medium" id="ty-customer-address">
-                House 104, Tech Park Boulevard, Cyber City, New Delhi - 110001
-              </div>
+              <div class="font-bold text-slate-900 text-sm">{{ $order->customer_name }}</div>
+              <div>{{ $order->customer_phone }}</div>
+              <div class="text-slate-500">{{ $order->customer_email }}</div>
+              <div class="pt-2 text-slate-700 font-medium">{{ $fullAddress }}</div>
             </div>
           </div>
 
@@ -91,20 +169,70 @@
             </h3>
             <div class="space-y-2 text-slate-600">
               <div class="flex items-center justify-between">
-                <span>Total Amount Paid</span>
-                <strong class="text-base font-extrabold text-slate-900" id="ty-total-paid">₹0</strong>
+                <span>Subtotal</span>
+                <span class="font-semibold text-slate-800">{{ $money($order->subtotal) }}</span>
               </div>
-              <p class="text-[11px] text-slate-400">Includes 18% GST invoice and transit packaging insurance.</p>
+
+              @if($order->discount > 0)
+                <div class="flex items-center justify-between text-emerald-600 font-semibold">
+                  <span>Discount{{ $order->coupon_code ? ' (' . $order->coupon_code . ')' : '' }}</span>
+                  <span>- {{ $money($order->discount) }}</span>
+                </div>
+              @endif
+
+              @if($order->tax_amount > 0)
+                @if($order->gst_type === 'igst' && $order->igst_amount > 0)
+                  <div class="flex items-center justify-between">
+                    <span>IGST ({{ rtrim(rtrim(number_format($order->igst_rate, 2), '0'), '.') }}%)</span>
+                    <span class="font-semibold text-slate-800">{{ $money($order->igst_amount) }}</span>
+                  </div>
+                @else
+                  @if($order->cgst_amount > 0)
+                    <div class="flex items-center justify-between">
+                      <span>CGST ({{ rtrim(rtrim(number_format($order->cgst_rate, 2), '0'), '.') }}%)</span>
+                      <span class="font-semibold text-slate-800">{{ $money($order->cgst_amount) }}</span>
+                    </div>
+                  @endif
+                  @if($order->sgst_amount > 0)
+                    <div class="flex items-center justify-between">
+                      <span>SGST ({{ rtrim(rtrim(number_format($order->sgst_rate, 2), '0'), '.') }}%)</span>
+                      <span class="font-semibold text-slate-800">{{ $money($order->sgst_amount) }}</span>
+                    </div>
+                  @endif
+                @endif
+              @endif
+
+              <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                <span class="font-bold text-slate-900">{{ $isPaid ? 'Total Amount Paid' : 'Total Amount' }}</span>
+                <strong class="text-base font-extrabold text-slate-900">{{ $money($order->grand_total) }}</strong>
+              </div>
+
+              @if($isCod && !$isPaid)
+                <p class="text-[11px] text-amber-600 font-semibold">
+                  Please keep {{ $money($order->grand_total) }} ready to pay at the time of delivery.
+                </p>
+              @endif
+
+              @if($order->invoice)
+                <p class="text-[11px] text-slate-400">Invoice No: {{ $order->invoice->invoice_number }}</p>
+              @endif
             </div>
 
             <!-- Action Buttons -->
             <div class="space-y-2 pt-3 border-t border-slate-100">
-              <a href="{{ route('track-order') }}" id="ty-track-btn" class="btn-base btn-primary w-full py-3 text-xs font-semibold justify-center shadow-md">
+              <a href="{{ route('user.track-order') }}?orderId={{ urlencode($order->order_number) }}"
+                class="btn-base btn-primary w-full py-3 text-xs font-semibold justify-center shadow-md">
                 <i class="fa-solid fa-location-crosshairs mr-1.5"></i> Track Package Live
               </a>
-              <button type="button" onclick="App.showToast('GST Invoice PDF simulation generated & downloaded!', 'success')" class="btn-base btn-secondary w-full py-2.5 text-xs font-semibold justify-center">
-                <i class="fa-solid fa-file-invoice mr-1.5"></i> Download GST Tax Invoice
-              </button>
+
+              {{-- Shown only once an invoice download route exists (e.g. route name: order.invoice) --}}
+              @if($order->invoice && \Illuminate\Support\Facades\Route::has('order.invoice'))
+                <a href="{{ route('order.invoice', $order->id) }}"
+                  class="btn-base btn-secondary w-full py-2.5 text-xs font-semibold justify-center">
+                  <i class="fa-solid fa-file-invoice mr-1.5"></i> Download GST Tax Invoice
+                </a>
+              @endif
+
               <a href="{{ route('shop') }}" class="btn-base btn-secondary w-full py-2.5 text-xs font-semibold justify-center bg-slate-50">
                 Continue Shopping
               </a>
@@ -144,83 +272,8 @@
 @endsection
 
 @push('scripts')
-  <script>
-    const TRACK_ORDER_URL = "{{ route('track-order') }}";
-
-    document.addEventListener('DOMContentLoaded', () => {
-      Components.renderHeader();
-      Components.renderFooter();
-      renderThankYouOrder();
-    });
-
-    function renderThankYouOrder() {
-      const params = App.getUrlParams();
-      const orders = JSON.parse(localStorage.getItem('vansh_orders') || '[]');
-      let currentOrder = null;
-
-      if (params.orderId) {
-        currentOrder = orders.find(o => o.orderId === params.orderId);
-      }
-      if (!currentOrder && orders.length > 0) {
-        currentOrder = orders[0]; // latest order
-      }
-
-      if (!currentOrder) {
-        // Fallback demo order
-        currentOrder = {
-          orderId: params.orderId || 'VIC2026-7841',
-          date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-          paymentMethod: 'UPI Instant',
-          items: [
-            {
-              id: 'lap-01',
-              name: 'Dell Latitude 5420 Business Laptop',
-              price: 32499,
-              image: "{{ asset('assets/img/product-1593642632823-8f785ba67e45.jpg') }}",
-              quantity: 1,
-              condition: 'Refurbished'
-            }
-          ],
-          total: 32499,
-          customer: {
-            name: 'Rahul Sharma',
-            phone: '+91 98765 43210',
-            email: 'rahul.sharma@example.com',
-            address: '104 Tech Park, Cyber City, New Delhi - 110001'
-          }
-        };
-      }
-
-      // Populate UI
-      document.getElementById('ty-order-id').textContent = currentOrder.orderId;
-      document.getElementById('ty-track-btn').href = `${TRACK_ORDER_URL}?orderId=${encodeURIComponent(currentOrder.orderId)}`;
-      document.getElementById('ty-payment-mode').textContent = currentOrder.paymentMethod || 'Paid (Demo)';
-      document.getElementById('ty-total-paid').textContent = ProductsEngine.formatPrice(currentOrder.total || 0);
-      document.getElementById('ty-item-count').textContent = `${(currentOrder.items || []).length} item${(currentOrder.items || []).length > 1 ? 's' : ''}`;
-
-      if (currentOrder.customer) {
-        document.getElementById('ty-customer-name').textContent = currentOrder.customer.name || 'Valued Customer';
-        document.getElementById('ty-customer-phone').textContent = currentOrder.customer.phone || 'Phone verified';
-        document.getElementById('ty-customer-email').textContent = currentOrder.customer.email || 'Invoice sent via email';
-        document.getElementById('ty-customer-address').textContent = currentOrder.customer.address || 'Standard Delivery Address';
-      }
-
-      const container = document.getElementById('ty-items-container');
-      container.innerHTML = (currentOrder.items || []).map(item => `
-        <div class="flex items-center gap-3 pt-3 text-xs">
-          <img src="${item.image}" alt="${item.name}" class="w-14 h-14 object-contain rounded-xl bg-slate-100 p-1 border border-slate-200 flex-shrink-0" />
-          <div class="flex-1 min-w-0">
-            <h4 class="font-bold text-slate-900 truncate">${item.name}</h4>
-            <div class="text-[11px] text-slate-500 mt-0.5">
-              <span class="badge ${ProductsEngine.getBadgeClass(item.condition)} text-[9px] py-0 px-1.5">${item.condition || 'Tested'}</span>
-              <span class="ml-2">Qty: <strong>${item.quantity}</strong></span>
-            </div>
-          </div>
-          <div class="text-right font-extrabold text-slate-900">
-            ${ProductsEngine.formatPrice(item.price * item.quantity)}
-          </div>
-        </div>
-      `).join('');
-    }
-  </script>
+  {{-- Purchase tracking (GA4 / Meta pixel) — built in CheckoutController::orderSuccess --}}
+  @if(!empty($purchaseScript))
+    {!! $purchaseScript !!}
+  @endif
 @endpush

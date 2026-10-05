@@ -1,131 +1,9 @@
 {{-- resources/views/partials/header.blade.php --}}
+{{-- $navCategories is supplied by App\View\Composers\NavCategoriesComposer --}}
 @php
     $activePage = $activePage ?? '';
-
-    $laptopCols = [
-        [
-            'By Usage',
-            [
-                ['Gaming Laptops', ['use' => 'gaming']],
-                ['Coding & Devs', ['use' => 'coding']],
-                ['Business Ultrabooks', ['use' => 'business']],
-                ['Students & Study', ['use' => 'students']],
-                ['Video & Design', ['use' => 'design']],
-                ['Work From Home', ['use' => 'wfh']],
-            ]
-        ],
-        [
-            'By RAM',
-            [
-                ['8 GB RAM', ['ram' => 8]],
-                ['16 GB (Popular)', ['ram' => 16]],
-                ['32 GB Workstation', ['ram' => 32]],
-                ['64 GB+ Ultra', ['ram' => 64]],
-            ]
-        ],
-        [
-            'Storage',
-            [
-                ['256 GB SSD', ['storage' => 256]],
-                ['512 GB SSD', ['storage' => 512]],
-                ['1 TB SSD / Dual', ['storage' => 1000]],
-                ['2 TB SSD', ['storage' => 2000]],
-            ]
-        ],
-        [
-            'Top Brands',
-            [
-                ['Dell Latitude', ['brand' => 'Dell'], 'font-medium'],
-                ['Lenovo ThinkPad', ['brand' => 'Lenovo'], 'font-medium'],
-                ['HP EliteBook', ['brand' => 'HP'], 'font-medium'],
-                ['Apple MacBook', ['brand' => 'Apple'], 'font-medium'],
-                ['Asus ROG / TUF', ['brand' => 'Asus']],
-                ['Acer Aspire', ['brand' => 'Acer']],
-            ]
-        ],
-        [
-            'Budget Range',
-            [
-                ['Under ₹15,000', ['maxPrice' => 15000], 'font-semibold text-emerald-600'],
-                ['₹15K – ₹25K', ['minPrice' => 15000, 'maxPrice' => 25000]],
-                ['₹25K – ₹35K', ['minPrice' => 25000, 'maxPrice' => 35000]],
-                ['₹35K – ₹50K', ['minPrice' => 35000, 'maxPrice' => 50000]],
-                ['Flagships ₹50K+', ['minPrice' => 50000]],
-            ]
-        ],
-    ];
-
-    $laptopPromo = [
-        'gradient' => 'from-slate-900 to-blue-950',
-        'badgeClass' => 'bg-blue-500',
-        'badge' => '20-PT TESTED',
-        'title' => 'Refurbished Laptops',
-        'text' => 'Tested & 12-Mo Warranty.',
-        'price' => 'From ₹14,499*',
-        'btn' => 'Explore',
-    ];
-
-    $mobileCols = [
-        [
-            'Category',
-            [
-                ['Premium Flagships', ['type' => 'premium']],
-                ['Camera Specialists', ['type' => 'camera']],
-                ['Gaming Phones', ['type' => 'gaming']],
-                ['5000mAh+ Battery', ['type' => 'battery']],
-                ['Everyday Value', ['type' => 'everyday']],
-            ]
-        ],
-        [
-            'RAM',
-            [
-                ['4 GB RAM', ['ram' => 4]],
-                ['6 GB RAM', ['ram' => 6]],
-                ['8 GB RAM', ['ram' => 8]],
-                ['12 GB+ Flagship', ['ram' => 12]],
-            ]
-        ],
-        [
-            'Storage',
-            [
-                ['64 GB Storage', ['storage' => 64]],
-                ['128 GB (Popular)', ['storage' => 128]],
-                ['256 GB Pro', ['storage' => 256]],
-                ['512 GB / 1 TB', ['storage' => 512]],
-            ]
-        ],
-        [
-            'Top Brands',
-            [
-                ['Apple iPhone', ['brand' => 'Apple'], 'font-medium'],
-                ['Samsung Galaxy', ['brand' => 'Samsung'], 'font-medium'],
-                ['OnePlus 5G', ['brand' => 'OnePlus'], 'font-medium'],
-                ['Google Pixel', ['brand' => 'Google'], 'font-medium'],
-                ['Xiaomi / Redmi', ['brand' => 'Xiaomi']],
-                ['Realme & Vivo', ['brand' => 'Realme']],
-            ]
-        ],
-        [
-            'Budget Range',
-            [
-                ['Under ₹10,000', ['maxPrice' => 10000], 'font-semibold text-emerald-600'],
-                ['₹10K – ₹15K', ['minPrice' => 10000, 'maxPrice' => 15000]],
-                ['₹15K – ₹25K', ['minPrice' => 15000, 'maxPrice' => 25000]],
-                ['₹25K – ₹40K', ['minPrice' => 25000, 'maxPrice' => 40000]],
-                ['Flagships ₹40K+', ['minPrice' => 40000]],
-            ]
-        ],
-    ];
-
-    $mobilePromo = [
-        'gradient' => 'from-blue-900 to-slate-900',
-        'badgeClass' => 'bg-emerald-500',
-        'badge' => 'BATTERY 85%+',
-        'title' => 'Refurbished Phones',
-        'text' => 'Original display & OEM parts.',
-        'price' => 'From ₹6,999*',
-        'btn' => 'Shop Mobiles',
-    ];
+    $navCategories = $navCategories ?? collect();
+    $activeCategorySlugs = (array) request()->query('category', []);
 @endphp
 
 {{-- Announcement Bar --}}
@@ -147,7 +25,7 @@
         </div>
         <div
             class="flex items-center gap-2 sm:gap-3 lg:gap-4 text-[10px] sm:text-[11px] xl:text-xs font-medium flex-shrink-0">
-            <a href="{{ route('track-order') }}"
+            <a href="{{ route('user.track-order') }}"
                 class="hover:text-blue-400 transition-colors flex items-center gap-1 whitespace-nowrap">
                 <i class="fa-solid fa-location-crosshairs text-[9px]"></i> Track Order
             </a>
@@ -262,31 +140,27 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('shop') }}" class="nav-link {{ $activePage === 'shop' ? 'active' : '' }}">All
+                    <a href="{{ route('shop') }}" class="nav-link {{ $activePage === 'shop' && empty($activeCategorySlugs) ? 'active' : '' }}">All
                         Products</a>
                 </li>
 
-                <li class="has-mega-menu">
-                    <a href="#" class="nav-link {{ $activePage === 'laptops' ? 'active' : '' }}">
-                        <i class="fa-solid fa-laptop text-xs"></i> Laptops <i
-                            class="fa-solid fa-chevron-down text-[9px] opacity-60"></i>
-                    </a>
-                    @include('partials.mega-menu', ['cols' => $laptopCols, 'routeName' => 'laptops', 'promo' => $laptopPromo])
-                </li>
+                {{-- One mega menu per active category (created in admin) --}}
+                @foreach($navCategories as $nav)
+                    @php
+                        $cat = $nav['category'];
+                        $isActive = in_array($cat->slug, $activeCategorySlugs, true);
+                    @endphp
+                    <li class="has-mega-menu">
+                        <a href="{{ route('shop', ['category' => [$cat->slug]]) }}"
+                            class="nav-link {{ $isActive ? 'active' : '' }}">
+                            {{ $cat->name }}
+                            <i class="fa-solid fa-chevron-down text-[9px] opacity-60"></i>
+                        </a>
+                        {{-- routeName 'shop': every item's params become a shop-page filter query string --}}
+                        @include('partials.mega-menu', ['cols' => $nav['cols'], 'routeName' => 'shop', 'promo' => $nav['promo']])
+                    </li>
+                @endforeach
 
-                <li class="has-mega-menu">
-                    <a href="#" class="nav-link {{ $activePage === 'mobiles' ? 'active' : '' }}">
-                        <i class="fa-solid fa-mobile-screen-button text-xs"></i> Mobile Phones <i
-                            class="fa-solid fa-chevron-down text-[9px] opacity-60"></i>
-                    </a>
-                    @include('partials.mega-menu', ['cols' => $mobileCols, 'routeName' => 'mobile-phones', 'promo' => $mobilePromo])
-                </li>
-
-                <li>
-                    <a href="#" class="nav-link {{ $activePage === 'accessories' ? 'active' : '' }}">
-                        <i class="fa-solid fa-headphones text-xs"></i> Accessories
-                    </a>
-                </li>
                 <li>
                     <a href="{{ route('repair') }}" class="nav-link {{ $activePage === 'repair' ? 'active' : '' }}">
                         <i class="fa-solid fa-wrench text-xs text-blue-600"></i> Repair Services

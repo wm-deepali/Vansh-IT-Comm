@@ -1,4 +1,5 @@
 {{-- resources/views/partials/footer.blade.php --}}
+{{-- $footerCategories and $footerPages are supplied by the 'partials.footer' view composer (AppServiceProvider) --}}
 @php
     $pillars = [
         ['blue', 'fa-shield-halved', '20-Point QC Tested', 'Rigorous hardware & battery diagnostics.'],
@@ -7,38 +8,36 @@
         ['amber', 'fa-screwdriver-wrench', 'Up to 12M Warranty', 'Free technical support & service coverage.'],
     ];
 
+    // Change this one line if your category listing route has a different name
+    $categoryUrl = fn($category) => route('category.show', $category->slug);
+
+    // Change this one line if your dynamic page route has a different name
+    $pageUrl = fn($page) => route('dynamic.page', \Illuminate\Support\Str::slug($page->page_name));
+
     $columns = [
-        'Shop Hardware' => [
-            ['Refurbished Laptops', route('home')],
-            ['Refurbished Mobiles', route('home')],
-            ['Computer Accessories', route('home')],
-            ['Under ₹15,000 Budget', route('home', ['maxPrice' => 15000]), 'text-emerald-400'],
-            ['Deals & Clearance Hub', route('shop')],
-            ['All Categories Hub', route('categories')],
-        ],
-        'Expert Services' => [
-            ['Screen & Battery Repair', route('repair')],
-            ['Motherboard Diagnostics', route('repair')],
-            ['Old Device Exchange / Sell', route('exchange')],
-            ['Video Call Product Demo', url('product') . '#video-call-drawer', 'text-blue-400'],
-            ['Track Your Parcel', route('track-order')],
+        // Dynamic: every active top-level category created in admin
+        'Shop Now' => collect($footerCategories ?? [])
+            ->map(fn($category) => [$category->name, $categoryUrl($category)])
+            ->all(),
+
+        'For Customers' => [
+            ['Repair Services', route('repair')],
+            ['Track Your Order', route('user.track-order')],
             ['Warranty & Claims', route('warranty')],
+            ['Old Device Exchange / Sell', route('exchange')],
         ],
+
         'Company & Trust' => [
-            ['About VANSH IT & COMM', route('about')],
-            ['20-Point QC Testing', route('about') . '#refurbish-process'],
-            ['Tech Buying Guides & Blog', route('blog')],
-            ['Frequently Asked Questions', route('faq')],
-            ['Customer Helpdesk', route('contact')],
+            ['About Us', route('about')],
+            ['Contact Us', route('contact')],
+            ['Blogs', route('blog')],
+            ['FAQs', route('faq')],
         ],
-        'Store Policies' => [
-            ['Terms & Conditions', route('terms', ['tab' => 'terms'])],
-            ['Privacy & Data Security', route('privacy')],
-            ['7-Day Replacement Policy', route('returns')],
-            ['Shipping & Logistics Policy', route('shipping')],
-            ['Cookies Policy', route('terms', ['tab' => 'cookies'])],
-            ['Warranty Guidelines', route('warranty')],
-        ],
+
+        // Dynamic: every active dynamic page created in admin
+        'Policies' => collect($footerPages ?? [])
+            ->map(fn($page) => [$page->heading ?: $page->page_name, $pageUrl($page)])
+            ->all(),
     ];
 
     $socials = [
@@ -127,6 +126,9 @@
             </div>
 
             @foreach ($columns as $heading => $links)
+                {{-- Hide a column entirely if it has no links (e.g. no categories / pages created yet) --}}
+                @continue(empty($links))
+
                 <div class="lg:col-span-2">
                     <h4 class="text-xs font-extrabold text-white uppercase tracking-wider font-heading mb-4 pb-1 border-b border-slate-800/60">{{ $heading }}</h4>
                     <ul class="space-y-2.5 font-body text-xs">

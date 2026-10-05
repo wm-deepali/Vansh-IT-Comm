@@ -137,12 +137,3 @@
   </main>
 
 @endsection
-
-@push('scripts')
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      Components.renderHeader('categories');
-      Components.renderFooter();
-    });
-  </script>
-@endpush

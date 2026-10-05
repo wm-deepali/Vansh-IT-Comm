@@ -44,16 +44,19 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
         <!-- Desktop Filter Sidebar -->
-        <aside class="hidden lg:block lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-28">
+        <aside
+          class="hidden lg:block lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-28">
           @include('partials.shop-filters', ['formId' => 'filters-desktop'])
         </aside>
 
         <!-- Product Grid Area -->
         <section class="lg:col-span-9">
-          <div class="flex items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 mb-4 text-xs flex-wrap">
+          <div
+            class="flex items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 mb-4 text-xs flex-wrap">
             <span class="text-slate-600 font-medium">
               @if($products->total())
-                Showing {{ $products->firstItem() }}–{{ $products->lastItem() }} of {{ $products->total() }} {{ \Illuminate\Support\Str::plural('product', $products->total()) }}
+                Showing {{ $products->firstItem() }}–{{ $products->lastItem() }} of {{ $products->total() }}
+                {{ \Illuminate\Support\Str::plural('product', $products->total()) }}
               @else
                 No products found
               @endif
@@ -62,7 +65,8 @@
             @if(count($activeFilters))
               <div class="flex items-center gap-2 flex-wrap">
                 @foreach($activeFilters as $f)
-                  <a href="{{ $f['url'] }}" class="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-2.5 py-1 font-semibold hover:bg-blue-100">
+                  <a href="{{ $f['url'] }}"
+                    class="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-2.5 py-1 font-semibold hover:bg-blue-100">
                     {{ $f['label'] }} <i class="fa-solid fa-xmark text-[10px]"></i>
                   </a>
                 @endforeach
@@ -86,7 +90,8 @@
             <div class="mt-8">{{ $products->links() }}</div>
           @else
             <div class="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-              <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-2xl mx-auto mb-3">
+              <div
+                class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-2xl mx-auto mb-3">
                 <i class="fa-solid fa-magnifying-glass"></i>
               </div>
               <h3 class="text-base font-bold text-slate-900 mb-1">No products match your filters</h3>
@@ -103,17 +108,26 @@
   <!-- Mobile Filter Drawer -->
   <div id="mobile-filter-drawer" class="fixed inset-0 z-50 pointer-events-none opacity-0 transition-opacity duration-300">
     <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onclick="toggleMobileFilterDrawer()"></div>
-    <div class="absolute right-0 top-0 bottom-0 w-80 max-w-full bg-white p-6 overflow-y-auto shadow-2xl transform translate-x-full transition-transform duration-300" id="mobile-filter-drawer-box">
-      <button type="button" onclick="toggleMobileFilterDrawer()" class="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-700">
+    <div
+      class="absolute right-0 top-0 bottom-0 w-80 max-w-full bg-white p-6 overflow-y-auto shadow-2xl transform translate-x-full transition-transform duration-300"
+      id="mobile-filter-drawer-box">
+      <button type="button" onclick="toggleMobileFilterDrawer()"
+        class="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-700">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
       @include('partials.shop-filters', ['formId' => 'filters-mobile'])
     </div>
   </div>
 
+
+  @include('partials.quick-view')
+
 @endsection
 
 @push('scripts')
+  @include('partials.cart-helpers')
+  @include('partials.cart-js')
+  @include('partials.wishlist-js')
   <script>
     // Filters are applied server-side (GET form). Sorting keeps every other query param.
     function changeSort(value) {

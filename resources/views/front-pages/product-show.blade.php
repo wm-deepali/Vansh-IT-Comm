@@ -112,6 +112,8 @@
     ])->where('show', true)->values();
 
     $vc = config('shop.video_call', []);
+
+    $isWishlisted = in_array($product->id, \App\Models\Wishlist::currentProductIds());
   @endphp
 
   <style>
@@ -182,10 +184,11 @@
               </div>
             @endif
 
-            <button type="button" id="prod-detail-wishlist-btn" data-wishlist-btn="{{ $product->id }}"
-              class="heart-btn absolute top-3 sm:top-4 right-3 sm:right-4 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-50/90 border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-white hover:text-red-500 shadow-sm transition-all"
+            <button type="button" data-wishlist-btn="{{ $product->id }}"
+              aria-pressed="{{ $isWishlisted ? 'true' : 'false' }}"
+              class="heart-btn absolute top-3 sm:top-4 right-3 sm:right-4 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-50/90 border border-slate-200 {{ $isWishlisted ? 'text-red-500' : 'text-slate-600' }} flex items-center justify-center hover:bg-white hover:text-red-500 shadow-sm transition-all"
               aria-label="Add to Wishlist">
-              <i class="fa-regular fa-heart text-sm sm:text-base"></i>
+              <i class="{{ $isWishlisted ? 'fa-solid' : 'fa-regular' }} fa-heart text-sm sm:text-base"></i>
             </button>
           </div>
 
@@ -337,7 +340,7 @@
             <!-- CTA Buttons -->
             <div class="space-y-2 pt-1 sm:pt-2">
               <div class="grid grid-cols-2 gap-2 sm:gap-3">
-                <button type="button" id="prod-add-cart-btn" data-add-to-cart="{{ $product->id }}"
+                <button type="button" id="prod-add-cart-btn" data-add-to-cart data-product-id="{{ $product->id }}"
                   class="btn-base btn-secondary py-2.5 sm:py-3.5 text-xs sm:text-sm font-semibold w-full justify-center shadow-sm">
                   <i class="fa-solid fa-cart-shopping"></i> Add to Cart
                 </button>
@@ -424,7 +427,8 @@
                   <h3 class="text-lg font-bold text-slate-900 font-heading">Warranty Policy & Claims</h3>
                   @if($product->warranty)
                     <p class="font-semibold text-slate-900"><i class="fa-solid fa-shield-halved text-blue-600 mr-1"></i>
-                      {{ $product->warranty }}</p>
+                      {{ $product->warranty }}
+                    </p>
                   @endif
                   @if($hasWarrantyText)
                     <div class="rich-content">{!! $product->warranty_coverage !!}</div>
@@ -612,90 +616,24 @@
 @endsection
 
 @push('scripts')
+  @include('partials.cart-helpers')
+  @include('partials.cart-js')
+  @include('partials.wishlist-js')
   <script>
-    // Header/footer are rendered by Blade partials now — no Components.render*() calls.
     const PAGE = {
       productId: @json($product->id),
       deliveryTime: @json($product->delivery_time),
       phoneCode: @json($phoneCode),
-      csrf: @json(csrf_token()),
-      cartAddUrl: @json(route('cart.add')),      // match your route name
       checkoutUrl: @json(route('checkout')),
     };
 
-    function toast(msg, type = 'info') {
-      if (typeof showToast === 'function') showToast(msg, type);
-      else console.warn('showToast not loaded:', msg);
-    }
-
     // ==========================================
-    // ADD TO CART / BUY NOW
+    // BUY NOW (Add to Cart is handled by partials.cart-js)
     // ==========================================
-    // No variant UI on this page: the controller auto-picks an in-stock
-    // variant (if any) and uses the product's min_qty when quantity is omitted.
-    async function postAddToCart() {
-      const res = await fetch(PAGE.cartAddUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': PAGE.csrf,
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: JSON.stringify({ product_id: PAGE.productId }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || data.status === false) {
-        throw new Error(data.message || 'Could not add this product to the cart.');
-      }
-      return data;
-    }
-
-    // Header badge + mini cart (adjust selectors to match your layout)
-       function syncHeader(data) {
-      document.querySelectorAll('[data-cart-count]').forEach(el => {
-        el.textContent = data.cart_count > 99 ? '99+' : data.cart_count;
-        el.classList.toggle('hidden', !(data.cart_count > 0));
-      });
-    }
-
-    function setBtnLoading(btn, loading, html) {
-      if (!btn) return;
-      if (loading) {
-        btn.dataset.original = btn.innerHTML;
-        btn.disabled = true;
-        btn.classList.add('opacity-70', 'cursor-not-allowed');
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + html;
-      } else {
-        btn.disabled = false;
-        btn.classList.remove('opacity-70', 'cursor-not-allowed');
-        btn.innerHTML = btn.dataset.original || btn.innerHTML;
-      }
-    }
-
-    async function addToCart(btn) {
-      setBtnLoading(btn, true, 'Adding...');
-      try {
-        const data = await postAddToCart();
-        syncHeaderCart(data);
-        if (window.fireTrackingEvents) fireTrackingEvents(data.tracking_events); // only if you have such a helper
-        toast(data.message, 'success');
-        if (data.coupon_removed && data.coupon_message) toast(data.coupon_message, 'info');
-        return true;
-      } catch (e) {
-        toast(e.message, 'error');
-        return false;
-      } finally {
-        setBtnLoading(btn, false);
-      }
-    }
-
     async function buyNow(btn) {
       setBtnLoading(btn, true, 'Please wait...');
       try {
-        const data = await postAddToCart();
+        const data = await window.postAddToCart(PAGE.productId);
         syncHeaderCart(data);
         if (window.fireTrackingEvents) fireTrackingEvents(data.tracking_events);
         window.location.href = PAGE.checkoutUrl;
@@ -706,12 +644,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      const addBtn = document.getElementById('prod-add-cart-btn');
       const buyBtn = document.getElementById('prod-buy-now-btn');
-
-      // stopPropagation so a global [data-add-to-cart] handler in the layout
-      // (if you have one) doesn't fire a second request.
-      if (addBtn) addBtn.addEventListener('click', e => { e.stopPropagation(); addToCart(addBtn); });
       if (buyBtn) buyBtn.addEventListener('click', e => { e.stopPropagation(); buyNow(buyBtn); });
     });
 
@@ -724,7 +657,6 @@
       btn.className = 'prod-thumb w-14 h-14 rounded-xl overflow-hidden border-2 border-blue-600 bg-white p-1 flex-shrink-0 transition-all';
     }
 
-    // Tabs are generated from whatever content exists (data-tab-btn / data-tab-content)
     function switchTab(tabId) {
       const on = 'px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex-shrink-0 bg-blue-600 text-white';
       const off = 'px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex-shrink-0 text-slate-600 hover:bg-slate-100';
@@ -735,7 +667,7 @@
         b.className = b.dataset.tabBtn === tabId ? on : off);
     }
 
-    // Static check (no courier API wired yet): validates the PIN and shows the product's delivery time
+    // Static check (no courier API wired yet)
     function checkPincode() {
       const pin = (document.getElementById('pincode-input').value || '').trim();
       const status = document.getElementById('pincode-status');

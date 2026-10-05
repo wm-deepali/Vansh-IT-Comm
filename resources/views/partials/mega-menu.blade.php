@@ -1,5 +1,8 @@
 {{-- resources/views/partials/mega-menu.blade.php
-     Expects: $cols (array of [title, items]), $routeName, $promo (array) --}}
+     Expects: $cols (array of [title, items]), $routeName, $promo (array)
+     Each item = [label, routeParams, cssClass?]. Links go to route($routeName, routeParams);
+     the header passes 'shop', so a click lands on the shop page with that filter applied.
+     $promo['url'] (optional) is where the promo button goes. --}}
 <div class="mega-menu">
     <div class="container-custom py-6 xl:py-8">
         <div class="grid grid-cols-6 gap-2.5 lg:gap-3.5 xl:gap-5 items-stretch">
@@ -10,7 +13,7 @@
                     <ul class="space-y-1.5 text-[11px] xl:text-xs text-slate-600">
                         @foreach ($items as $item)
                             <li class="truncate">
-                                <a href="#"
+                                <a href="{{ route($routeName, $item[1] ?? []) }}"
                                    class="hover:text-blue-600 transition-colors {{ $item[2] ?? '' }}">{{ $item[0] }}</a>
                             </li>
                         @endforeach
@@ -25,7 +28,7 @@
                     <p class="text-[10px] xl:text-[11px] text-slate-300 mb-2 leading-tight">{{ $promo['text'] }}</p>
                     <div class="text-[11px] xl:text-xs font-extrabold text-emerald-400">{{ $promo['price'] }}</div>
                 </div>
-                <a href="#" class="mt-2.5 btn-base btn-primary btn-sm text-[10px] xl:text-xs w-full py-1.5 justify-center font-bold">
+                <a href="{{ $promo['url'] ?? route($routeName) }}" class="mt-2.5 btn-base btn-primary btn-sm text-[10px] xl:text-xs w-full py-1.5 justify-center font-bold">
                     {{ $promo['btn'] }} <i class="fa-solid fa-arrow-right text-[9px]"></i>
                 </a>
             </div>

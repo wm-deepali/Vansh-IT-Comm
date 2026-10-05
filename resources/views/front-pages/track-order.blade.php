@@ -1,9 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'Track Your Order | VANSH IT & COMM')
-@section('meta_description', 'Track your dispatched electronics order and view live transit status across India.')
+@section('title', 'Track Your Order | ' . config('app.name'))
+@section('meta_description', 'Track your order and view its live status.')
+@section('active_page', 'track-order')
 
 @section('content')
+
+  @php
+    $label = fn($v) => ucwords(str_replace('_', ' ', (string) $v));
+    $partnerClass = 'p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-2 min-w-0';
+  @endphp
 
   <main class="flex-grow py-6 sm:py-10">
     <div class="container-custom">
@@ -16,9 +22,11 @@
       </nav>
 
       <!-- Hero Header -->
-      <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 text-white rounded-3xl p-8 sm:p-12 mb-10 border border-slate-800 shadow-xl">
+      <div
+        class="bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 text-white rounded-3xl p-8 sm:p-12 mb-10 border border-slate-800 shadow-xl">
         <div class="max-w-4xl space-y-3">
-          <span class="badge bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-3 py-1 font-bold">REAL-TIME LOGISTICS</span>
+          <span class="badge bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-3 py-1 font-bold">REAL-TIME
+            LOGISTICS</span>
           <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight font-heading">
             Live Order & Parcel Tracking
           </h1>
@@ -28,10 +36,9 @@
         </div>
       </div>
 
-      <!-- Master Full-Width 2-Column Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 items-start">
 
-        <!-- Left Column: Search Form Card -->
+        <!-- Left: search -->
         <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-28">
           <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
             <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
@@ -39,118 +46,176 @@
             </div>
             <div>
               <h3 class="text-base font-bold text-slate-900 font-heading">Track Parcel</h3>
-              <p class="text-xs text-slate-500 mt-0.5">Enter your Order ID (e.g. VIC2026-7841) or AWB Tracking number.</p>
+              <p class="text-xs text-slate-500 mt-0.5">Enter your Order ID or AWB Tracking number.</p>
             </div>
 
-            <form id="track-form" class="space-y-3" onsubmit="handleTrackLookup(event)">
+            <form method="GET" action="{{ route('user.track-order') }}" class="space-y-3">
               <div>
-                <label for="track-order-id" class="block text-xs font-semibold text-slate-700 mb-1">Order / AWB Number</label>
-                <input
-                  type="text"
-                  id="track-order-id"
-                  required
-                  placeholder="VIC2026-7841"
-                  class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600 uppercase"
-                />
+                <label for="track-order-id" class="block text-xs font-semibold text-slate-700 mb-1">Order / AWB
+                  Number</label>
+                <input type="text" id="track-order-id" name="orderId" required value="{{ $query }}"
+                  placeholder="Enter your Order ID or AWB"
+                  class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600 uppercase" />
               </div>
-              <button type="submit" class="btn-base btn-primary w-full py-2.5 text-xs font-semibold shadow-lg shadow-blue-600/30">
+              <button type="submit"
+                class="btn-base btn-primary w-full py-2.5 text-xs font-semibold shadow-lg shadow-blue-600/30">
                 <i class="fa-solid fa-magnifying-glass mr-1.5"></i> Track Status
               </button>
             </form>
           </div>
 
-          <!-- Courier Partners Card -->
-          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-            <h4 class="text-xs font-bold text-slate-900 font-heading">Our Express Partners:</h4>
-            <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-600 font-semibold">
-              <div class="p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-2"><i class="fa-solid fa-plane text-blue-600"></i> BlueDart Air</div>
-              <div class="p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-2"><i class="fa-solid fa-truck-fast text-red-600"></i> Delhivery Express</div>
-              <div class="p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-2"><i class="fa-solid fa-box text-orange-600"></i> DTDC Premium</div>
-              <div class="p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-2"><i class="fa-solid fa-envelope text-emerald-600"></i> Speed Post</div>
-            </div>
-          </div>
-        </div>
+          <!-- Courier partners (from couriers table) -->
+          @if($couriers->isNotEmpty())
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+              <h4 class="text-xs font-bold text-slate-900 font-heading">Our Express Partners:</h4>
+              <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-600 font-semibold">
+                @foreach($couriers as $courier)
+                  @php $courierIcon = filled($courier->icon) ? $courier->icon : 'fa-solid fa-truck-fast'; @endphp
 
-        <!-- Right Column: Live Tracking Timeline Result -->
-        <div class="lg:col-span-8">
-          <div id="tracking-timeline-box" class="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200 shadow-sm space-y-8">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-              <div>
-                <span class="text-xs text-slate-400">Tracking Information for:</span>
-                <h2 class="text-2xl font-extrabold text-blue-600 font-heading" id="timeline-order-id">VIC2026-7841</h2>
-              </div>
-              <div class="text-xs text-slate-600 sm:text-right space-y-0.5">
-                <div><strong>Logistics:</strong> BlueDart Air Insured Express</div>
-                <div class="text-emerald-600 font-bold flex items-center gap-1.5 sm:justify-end">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                  <span>Estimated Delivery: Within 48 Hours</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 5-Step Timeline -->
-            @php
-              $stages = [
-                ['icon' => 'fa-check',           'title' => 'Order Placed', 'sub' => 'Payment verified',    'state' => 'done'],
-                ['icon' => 'fa-clipboard-check', 'title' => '20-Point QC',  'sub' => 'Passed diagnostics',  'state' => 'done'],
-                ['icon' => 'fa-box',             'title' => 'Dispatched',   'sub' => 'Handed to courier',   'state' => 'current'],
-                ['icon' => 'fa-truck',           'title' => 'In Transit',   'sub' => 'Airport express hub', 'state' => 'pending'],
-                ['icon' => 'fa-house-chimney',   'title' => 'Delivered',    'sub' => 'Safe doorstep OTP',   'state' => 'pending'],
-              ];
-            @endphp
-
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-6 relative">
-              @foreach ($stages as $stage)
-                <div class="flex md:flex-col items-center gap-3.5 md:text-center {{ $stage['state'] === 'pending' ? 'opacity-50' : '' }}">
-                  @if ($stage['state'] === 'done')
-                    <div class="w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center text-base font-bold shadow-md flex-shrink-0">
-                  @elseif ($stage['state'] === 'current')
-                    <div class="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center text-base font-bold shadow-md flex-shrink-0 animate-pulse">
+                  @if(filled($courier->website_url))
+                    <a href="{{ $courier->website_url }}" target="_blank" rel="noopener"
+                      class="{{ $partnerClass }} hover:border-blue-300 hover:text-blue-600 transition-colors"
+                      title="Open {{ $courier->name }} tracking site">
+                      <i class="{{ $courierIcon }} text-blue-600 flex-shrink-0"></i>
+                      <span class="truncate">{{ $courier->name }}</span>
+                    </a>
                   @else
-                    <div class="w-11 h-11 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-base font-bold flex-shrink-0 border border-slate-200">
+                    <div class="{{ $partnerClass }}">
+                      <i class="{{ $courierIcon }} text-blue-600 flex-shrink-0"></i>
+                      <span class="truncate">{{ $courier->name }}</span>
+                    </div>
                   @endif
-                    <i class="fa-solid {{ $stage['icon'] }}"></i>
-                  </div>
-                  <div>
-                    <h4 class="text-xs font-bold {{ $stage['state'] === 'current' ? 'text-blue-600' : ($stage['state'] === 'pending' ? 'text-slate-700' : 'text-slate-900') }}">{{ $stage['title'] }}</h4>
-                    <p class="text-[11px] {{ $stage['state'] === 'pending' ? 'text-slate-400' : 'text-slate-500' }}">{{ $stage['sub'] }}</p>
-                  </div>
-                </div>
-              @endforeach
+                @endforeach
+              </div>
+            </div>
+          @endif
+        </div>
+
+        <!-- Right: result -->
+        <div class="lg:col-span-8">
+
+          @if(!$searched)
+            <div class="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm text-center">
+              <i class="fa-solid fa-truck-fast text-slate-300 text-4xl mb-3"></i>
+              <h3 class="text-sm font-bold text-slate-800 mb-1">Enter your Order ID to begin</h3>
+              <p class="text-xs text-slate-500">You'll find it in your confirmation email and under My Account → My Orders.
+              </p>
             </div>
 
-            <!-- Support Footer Inside Tracking -->
-            <div class="pt-6 border-t border-slate-100 flex items-center justify-between flex-wrap gap-4 text-xs text-slate-500">
-              <span>Need help with delivery instructions? <a href="{{ route('contact') }}" class="text-blue-600 font-semibold hover:underline">Contact Dispatch Helpdesk</a></span>
-              <a href="{{ route('shipping') }}" class="btn-base btn-secondary btn-sm py-1.5 px-3 text-xs">Shipping Policy</a>
+          @elseif(!$order)
+            <div class="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm text-center">
+              <i class="fa-solid fa-circle-question text-slate-300 text-4xl mb-3"></i>
+              <h3 class="text-sm font-bold text-slate-800 mb-1">No order found for "{{ $query }}"</h3>
+              <p class="text-xs text-slate-500">Check the number and try again, or
+                <a href="{{ route('contact') }}" class="text-blue-600 font-semibold hover:underline">contact our
+                  helpdesk</a>.
+              </p>
+            </div>
+
+          @else
+            <div class="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200 shadow-sm space-y-8">
+
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                <div>
+                  <span class="text-xs text-slate-400">Tracking Information for:</span>
+                  <h2 class="text-2xl font-extrabold text-blue-600 font-heading">{{ $order->order_number }}</h2>
+                  <span class="text-[11px] text-slate-400">Placed on {{ $order->created_at->format('d M Y') }}</span>
+                </div>
+                <div class="text-xs text-slate-600 sm:text-right space-y-0.5">
+                  @if($order->courier?->name)
+                    <div><strong>Logistics:</strong> {{ $order->courier->name }}</div>
+                  @endif
+                  @if(filled($order->tracking_number))
+                    <div><strong>AWB:</strong> {{ $order->tracking_number }}</div>
+                  @endif
+                  @if($order->courier?->website_url)
+                    <div><a href="{{ $order->courier->website_url }}" target="_blank" rel="noopener"
+                        class="text-blue-600 font-semibold hover:underline">Open courier tracking site →</a></div>
+                  @endif
+                  <div class="font-bold text-slate-900">Status: {{ $label($order->status) }}</div>
+                </div>
+              </div>
+
+              @if($isOffTrack)
+                <div class="p-4 rounded-2xl bg-red-50 border border-red-100 text-xs text-red-700 flex items-center gap-2">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  {{ $offTrackMessage }} Contact our helpdesk if you need help.
+                </div>
+              @else
+                <!-- Timeline -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
+                  @foreach ($stages as $stage)
+                    <div
+                      class="flex md:flex-col items-center gap-3.5 md:text-center {{ $stage['state'] === 'pending' ? 'opacity-50' : '' }}">
+                      @if ($stage['state'] === 'done')
+                        <div
+                          class="w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center text-base font-bold shadow-md flex-shrink-0">
+                      @elseif ($stage['state'] === 'current')
+                          <div
+                            class="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center text-base font-bold shadow-md flex-shrink-0 animate-pulse">
+                        @else
+                            <div
+                              class="w-11 h-11 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-base font-bold flex-shrink-0 border border-slate-200">
+                          @endif
+                            <i class="fa-solid {{ $stage['icon'] }}"></i>
+                          </div>
+                          <div>
+                            <h4
+                              class="text-xs font-bold {{ $stage['state'] === 'current' ? 'text-blue-600' : ($stage['state'] === 'pending' ? 'text-slate-700' : 'text-slate-900') }}">
+                              {{ $stage['title'] }}</h4>
+                            <p class="text-[11px] {{ $stage['state'] === 'pending' ? 'text-slate-400' : 'text-slate-500' }}">
+                              {{ $stage['date'] ? $stage['date']->format('d M, h:i A') : $stage['sub'] }}
+                            </p>
+                          </div>
+                        </div>
+                  @endforeach
+                    </div>
+              @endif
+
+                  <!-- Update history -->
+                  @if($order->statusHistory->isNotEmpty())
+                    <div class="pt-6 border-t border-slate-100 space-y-3">
+                      <h4 class="text-xs font-bold text-slate-900 font-heading">Order Updates</h4>
+                      @foreach($order->statusHistory as $h)
+                        <div class="flex items-start gap-3 text-xs">
+                          <span class="w-2 h-2 rounded-full bg-blue-600 mt-1.5 flex-shrink-0"></span>
+                          <div>
+                            <div class="font-semibold text-slate-800">{{ $label($h->status) }}
+                              <span class="text-slate-400 font-normal ml-1">{{ $h->created_at->format('d M Y, h:i A') }}</span>
+                            </div>
+                            @if(filled($h->remarks))
+                              <p class="text-slate-500">{{ $h->remarks }}</p>
+                            @endif
+                          </div>
+                        </div>
+                      @endforeach
+                    </div>
+                  @endif
+
+                  <!-- Items -->
+                  @if($order->items->isNotEmpty())
+                    <div class="pt-6 border-t border-slate-100 space-y-1.5 text-xs">
+                      <h4 class="font-bold text-slate-900 font-heading mb-2">Items in this order</h4>
+                      @foreach($order->items as $item)
+                        <div class="text-slate-700">{{ $item->product_name }} <span
+                            class="text-slate-400">×{{ $item->quantity }}</span></div>
+                      @endforeach
+                    </div>
+                  @endif
+
+                  <div
+                    class="pt-6 border-t border-slate-100 flex items-center justify-between flex-wrap gap-4 text-xs text-slate-500">
+                    <span>Need help with delivery instructions? <a href="{{ route('contact') }}"
+                        class="text-blue-600 font-semibold hover:underline">Contact Dispatch Helpdesk</a></span>
+                    <a href="{{ route('shipping') }}" class="btn-base btn-secondary btn-sm py-1.5 px-3 text-xs">Shipping
+                      Policy</a>
+                  </div>
+                </div>
+          @endif
+
             </div>
           </div>
         </div>
-
-      </div>
-    </div>
   </main>
 
 @endsection
-
-@push('scripts')
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      Components.renderHeader();
-      Components.renderFooter();
-
-      const params = App.getUrlParams();
-      if (params.orderId) {
-        document.getElementById('track-order-id').value = params.orderId;
-        document.getElementById('timeline-order-id').textContent = params.orderId;
-      }
-    });
-
-    function handleTrackLookup(event) {
-      event.preventDefault();
-      const id = document.getElementById('track-order-id').value.trim().toUpperCase();
-      document.getElementById('timeline-order-id').textContent = id;
-      showToast(`Fetching live tracking for #${id}...`, 'info');
-    }
-  </script>
-@endpush

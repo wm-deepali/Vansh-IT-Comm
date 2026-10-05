@@ -408,6 +408,20 @@
                                 </div>
 
                                 <div class="field-group">
+                                    <label class="field-label">Icon</label>
+                                    <div style="display:flex;align-items:center;gap:10px">
+                                        <div
+                                            style="width:38px;height:38px;flex-shrink:0;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px">
+                                            <i id="icon-preview" class="{{ old('icon') ?: 'fa fa-tag' }}"></i>
+                                        </div>
+                                        <input type="text" name="icon" id="icon-input" class="field-input"
+                                            value="{{ old('icon') }}" maxlength="100" placeholder="e.g. fa fa-tag">
+                                    </div>
+                                    <div class="field-hint">Font Awesome class, e.g. <code>fa fa-tag</code>. Shown in
+                                        the navbar menu.</div>
+                                </div>
+
+                                <div class="field-group">
                                     <label class="field-label">Type <span class="req">*</span></label>
 
                                     @php

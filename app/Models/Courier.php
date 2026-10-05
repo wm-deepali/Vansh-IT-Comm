@@ -9,6 +9,7 @@ class Courier extends Model
     protected $fillable = [
         'name',
         'website_url',
+        'icon',
         'is_active',
     ];
 
