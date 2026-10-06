@@ -14,6 +14,16 @@ class ContactBranch extends Model
         'email',
         'working_hours',
         'icon',
-        'status'
+        'status',
+        'sort_order',
     ];
+
+    protected $casts = [
+        'status' => 'boolean',
+    ];
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', true)->orderBy('sort_order')->orderBy('id');
+    }
 }

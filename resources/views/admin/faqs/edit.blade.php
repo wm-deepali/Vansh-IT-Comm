@@ -67,6 +67,8 @@
     .field-input { height: 38px; }
     .field-input:focus, .field-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(48,61,137,.12); }
     .field-textarea { padding: 10px 12px; resize: vertical; min-height: 140px; }
+    .field-hint { font-size: 11.5px; color: var(--text-hint); margin-top: 4px; }
+    .field-error { font-size: 11.5px; color: var(--red); margin-top: 4px; }
 
     /* Toggle rows */
     .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--bg); }
@@ -161,20 +163,51 @@
                                 <div class="field-group">
                                     <label class="field-label">Question <span class="req">*</span></label>
                                     <input type="text" name="question" class="field-input"
-                                        value="{{ $faq->question }}" required>
+                                        value="{{ old('question', $faq->question) }}" required>
+                                    @error('question') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Answer <span class="req">*</span></label>
-                                    <textarea name="answer" class="field-textarea" required>{{ $faq->answer }}</textarea>
+                                    <textarea name="answer" class="field-textarea" required>{{ old('answer', $faq->answer) }}</textarea>
+                                    @error('answer') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                             </div>
                         </div>
                     </div>
 
-                    <!-- RIGHT: Settings + Record Info -->
+                    <!-- RIGHT: Organization + Settings + Record Info -->
                     <div>
+
+                        <div class="section-card">
+                            <div class="section-card-header">
+                                <h5>Organization</h5>
+                            </div>
+                            <div class="section-card-body">
+
+                                <div class="field-group">
+                                    <label class="field-label">Topic / Category</label>
+                                    <select name="category" class="field-input">
+                                        <option value="">— No topic —</option>
+                                        @foreach(\App\Models\Faq::CATEGORIES as $key => $label)
+                                            <option value="{{ $key }}" {{ old('category', $faq->category) === $key ? 'selected' : '' }}>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="field-hint">Used for the topic filter on the FAQ page.</div>
+                                    @error('category') <div class="field-error">{{ $message }}</div> @enderror
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Sort Order</label>
+                                    <input type="number" name="sort_order" class="field-input" min="0"
+                                        value="{{ old('sort_order', $faq->sort_order ?? 0) }}">
+                                    <div class="field-hint">Lower numbers appear first.</div>
+                                    @error('sort_order') <div class="field-error">{{ $message }}</div> @enderror
+                                </div>
+
+                            </div>
+                        </div>
 
                         <div class="section-card">
                             <div class="section-card-header">
@@ -189,7 +222,7 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" name="show_home" id="show_home"
-                                            {{ $faq->show_home ? 'checked' : '' }}>
+                                            {{ old('_token') ? (old('show_home') ? 'checked' : '') : ($faq->show_home ? 'checked' : '') }}>
                                         <span class="toggle-track"></span>
                                     </label>
                                 </div>
@@ -201,7 +234,7 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" name="status" id="status"
-                                            {{ $faq->status ? 'checked' : '' }}>
+                                            {{ old('_token') ? (old('status') ? 'checked' : '') : ($faq->status ? 'checked' : '') }}>
                                         <span class="toggle-track"></span>
                                     </label>
                                 </div>

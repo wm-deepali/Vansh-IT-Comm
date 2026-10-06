@@ -86,6 +86,7 @@
         border-color: var(--accent); box-shadow: 0 0 0 3px rgba(48,61,137,.12);
     }
     .field-hint { font-size: 11.5px; color: var(--text-hint); margin-top: 4px; }
+    .field-error { font-size: 11.5px; color: var(--red); margin-top: 4px; }
 
     /* ── Slug prefix ── */
     .slug-wrap { display: flex; }
@@ -111,6 +112,11 @@
     .upload-preview { display: none; flex-direction: column; align-items: center; gap: 8px; }
     .upload-preview img { width: 90px; height: 90px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); }
     .upload-preview span { font-size: 12px; color: var(--text-hint); }
+
+    /* ── Author photo (small upload) ── */
+    .upload-area.sm { padding: 16px 12px; }
+    .upload-area.sm .upload-icon { font-size: 18px; margin-bottom: 4px; }
+    .upload-area.sm .upload-preview img { width: 64px; height: 64px; border-radius: 50%; }
 
     /* ── Toggle rows (right column) ── */
     .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--bg); }
@@ -171,22 +177,44 @@
 
                                 <div class="field-group">
                                     <label class="field-label">Title <span class="req">*</span></label>
-                                    <input type="text" name="title" id="title" class="field-input" required>
+                                    <input type="text" name="title" id="title" class="field-input"
+                                           value="{{ old('title') }}" required>
+                                    @error('title') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Slug</label>
                                     <div class="slug-wrap">
                                         <span class="slug-prefix">blog/</span>
-                                        <input type="text" name="slug" id="slug" class="field-input">
+                                        <input type="text" name="slug" id="slug" class="field-input"
+                                               value="{{ old('slug') }}">
                                     </div>
                                     <div class="field-hint">Auto-generated from title. You can edit manually.</div>
+                                    @error('slug') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Short Description</label>
                                     <textarea name="short_description" class="field-textarea" rows="3"
-                                              placeholder="A brief summary shown on blog listing…"></textarea>
+                                              placeholder="A brief summary shown on blog listing…">{{ old('short_description') }}</textarea>
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Tags</label>
+                                    <input type="text" name="tags" class="field-input"
+                                           value="{{ old('tags') }}"
+                                           placeholder="e.g. Refurbished Laptops, Buying Guide, Warranty">
+                                    <div class="field-hint">Separate multiple tags with commas. The first tag shows as the badge on blog cards.</div>
+                                    @error('tags') <div class="field-error">{{ $message }}</div> @enderror
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Read Time (minutes)</label>
+                                    <input type="number" name="read_time" class="field-input" min="1" max="120"
+                                           value="{{ old('read_time') }}"
+                                           placeholder="Leave empty to auto-calculate">
+                                    <div class="field-hint">Optional. If empty, it's calculated from the content length.</div>
+                                    @error('read_time') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                             </div>
@@ -197,9 +225,10 @@
                             <div class="section-card-header"><h5>Content <span style="color:var(--red);font-size:12px">*</span></h5></div>
                             <div class="section-card-body">
                                 <div class="field-group">
-                                    <textarea name="content" class="field-textarea" rows="12"
+                                    <textarea name="content" id="content" class="field-textarea" rows="12"
                                               style="min-height:280px" required
-                                              placeholder="Write your blog content here…"></textarea>
+                                              placeholder="Write your blog content here…">{{ old('content') }}</textarea>
+                                    @error('content') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
                             </div>
                         </div>
@@ -209,8 +238,7 @@
                     <!-- ── RIGHT column ── -->
                     <div>
 
-                    
-                        <!-- Image upload -->
+                        <!-- Featured image -->
                         <div class="section-card">
                             <div class="section-card-header"><h5>Featured Image</h5></div>
                             <div class="section-card-body">
@@ -226,34 +254,69 @@
                                         <span id="previewName"></span>
                                     </div>
                                 </div>
+                                @error('image') <div class="field-error">{{ $message }}</div> @enderror
                             </div>
                         </div>
 
+                        <!-- Author -->
                         <div class="section-card">
-    <div class="section-card-header">
-        <h5>SEO Settings</h5>
-    </div>
-    <div class="section-card-body">
+                            <div class="section-card-header"><h5>Author</h5></div>
+                            <div class="section-card-body">
 
-        <div class="field-group">
-            <label class="field-label">Meta Title</label>
-            <input type="text"
-                   name="meta_title"
-                   class="field-input"
-                   value="{{ old('meta_title' ?? '') }}"
-                   placeholder="Enter meta title">
-        </div>
+                                <div class="field-group">
+                                    <label class="field-label">Author Name</label>
+                                    <input type="text" name="author_name" class="field-input"
+                                           value="{{ old('author_name') }}"
+                                           placeholder="e.g. Vansh Sharma">
+                                </div>
 
-        <div class="field-group">
-            <label class="field-label">Meta Description</label>
-            <textarea name="meta_description"
-                      class="field-textarea"
-                      rows="4"
-                      placeholder="Enter meta description">{{ old('meta_description' ?? '') }}</textarea>
-        </div>
+                                <div class="field-group">
+                                    <label class="field-label">Author Role</label>
+                                    <input type="text" name="author_role" class="field-input"
+                                           value="{{ old('author_role') }}"
+                                           placeholder="e.g. Hardware Diagnostic Lead">
+                                </div>
 
-    </div>
-</div>
+                                <div class="field-group">
+                                    <label class="field-label">Author Photo</label>
+                                    <div class="upload-area sm" id="authorUploadArea">
+                                        <input type="file" name="author_image" id="authorImageInput" accept="image/*">
+                                        <div id="authorPlaceholder">
+                                            <div class="upload-icon"><i class="fa fa-user-circle"></i></div>
+                                            <div class="upload-sub">Click to upload · square image works best</div>
+                                        </div>
+                                        <div class="upload-preview" id="authorPreview">
+                                            <img id="authorPreviewImg" src="" alt="Author preview">
+                                            <span id="authorPreviewName"></span>
+                                        </div>
+                                    </div>
+                                    @error('author_image') <div class="field-error">{{ $message }}</div> @enderror
+                                    <div class="field-hint">Optional. If empty, the default author details are used on the site.</div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- SEO -->
+                        <div class="section-card">
+                            <div class="section-card-header"><h5>SEO Settings</h5></div>
+                            <div class="section-card-body">
+
+                                <div class="field-group">
+                                    <label class="field-label">Meta Title</label>
+                                    <input type="text" name="meta_title" class="field-input"
+                                           value="{{ old('meta_title') }}"
+                                           placeholder="Enter meta title">
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Meta Description</label>
+                                    <textarea name="meta_description" class="field-textarea" rows="4"
+                                              placeholder="Enter meta description">{{ old('meta_description') }}</textarea>
+                                </div>
+
+                            </div>
+                        </div>
 
                         <!-- Settings -->
                         <div class="section-card">
@@ -266,7 +329,8 @@
                                         <div class="toggle-sub">Publish this blog post</div>
                                     </div>
                                     <label class="toggle-switch">
-                                        <input type="checkbox" name="status" id="status" checked>
+                                        <input type="checkbox" name="status" id="status"
+                                               {{ old('_token') ? (old('status') ? 'checked' : '') : 'checked' }}>
                                         <span class="toggle-track"></span>
                                     </label>
                                 </div>
@@ -277,7 +341,8 @@
                                         <div class="toggle-sub">Feature on the storefront homepage</div>
                                     </div>
                                     <label class="toggle-switch">
-                                        <input type="checkbox" name="show_home" id="show_home">
+                                        <input type="checkbox" name="show_home" id="show_home"
+                                               {{ old('show_home') ? 'checked' : '' }}>
                                         <span class="toggle-track"></span>
                                     </label>
                                 </div>
@@ -309,24 +374,29 @@
 document.getElementById('title').addEventListener('keyup', function () {
     document.getElementById('slug').value = this.value
         .toLowerCase()
-        .replace(/ /g, '-')
+        .trim()
+        .replace(/\s+/g, '-')
         .replace(/[^\w-]+/g, '');
 });
 
-// Image preview
-document.getElementById('imageInput').addEventListener('change', function () {
-    const file = this.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-        document.getElementById('previewImg').src = e.target.result;
-        document.getElementById('previewName').textContent = file.name;
-        document.getElementById('uploadPlaceholder').style.display = 'none';
-        const prev = document.getElementById('uploadPreview');
-        prev.style.display = 'flex';
-    };
-    reader.readAsDataURL(file);
-});
+// Reusable image preview
+function bindPreview(inputId, imgId, nameId, placeholderId, previewId) {
+    document.getElementById(inputId).addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById(imgId).src = e.target.result;
+            document.getElementById(nameId).textContent = file.name;
+            document.getElementById(placeholderId).style.display = 'none';
+            document.getElementById(previewId).style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+bindPreview('imageInput', 'previewImg', 'previewName', 'uploadPlaceholder', 'uploadPreview');
+bindPreview('authorImageInput', 'authorPreviewImg', 'authorPreviewName', 'authorPlaceholder', 'authorPreview');
 
 // Submit spinner
 document.getElementById('blogForm').addEventListener('submit', function () {

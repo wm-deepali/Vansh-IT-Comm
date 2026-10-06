@@ -1,9 +1,24 @@
 {{-- resources/views/partials/header.blade.php --}}
 {{-- $navCategories is supplied by App\View\Composers\NavCategoriesComposer --}}
+{{-- $announcements + $cartCount are supplied by the partials.header composer in AppServiceProvider --}}
 @php
     $activePage = $activePage ?? '';
     $navCategories = $navCategories ?? collect();
     $activeCategorySlugs = (array) request()->query('category', []);
+
+    // Logo + site name come from Settings (fallback to the bundled logo)
+    $logo     = !empty($general?->header_logo) ? asset('storage/' . $general->header_logo) : asset('assets/img/vanshitcomm-logo.png');
+    $siteName = $general->site_name ?? 'VANSH IT & COMM';
+
+    // Announcement bar: 1st item always visible, the others appear as the screen gets wider
+    $announceShow = ['flex', 'hidden sm:flex', 'hidden md:flex', 'hidden lg:flex'];
+    $announceSep  = ['', 'hidden sm:inline', 'hidden md:inline', 'hidden lg:inline'];
+
+    // link can be a full URL, a /path, #anchor, or a plain path like "repair"
+    $announceHref = function ($v) {
+        if (!$v) return null;
+        return preg_match('#^(https?://|/|\#|mailto:|tel:)#', $v) ? $v : url($v);
+    };
 @endphp
 
 {{-- Announcement Bar --}}
@@ -11,17 +26,22 @@
     <div class="container-custom flex items-center justify-between gap-2 lg:gap-4">
         <div
             class="flex items-center gap-2 sm:gap-4 lg:gap-6 overflow-hidden whitespace-nowrap text-[10px] sm:text-[11px] xl:text-xs font-medium">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-truck-fast text-blue-400"></i> Pan India
-                Insured Delivery</span>
-            <span class="text-slate-700 hidden sm:inline">|</span>
-            <span class="hidden sm:flex items-center gap-1.5"><i class="fa-solid fa-file-invoice text-emerald-400"></i>
-                100% GST Invoice</span>
-            <span class="text-slate-700 hidden md:inline">|</span>
-            <span class="hidden md:flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-amber-400"></i>
-                Up to 12M Warranty</span>
-            <span class="text-slate-700 hidden lg:inline">|</span>
-            <span class="hidden lg:flex items-center gap-1.5"><i
-                    class="fa-solid fa-screwdriver-wrench text-blue-400"></i> 20-Point Tested Devices</span>
+            @foreach(($announcements ?? collect()) as $a)
+                @php $href = $announceHref($a->link); @endphp
+
+                @if(!$loop->first)
+                    <span class="text-slate-700 {{ $announceSep[$loop->index] ?? 'hidden xl:inline' }}">|</span>
+                @endif
+
+                <span class="{{ $announceShow[$loop->index] ?? 'hidden xl:flex' }} items-center gap-1.5">
+                    <i class="fa-solid fa-bullhorn text-blue-400"></i>
+                    @if($href)
+                        <a href="{{ $href }}" class="hover:text-blue-400 transition-colors">{{ $a->title }}</a>
+                    @else
+                        {{ $a->title }}
+                    @endif
+                </span>
+            @endforeach
         </div>
         <div
             class="flex items-center gap-2 sm:gap-3 lg:gap-4 text-[10px] sm:text-[11px] xl:text-xs font-medium flex-shrink-0">
@@ -37,14 +57,15 @@
     </div>
 </div>
 
+
 {{-- Main Sticky Header --}}
 <header class="header-sticky bg-white/95 backdrop-blur-md transition-all duration-200" id="main-header">
     <div class="container-custom">
         <div class="flex items-center justify-between gap-2 sm:gap-3 lg:gap-6 py-2 sm:py-2.5 lg:py-3">
 
             <a href="{{ route('home') }}" class="flex items-center flex-shrink-0 group text-decoration-none py-0.5"
-                aria-label="VANSH IT & COMM">
-                <img src="{{ asset('assets/img/vanshitcomm-logo.png') }}" alt="VANSH IT & COMMUNICATION"
+                aria-label="{{ $siteName }}">
+                <img src="{{ $logo }}" alt="{{ $siteName }}"
                     class="h-7 sm:h-8 md:h-10 lg:h-11 xl:h-12 w-auto max-w-[125px] sm:max-w-[150px] md:max-w-[200px] lg:max-w-[240px] xl:max-w-[260px] object-contain transition-transform duration-200 group-hover:scale-105" />
             </a>
 
@@ -58,7 +79,7 @@
                         <input type="text" id="header-search-input" name="search"
                             placeholder="Search laptops, mobiles, accessories..."
                             class="w-full bg-slate-50 border border-slate-200 rounded-full pl-9 lg:pl-11 pr-20 lg:pr-24 py-2 lg:py-2.5 text-xs lg:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
-                            autocomplete="off"
+                            autocomplete="off" value="{{ request('search') }}"
                             oninput="App.handleLiveSearch(this.value, 'search-autocomplete-dropdown')" />
                         <button type="submit"
                             class="absolute right-1 lg:right-1.5 px-3 lg:px-4 py-1 lg:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] lg:text-xs font-semibold rounded-full transition-colors">
@@ -113,7 +134,7 @@
                     <input type="text" id="mobile-header-search-input" name="search"
                         placeholder="Search laptops, mobiles, accessories..."
                         class="w-full bg-slate-100/90 border border-slate-200 rounded-full pl-9 pr-20 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-inner"
-                        autocomplete="off"
+                        autocomplete="off" value="{{ request('search') }}"
                         oninput="App.handleLiveSearch(this.value, 'mobile-search-autocomplete-dropdown')" />
                     <button type="submit"
                         class="absolute right-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-full transition-colors shadow-sm">
@@ -177,3 +198,9 @@
 </header>
 
 @include('partials.overlays', ['activePage' => $activePage])
+
+<script>
+    // Used by App.handleLiveSearch / App.handleSearchSubmit (public/assets/js/app.js)
+    window.SEARCH_SUGGEST_URL = @json(route('search.suggest'));
+    window.SEARCH_SHOP_URL    = @json(route('shop'));
+</script>

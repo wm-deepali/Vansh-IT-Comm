@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Blog Article | VANSH IT & COMM Tech Insights')
-@section('meta_description', 'Read expert tech guides, refurbished hardware buying tips, and device inspection advice from VANSH IT & COMM.')
+@section('title', ($blog->meta_title ?: $blog->title) . ' | VANSH IT & COMM Tech Insights')
+@section('meta_description', $blog->meta_description ?: $blog->short_description)
 
 @push('styles')
   <style>
@@ -62,6 +62,11 @@
       padding: 0.75rem 1rem;
       border: 1px solid #E2E8F0;
     }
+    .article-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 1rem;
+    }
   </style>
 @endpush
 
@@ -79,38 +84,42 @@
         <i class="fa-solid fa-chevron-right text-[10px]"></i>
         <a href="{{ route('blog') }}" class="hover:text-blue-600">Tech Blog</a>
         <i class="fa-solid fa-chevron-right text-[10px]"></i>
-        <span class="text-slate-800 font-semibold truncate max-w-xs sm:max-w-md" id="breadcrumb-article-title">Article</span>
+        <span class="text-slate-800 font-semibold truncate max-w-xs sm:max-w-md">{{ $blog->title }}</span>
       </nav>
 
       <!-- Main Layout (Article on Left, Sidebar on Right) -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-16">
 
-        <!-- Left: Article Content Area (8 Cols on Desktop) -->
+        <!-- Left: Article Content Area -->
         <article class="lg:col-span-8 bg-white p-6 sm:p-10 rounded-3xl border border-slate-200 shadow-sm space-y-8">
 
           <!-- Article Header -->
           <div class="space-y-4 pb-6 border-b border-slate-100">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="badge bg-blue-50 text-blue-700 font-bold text-xs px-3 py-1" id="article-badge">Buying Guide</span>
+              @forelse($blog->tags ?? [] as $tag)
+                <a href="{{ route('blog', ['tag' => $tag]) }}" class="badge bg-blue-50 text-blue-700 font-bold text-xs px-3 py-1 hover:bg-blue-100 transition-colors">{{ $tag }}</a>
+              @empty
+                <span class="badge bg-blue-50 text-blue-700 font-bold text-xs px-3 py-1">Tech Guide</span>
+              @endforelse
               <span class="text-xs text-slate-400">•</span>
-              <span class="text-xs text-slate-500" id="article-date">Sep 12, 2026</span>
+              <span class="text-xs text-slate-500">{{ $blog->created_at->format('M d, Y') }}</span>
               <span class="text-xs text-slate-400">•</span>
-              <span class="text-xs text-slate-500 flex items-center gap-1" id="article-read-time"><i class="fa-regular fa-clock"></i> 5 min read</span>
+              <span class="text-xs text-slate-500 flex items-center gap-1"><i class="fa-regular fa-clock"></i> {{ $blog->read_time_minutes }} min read</span>
             </div>
 
-            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 font-heading leading-tight tracking-tight" id="article-heading">
-              Article Title Loading...
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 font-heading leading-tight tracking-tight">
+              {{ $blog->title }}
             </h1>
 
             <!-- Author & Share Row -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
-                  <img id="author-img" src="" alt="Author" class="w-full h-full object-cover" />
+                  <img src="{{ $blog->author_image_url }}" alt="{{ $blog->author_name_display }}" class="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <h4 class="text-xs font-bold text-slate-900" id="author-name">Author Name</h4>
-                  <p class="text-[11px] text-slate-500" id="author-role">Hardware Specialist</p>
+                  <h4 class="text-xs font-bold text-slate-900">{{ $blog->author_name_display }}</h4>
+                  <p class="text-[11px] text-slate-500">{{ $blog->author_role_display }}</p>
                 </div>
               </div>
 
@@ -134,28 +143,29 @@
           </div>
 
           <!-- Featured Hero Image -->
-          <div class="aspect-[16/9] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
-            <img
-              id="article-featured-img"
-              src=""
-              alt="Featured Image"
-              class="w-full h-full object-cover"
-            />
-          </div>
+          @if($blog->image)
+            <div class="aspect-[16/9] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
+              <img
+                src="{{ $blog->image_url }}"
+                alt="{{ $blog->title }}"
+                class="w-full h-full object-cover"
+              />
+            </div>
+          @endif
 
-          <!-- Article HTML Body -->
-          <div class="article-content" id="article-body-content">
-            <!-- Populated via JavaScript -->
+          <!-- Article HTML Body (CKEditor content) -->
+          <div class="article-content">
+            {!! $blog->content !!}
           </div>
 
           <!-- Author Bio Footer Box -->
           <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
             <div class="w-14 h-14 rounded-2xl overflow-hidden bg-white border border-slate-200 flex-shrink-0">
-              <img id="author-bio-img" src="" alt="Author" class="w-full h-full object-cover" />
+              <img src="{{ $blog->author_image_url }}" alt="{{ $blog->author_name_display }}" class="w-full h-full object-cover" />
             </div>
             <div class="space-y-1">
-              <h4 class="text-sm font-bold text-slate-900 font-heading" id="author-bio-name">Author Name</h4>
-              <p class="text-xs text-blue-600 font-semibold" id="author-bio-role">Hardware Specialist</p>
+              <h4 class="text-sm font-bold text-slate-900 font-heading">{{ $blog->author_name_display }}</h4>
+              <p class="text-xs text-blue-600 font-semibold">{{ $blog->author_role_display }}</p>
               <p class="text-xs text-slate-600 leading-relaxed font-body">
                 Senior engineering lead at VANSH IT & COMM. Dedicated to rigorous hardware diagnostics, component benchmark verification, and making reliable electronics affordable.
               </p>
@@ -164,7 +174,7 @@
 
         </article>
 
-        <!-- Right: Sticky Sidebar (4 Cols on Desktop) -->
+        <!-- Right: Sticky Sidebar -->
         <aside class="lg:col-span-4 space-y-6 lg:sticky lg:top-28">
 
           <!-- Live Video Call Consultation Box -->
@@ -186,25 +196,43 @@
             </div>
           </div>
 
-          <!-- Other Top Articles List -->
-          <div class="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider font-heading pb-2 border-b border-slate-100 flex items-center justify-between">
-              <span>Trending Guides</span>
-              <i class="fa-solid fa-fire text-amber-500"></i>
-            </h3>
-            <div class="space-y-3" id="sidebar-trending-posts">
-              <!-- Dynamically populated -->
+          <!-- Trending Guides -->
+          @if($trending->count())
+            <div class="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider font-heading pb-2 border-b border-slate-100 flex items-center justify-between">
+                <span>Trending Guides</span>
+                <i class="fa-solid fa-fire text-amber-500"></i>
+              </h3>
+              <div class="space-y-3">
+                @foreach($trending as $p)
+                  <a href="{{ route('blog.detail', $p->slug) }}" class="flex items-center gap-3 group p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                    <img src="{{ $p->image_url }}" alt="{{ $p->title }}" class="w-14 h-14 object-cover rounded-xl flex-shrink-0 bg-slate-100" />
+                    <div class="min-w-0">
+                      <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">{{ $p->first_tag }}</span>
+                      <h4 class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                        {{ $p->title }}
+                      </h4>
+                    </div>
+                  </a>
+                @endforeach
+              </div>
             </div>
-          </div>
+          @endif
 
-          <!-- Category Quick Badges -->
+          <!-- Popular Topics -->
           <div class="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3">
             <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider font-heading pb-2 border-b border-slate-100">
               Popular Topics
             </h3>
             <div class="flex flex-wrap gap-2 text-xs">
-              <a href="#" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Refurbished Laptops</a>
-              <a href="#" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Smartphones</a>
+              @foreach($topics as $topic)
+                <a href="{{ route('blog', ['tag' => $topic]) }}"
+                   class="px-3 py-1.5 rounded-xl font-semibold transition-colors {{ in_array($topic, $blog->tags ?? []) ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 hover:bg-blue-50 hover:text-blue-600' }}">
+                  {{ $topic }}
+                </a>
+              @endforeach
+
+              {{-- Static site links --}}
               <a href="{{ route('about') }}#refurbish-process" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">20-Point Testing</a>
               <a href="{{ route('warranty') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Warranty & Coverage</a>
               <a href="{{ route('repair') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Screen & Battery Repair</a>
@@ -216,21 +244,52 @@
       </div>
 
       <!-- Related Guides Bottom Section -->
-      <section class="mb-12 sm:mb-16">
-        <div class="flex items-center justify-between gap-3 mb-6">
-          <div class="min-w-0 flex-1">
-            <h2 class="text-base sm:text-xl lg:text-2xl font-extrabold text-slate-900 font-heading truncate sm:overflow-visible">Related Articles & Guides</h2>
-            <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate sm:overflow-visible">Explore more practical tech buying and maintenance tips.</p>
+      @if($related->count())
+        <section class="mb-12 sm:mb-16">
+          <div class="flex items-center justify-between gap-3 mb-6">
+            <div class="min-w-0 flex-1">
+              <h2 class="text-base sm:text-xl lg:text-2xl font-extrabold text-slate-900 font-heading truncate sm:overflow-visible">Related Articles & Guides</h2>
+              <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate sm:overflow-visible">Explore more practical tech buying and maintenance tips.</p>
+            </div>
+            <a href="{{ route('blog') }}" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 flex-shrink-0 whitespace-nowrap">
+              View All <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
           </div>
-          <a href="{{ route('blog') }}" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 flex-shrink-0 whitespace-nowrap">
-            View All <i class="fa-solid fa-arrow-right text-[10px]"></i>
-          </a>
-        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="related-posts-grid">
-          <!-- Dynamically populated -->
-        </div>
-      </section>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            @foreach($related as $p)
+              <article class="card-base p-5 flex flex-col justify-between group">
+                <div>
+                  <a href="{{ route('blog.detail', $p->slug) }}" class="block aspect-[16/9] rounded-2xl overflow-hidden mb-4 bg-slate-100">
+                    <img
+                      src="{{ $p->image_url }}"
+                      alt="{{ $p->title }}"
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  </a>
+                  <div class="flex items-center gap-2 text-[11px] font-semibold text-slate-400 mb-2">
+                    <span class="badge bg-blue-50 text-blue-700 text-[10px]">{{ $p->first_tag }}</span>
+                    <span>•</span>
+                    <span>{{ $p->read_time_minutes }} min read</span>
+                  </div>
+                  <h3 class="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors font-heading leading-snug mb-2">
+                    {{ $p->title }}
+                  </h3>
+                  <p class="text-xs text-slate-600 font-body leading-relaxed mb-4 line-clamp-2">
+                    {{ $p->short_description }}
+                  </p>
+                </div>
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <a href="{{ route('blog.detail', $p->slug) }}" class="text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                    Read Guide <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                  </a>
+                </div>
+              </article>
+            @endforeach
+          </div>
+        </section>
+      @endif
 
     </div>
   </main>
@@ -239,121 +298,15 @@
 
 @push('scripts')
   <script>
-    const BLOG_DETAIL_URL = "{{ route('blog.detail') }}";
-    const DEFAULT_AUTHOR_AVATAR = "{{ asset('assets/img/product-1588872657578-7efd1f1555ed.jpg') }}";
-
     document.addEventListener('DOMContentLoaded', () => {
-      Components.renderHeader('blog');
-      Components.renderFooter();
-      loadArticleDetails();
       initReadingProgressBar();
     });
-
-    function loadArticleDetails() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const articleId = urlParams.get('id') || 'blog-01';
-
-      const post = BLOG_POSTS.find(p => p.id === articleId) || BLOG_POSTS[0];
-
-      // Page Title & Meta
-      document.title = `${post.title} | VANSH IT & COMM Tech Blog`;
-      document.getElementById('breadcrumb-article-title').textContent = post.title;
-      document.getElementById('article-heading').textContent = post.title;
-      document.getElementById('article-badge').textContent = post.category;
-      document.getElementById('article-date').textContent = post.date;
-      document.getElementById('article-read-time').innerHTML = `<i class="fa-regular fa-clock"></i> ${post.readTime}`;
-
-      // Images
-      const featImg = document.getElementById('article-featured-img');
-      featImg.src = post.image;
-      featImg.alt = post.title;
-
-      // Author details
-      const author = post.author || {
-        name: 'Vansh Sharma',
-        role: 'Hardware Diagnostic Lead',
-        avatar: DEFAULT_AUTHOR_AVATAR
-      };
-
-      document.getElementById('author-img').src = author.avatar;
-      document.getElementById('author-name').textContent = author.name;
-      document.getElementById('author-role').textContent = author.role;
-      document.getElementById('author-bio-img').src = author.avatar;
-      document.getElementById('author-bio-name').textContent = author.name;
-      document.getElementById('author-bio-role').textContent = author.role;
-
-      // Article Content
-      document.getElementById('article-body-content').innerHTML = post.content || `<p>${post.excerpt}</p>`;
-
-      // Render Sidebar Trending Posts
-      renderSidebarPosts(post.id);
-
-      // Render Related Posts
-      renderRelatedPosts(post.id, post.category);
-    }
-
-    function renderSidebarPosts(currentId) {
-      const container = document.getElementById('sidebar-trending-posts');
-      const otherPosts = BLOG_POSTS.filter(p => p.id !== currentId).slice(0, 3);
-
-      container.innerHTML = otherPosts.map(p => `
-        <a href="${BLOG_DETAIL_URL}?id=${p.id}" class="flex items-center gap-3 group p-2 rounded-xl hover:bg-slate-50 transition-colors">
-          <img src="${p.image}" alt="${p.title}" class="w-14 h-14 object-cover rounded-xl flex-shrink-0 bg-slate-100" />
-          <div class="min-w-0">
-            <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">${p.category}</span>
-            <h4 class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
-              ${p.title}
-            </h4>
-          </div>
-        </a>
-      `).join('');
-    }
-
-    function renderRelatedPosts(currentId, category) {
-      const container = document.getElementById('related-posts-grid');
-      let related = BLOG_POSTS.filter(p => p.id !== currentId && p.category === category);
-      if (related.length < 3) {
-        const others = BLOG_POSTS.filter(p => p.id !== currentId && !related.includes(p));
-        related = related.concat(others).slice(0, 3);
-      }
-
-      container.innerHTML = related.map(p => `
-        <article class="card-base p-5 flex flex-col justify-between group">
-          <div>
-            <div class="aspect-[16/9] rounded-2xl overflow-hidden mb-4 bg-slate-100">
-              <img
-                src="${p.image}"
-                alt="${p.title}"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                loading="lazy"
-              />
-            </div>
-            <div class="flex items-center gap-2 text-[11px] font-semibold text-slate-400 mb-2">
-              <span class="badge bg-blue-50 text-blue-700 text-[10px]">${p.category}</span>
-              <span>•</span>
-              <span>${p.readTime}</span>
-            </div>
-            <h3 class="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors font-heading leading-snug mb-2">
-              ${p.title}
-            </h3>
-            <p class="text-xs text-slate-600 font-body leading-relaxed mb-4 line-clamp-2">
-              ${p.excerpt}
-            </p>
-          </div>
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-            <a href="${BLOG_DETAIL_URL}?id=${p.id}" class="text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-              Read Guide <i class="fa-solid fa-arrow-right text-[10px]"></i>
-            </a>
-          </div>
-        </article>
-      `).join('');
-    }
 
     function initReadingProgressBar() {
       window.addEventListener('scroll', () => {
         const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
         const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-        const scrolled = (winScroll / height) * 100;
+        const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
         const bar = document.getElementById('reading-progress');
         if (bar) bar.style.width = scrolled + '%';
       });

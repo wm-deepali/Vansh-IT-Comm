@@ -123,9 +123,6 @@
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    <a href="{{ route('admin.brands.import') }}" class="btn-secondary-dash">
-                        <i class="fa fa-upload"></i> Bulk Import
-                    </a>
                     <a href="{{ route('admin.brands.create') }}" class="btn-primary-dash">
                         <i class="fa fa-plus"></i> Add Brand
                     </a>

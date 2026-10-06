@@ -11,9 +11,9 @@ class FaqController extends Controller
 
     public function index()
     {
-        $faqs = Faq::latest()->get();
+        $faqs = Faq::orderBy('sort_order')->orderBy('id')->get();
 
-        return view('admin.faqs.index',compact('faqs'));
+        return view('admin.faqs.index', compact('faqs'));
     }
 
 
@@ -25,26 +25,26 @@ class FaqController extends Controller
 
     public function store(Request $request)
     {
-
-        $request->validate([
-            'question'=>'required',
-            'answer'=>'required'
-        ]);
+        $request->validate($this->rules());
 
         Faq::create([
 
-            'question'=>$request->question,
+            'question'   => $request->question,
 
-            'answer'=>$request->answer,
+            'answer'     => $request->answer,
 
-            'show_home'=>$request->show_home ? 1:0,
+            'category'   => $request->category ?: null,
 
-            'status'=>$request->status ? 1:0
+            'sort_order' => $request->sort_order ?? 0,
+
+            'show_home'  => $request->show_home ? 1 : 0,
+
+            'status'     => $request->status ? 1 : 0
 
         ]);
 
         return redirect()->route('admin.faqs.index')
-            ->with('success','FAQ Added Successfully');
+            ->with('success', 'FAQ Added Successfully');
 
     }
 
@@ -53,29 +53,34 @@ class FaqController extends Controller
     {
         $faq = Faq::findOrFail($id);
 
-        return view('admin.faqs.edit',compact('faq'));
+        return view('admin.faqs.edit', compact('faq'));
     }
 
 
-    public function update(Request $request,$id)
+    public function update(Request $request, $id)
     {
+        $request->validate($this->rules());
 
         $faq = Faq::findOrFail($id);
 
         $faq->update([
 
-            'question'=>$request->question,
+            'question'   => $request->question,
 
-            'answer'=>$request->answer,
+            'answer'     => $request->answer,
 
-            'show_home'=>$request->show_home ? 1:0,
+            'category'   => $request->category ?: null,
 
-            'status'=>$request->status ? 1:0
+            'sort_order' => $request->sort_order ?? 0,
+
+            'show_home'  => $request->show_home ? 1 : 0,
+
+            'status'     => $request->status ? 1 : 0
 
         ]);
 
         return redirect()->route('admin.faqs.index')
-            ->with('success','FAQ Updated Successfully');
+            ->with('success', 'FAQ Updated Successfully');
 
     }
 
@@ -86,9 +91,20 @@ class FaqController extends Controller
         Faq::findOrFail($id)->delete();
 
         return response()->json([
-            'message'=>'FAQ Deleted Successfully'
+            'message' => 'FAQ Deleted Successfully'
         ]);
 
+    }
+
+
+    private function rules(): array
+    {
+        return [
+            'question'   => 'required|string|max:500',
+            'answer'     => 'required',
+            'category'   => 'nullable|in:' . implode(',', array_keys(Faq::CATEGORIES)),
+            'sort_order' => 'nullable|integer|min:0',
+        ];
     }
 
 }

@@ -1,6 +1,20 @@
 {{-- resources/views/partials/footer.blade.php --}}
 {{-- $footerCategories and $footerPages are supplied by the 'partials.footer' view composer (AppServiceProvider) --}}
+{{-- $general (Setting row) is shared to every view by AppServiceProvider --}}
 @php
+    $g        = $general ?? null;
+    $siteName = $g?->site_name ?: 'VANSH IT & COMM';
+
+    // ── Branding / contact from Settings (each falls back so the footer never looks empty) ──
+    $footerLogo  = $g?->footer_logo ? asset('storage/' . $g->footer_logo) : asset('assets/img/vanshitcomm-logo-white.png');
+    $badgeText   = $g?->tagline ?: 'Certified Refurbished Hub';
+    $aboutText   = $g?->footer_description ?: 'Your trusted destination for certified pre-owned business laptops, verified smartphones, and genuine repair solutions.';
+    $phone       = $g?->phone;
+    $phoneHref   = $phone ? 'tel:' . preg_replace('/[^0-9+]/', '', $phone) : null;
+    $email       = $g?->support_email ?: $g?->admin_email;
+    $address     = $g?->business_address;
+    $copyright   = $g?->footer_copyright;
+
     $pillars = [
         ['blue', 'fa-shield-halved', '20-Point QC Tested', 'Rigorous hardware & battery diagnostics.'],
         ['emerald', 'fa-rotate-left', '7-Day Easy Replacement', '100% money-back / replacement guarantee.'],
@@ -12,7 +26,7 @@
     $categoryUrl = fn($category) => route('category.show', $category->slug);
 
     // Change this one line if your dynamic page route has a different name
-    $pageUrl = fn($page) => route('dynamic.page', \Illuminate\Support\Str::slug($page->page_name));
+    $pageUrl = fn($page) => route('policies', ['tab' => $page->page_name]);
 
     $columns = [
         // Dynamic: every active top-level category created in admin
@@ -23,7 +37,6 @@
         'For Customers' => [
             ['Repair Services', route('repair')],
             ['Track Your Order', route('user.track-order')],
-            ['Warranty & Claims', route('warranty')],
             ['Old Device Exchange / Sell', route('exchange')],
         ],
 
@@ -40,12 +53,19 @@
             ->all(),
     ];
 
-    $socials = [
-        ['wa', 'fa-whatsapp', 'WhatsApp', 'WhatsApp support connected.'],
-        ['ig', 'fa-instagram', 'Instagram', 'Instagram page coming soon.'],
-        ['fb', 'fa-facebook-f', 'Facebook', 'Facebook page coming soon.'],
-        ['yt', 'fa-youtube', 'YouTube', 'YouTube channel coming soon.'],
-    ];
+    // ── Social links from Settings: only the ones the admin has filled in are shown ──
+    $socialUrl = fn($v) => $v ? (preg_match('#^https?://#i', $v) ? $v : 'https://' . ltrim($v, '/')) : null;
+    $waDigits  = preg_replace('/\D/', '', (string) ($g?->whatsapp ?? ''));   // store with country code, e.g. 919876543210
+
+    $socials = collect([
+        ['wa', 'fa-whatsapp',    'WhatsApp',  $waDigits ? 'https://wa.me/' . $waDigits : null],
+        ['ig', 'fa-instagram',   'Instagram', $socialUrl($g?->instagram)],
+        ['fb', 'fa-facebook-f',  'Facebook',  $socialUrl($g?->facebook)],
+        ['yt', 'fa-youtube',     'YouTube',   $socialUrl($g?->youtube)],
+        ['',   'fa-twitter',     'Twitter',   $socialUrl($g?->twitter)],
+        ['',   'fa-linkedin-in', 'LinkedIn',  $socialUrl($g?->linkedin)],
+        ['',   'fa-pinterest-p', 'Pinterest', $socialUrl($g?->pinterest)],
+    ])->filter(fn($s) => $s[3])->values();
 @endphp
 
 <footer class="bg-[#070D18] text-slate-300 pt-14 pb-20 lg:pb-12 border-t border-slate-800">
@@ -97,32 +117,38 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 xl:gap-8 pb-12 border-b border-slate-800/80">
 
             <div class="sm:col-span-2 lg:col-span-4 space-y-4">
-                <a href="{{ route('home') }}" class="inline-block group" aria-label="VANSH IT & COMM">
-                    <img src="{{ asset('assets/img/vanshitcomm-logo-white.png') }}" alt="VANSH IT & COMMUNICATION" class="h-9 w-auto object-contain transition-transform group-hover:scale-105" />
+                <a href="{{ route('home') }}" class="inline-block group" aria-label="{{ $siteName }}">
+                    <img src="{{ $footerLogo }}" alt="{{ $siteName }}" class="h-9 w-auto object-contain transition-transform group-hover:scale-105" />
                 </a>
                 <div>
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">
-                        <i class="fa-solid fa-check-circle text-[10px] flex-shrink-0"></i> Certified Refurbished Hub
+                        <i class="fa-solid fa-check-circle text-[10px] flex-shrink-0"></i> {{ $badgeText }}
                     </span>
                 </div>
-                <p class="text-xs text-slate-400 leading-relaxed font-body">
-                    Your trusted destination for certified pre-owned business laptops, verified smartphones, and genuine repair solutions.
-                </p>
+                <p class="text-xs text-slate-400 leading-relaxed font-body">{{ $aboutText }}</p>
 
-                <div class="pt-2 space-y-2.5 text-xs font-body">
-                    <a href="tel:+919876543210" class="flex items-center gap-2.5 text-slate-300 hover:text-white transition-colors">
-                        <span class="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 text-[10px]"><i class="fa-solid fa-phone"></i></span>
-                        <span class="whitespace-nowrap">+91 98765 43210 <span class="text-[10px] text-slate-500">(10 AM – 8 PM)</span></span>
-                    </a>
-                    <a href="mailto:support@vanshitcomm.com" class="flex items-center gap-2.5 text-slate-300 hover:text-white transition-colors">
-                        <span class="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 text-[10px]"><i class="fa-solid fa-envelope"></i></span>
-                        <span>support@vanshitcomm.com</span>
-                    </a>
-                    <div class="flex items-center gap-2.5 text-slate-400">
-                        <span class="w-6 h-6 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center flex-shrink-0 text-[10px]"><i class="fa-solid fa-location-dot"></i></span>
-                        <span>Experience Store & QC Lab, India</span>
+                @if($phone || $email || $address)
+                    <div class="pt-2 space-y-2.5 text-xs font-body">
+                        @if($phone)
+                            <a href="{{ $phoneHref }}" class="flex items-center gap-2.5 text-slate-300 hover:text-white transition-colors">
+                                <span class="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 text-[10px]"><i class="fa-solid fa-phone"></i></span>
+                                <span class="whitespace-nowrap">{{ $phone }}</span>
+                            </a>
+                        @endif
+                        @if($email)
+                            <a href="mailto:{{ $email }}" class="flex items-center gap-2.5 text-slate-300 hover:text-white transition-colors">
+                                <span class="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 text-[10px]"><i class="fa-solid fa-envelope"></i></span>
+                                <span class="break-all">{{ $email }}</span>
+                            </a>
+                        @endif
+                        @if($address)
+                            <div class="flex items-start gap-2.5 text-slate-400">
+                                <span class="w-6 h-6 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center flex-shrink-0 text-[10px]"><i class="fa-solid fa-location-dot"></i></span>
+                                <span class="leading-relaxed">{!! nl2br(e($address)) !!}</span>
+                            </div>
+                        @endif
                     </div>
-                </div>
+                @endif
             </div>
 
             @foreach ($columns as $heading => $links)
@@ -143,18 +169,24 @@
         {{-- Bottom Row --}}
         <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-5 text-xs text-slate-500 font-body">
             <div class="space-y-1 text-center md:text-left">
-                <p>&copy; {{ date('Y') }} <strong class="text-slate-300 font-bold">VANSH IT & COMM</strong>. All rights reserved. 100% GST Tax Compliant.</p>
+                @if($copyright)
+                    <p>{{ $copyright }}</p>
+                @else
+                    <p>&copy; {{ date('Y') }} <strong class="text-slate-300 font-bold">{{ $siteName }}</strong>. All rights reserved. 100% GST Tax Compliant.</p>
+                @endif
                 <p class="text-[11px] text-slate-500">All brand trademarks, logos, and model names belong to their respective manufacturers.</p>
             </div>
 
-            <div class="flex items-center gap-3">
-                @foreach ($socials as [$cls, $icon, $label, $msg])
-                    <a href="#" onclick="event.preventDefault(); showToast('{{ $msg }}', 'info');"
-                       class="footer-social-btn {{ $cls }}" aria-label="{{ $label }}" title="{{ $label }}">
-                        <i class="fa-brands {{ $icon }}"></i>
-                    </a>
-                @endforeach
-            </div>
+            @if($socials->isNotEmpty())
+                <div class="flex items-center gap-3">
+                    @foreach ($socials as [$cls, $icon, $label, $href])
+                        <a href="{{ $href }}" target="_blank" rel="noopener noreferrer"
+                           class="footer-social-btn {{ $cls }}" aria-label="{{ $label }}" title="{{ $label }}">
+                            <i class="fa-brands {{ $icon }}"></i>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
         </div>
     </div>
 </footer>

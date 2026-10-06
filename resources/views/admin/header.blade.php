@@ -59,7 +59,8 @@
                 <li><a href="{{ route('admin.attributes.index') }}">Attributes</a></li>
                 <li><a href="{{ route('admin.attribute-values.index') }}">Attribute Values</a></li>
                 <li><a href="{{ route('admin.category-attributes.index') }}">Attribute Mapping</a></li>
-                <li><a href="{{ route('admin.gifting-occasions.index') }}">Manage Special</a></li>
+                <li><a href="{{ route('admin.brands.index') }}">Brands</a></li>
+                <li><a href="#">Manage Special</a></li>
                 <li><a href="{{ route('admin.collections.index') }}">Manage Selections</a></li>
             </ul>
         </li>
@@ -116,6 +117,9 @@
     'admin.faqs.*',
     'admin.blogs.*',
     'admin.pages.*',
+    'admin.about-page.*',
+    'admin.repair-page.*',
+    'admin.exchange-page.*',
     'admin.announcements.*',
     'admin.clients.*',
     'admin.testimonials.*',
@@ -124,27 +128,32 @@
             <a href="#"><i class="fa-solid fa-file-lines"></i> Content Management</a>
             <ul>
                 <li><a href="{{ route('admin.home-page.index') }}">Home Page Widgets</a></li>
-                <li><a href="#">Banners & Sliders</a></li>
                 <li><a href="{{ route('admin.faqs.index') }}">FAQ</a></li>
                 <li><a href="{{ route('admin.blogs.index') }}">Blog Management</a></li>
                 <li><a href="{{ route('admin.pages.index') }}">Dynamic Pages</a></li>
-                <li><a href="{{ route('admin.announcements.index') }}">Announcement Bar</a></li>
-                <li><a href="{{ route('admin.teams.index') }}">Manage Teams</a></li>
-                <li><a href="{{ route('admin.testimonials.index') }}">Testimonial & Feedback</a></li>
+                <li><a href="{{ route('admin.about-page.edit') }}">About Page</a></li>
+                <li><a href="{{ route('admin.repair-page.edit') }}"> Repair Page</a></li>
                 <li><a href="{{ route('admin.contact-branches.index') }}">Manage Office Branches</a></li>
+                <li><a href="{{ route('admin.exchange-page.edit') }}"> Device Exchange Page</a></li>
+                <li><a href="{{ route('admin.announcements.index') }}">Announcement Bar</a></li>
+                <li><a href="{{ route('admin.testimonials.index') }}">Testimonial & Feedback</a></li>
             </ul>
         </li>
 
         {{-- ENQUIRIES --}}
         <li class="{{ request()->routeIs(
     'admin.contact-enquiries.*',
+    'admin.repair-bookings.*',
+    'admin.exchange-requests.*',
     'admin.other-enquiries.*',
     'admin.supplier-enquiries.*',
     'admin.coupon-enquiries.*'
 ) ? 'active' : '' }}">
-            <a href="#"><i class="fa-solid fa-envelope"></i> Enquiries</a>
+            <a href="#"><i class="fa-solid fa-envelope"></i> Enquiries & Bookings</a>
             <ul>
                 <li><a href="{{ route('admin.contact-enquiries.index') }}">Contact Us Enquiries</a></li>
+                <li><a href="{{ route('admin.repair-bookings.index') }}"> Repair Bookings</a></li>
+                <li><a href="{{ route('admin.exchange-requests.index') }}"> Exchange Valuation Requests</a></li>
                 <li><a href="{{ route('admin.supplier-enquiries.index') }}">Bulk Order Enquiries</a></li>
                 <li><a href="{{ route('admin.other-enquiries.index') }}">Other Enquiries</a></li>
                 <li><a href="{{ route('admin.coupon-enquiries.index') }}">Coupon Enquiries</a></li>

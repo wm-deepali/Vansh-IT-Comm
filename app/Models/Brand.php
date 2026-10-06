@@ -11,12 +11,20 @@ class Brand extends Model
         'logo',
         'status'
     ];
-
-    public function categories()
+    
+    public function products()
     {
-        return $this->belongsToMany(
-            Category::class,
-            'brand_category'
-        );
+        return $this->hasMany(Product::class);
+    }
+
+    // $brand->logo_url  → full URL or null
+    public function getLogoUrlAttribute()
+    {
+        if (!$this->logo)
+            return null;
+
+        return str_starts_with($this->logo, 'assets/')
+            ? asset($this->logo)
+            : asset('storage/' . $this->logo);
     }
 }

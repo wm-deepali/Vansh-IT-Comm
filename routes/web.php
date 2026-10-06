@@ -21,7 +21,6 @@ use App\Http\Controllers\Admin\{
     DynamicPageController,
     FaqController,
     GalleryImageController,
-    GiftingOccasionController,
     HomeBrandSectionController,
     HomeBrandSectionImageController,
     HomeDealBannerController,
@@ -62,7 +61,12 @@ use App\Http\Controllers\Admin\{
     SystemLogController,
     RedirectController,
     NdrController,
-    NdrReportController
+    NdrReportController,
+    AboutPageController,
+    RepairBookingController,
+    RepairPageController,
+    ExchangeAdminController,
+    BrandController
 
 };
 
@@ -83,24 +87,26 @@ Route::middleware('maintenance.mode')->group(function () {
     // ── Public pages ──
     Route::controller(FrontController::class)->group(function () {
         Route::get('/', 'home')->name('home');
+        Route::get('/search/suggest', 'searchSuggest')->middleware('throttle:60,1')->name('search.suggest');
         Route::get('/shop', 'shop')->name('shop');
         Route::get('/categories', 'categories')->name('categories');
         Route::get('/category/{slug}', 'categoryShow')->name('category.show');
         Route::get('/product/{slug}', 'productShow')->name('product.show');
 
-        Route::view('/about', 'front-pages.about')->name('about');
-        Route::view('/repair', 'front-pages.repair')->name('repair');
-        Route::view('/warranty', 'front-pages.warranty')->name('warranty');
-        Route::view('/contact', 'front-pages.contact')->name('contact');
+        Route::get('/about', 'about')->name('about');
+        Route::get('/blog', 'blogs')->name('blog');
+        Route::get('/blog/{slug}', 'blogDetail')->name('blog.detail');
+        Route::get('/faq', 'faqs')->name('faq');
+        Route::get('/contact', 'contact')->name('contact');
+        Route::post('/contact', 'contactSubmit')->middleware('throttle:5,1')->name('contact.submit');
 
-        Route::view('/blog', 'front-pages.blog')->name('blog');
-        Route::view('/blog-detail', 'front-pages.blog-detail')->name('blog.detail');
-        Route::view('/exchange', 'front-pages.exchange')->name('exchange');
-        Route::view('/faq', 'front-pages.faq')->name('faq');
-        Route::view('/privacy', 'front-pages.privacy')->name('privacy');
-        Route::view('/terms', 'front-pages.terms')->name('terms');
-        Route::view('/returns', 'front-pages.returns')->name('returns');
-        Route::view('/shipping', 'front-pages.shipping')->name('shipping');
+        Route::get('/repair-services', 'repair')->name('repair');
+        Route::post('/repair-services/book', 'repairBook')->middleware('throttle:5,1')->name('repair.book');
+
+        Route::get('/device-exchange', 'exchange')->name('exchange');
+        Route::post('/device-exchange/calculate', 'calculateExchange')->name('exchange.calculate');
+
+        Route::get('/policies/{tab?}', 'policies')->name('policies');
     });
 
     // ── Cart & wishlist: public (guests use the session) ──
@@ -177,13 +183,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('categories/import/parent-reference', [CategoryController::class, 'downloadParentCategoryReference'])->name('categories.parent.reference');
         Route::resource('categories', CategoryController::class);
 
-        // occasion routes
-        Route::get('gifting-occasions/import', [GiftingOccasionController::class, 'import'])->name('gifting-occasions.import');
-        Route::post('gifting-occasions/import', [GiftingOccasionController::class, 'importStore'])->name('gifting-occasions.import.store');
-        Route::get('gifting-occasions/import/sample', [GiftingOccasionController::class, 'downloadSample'])->name('gifting-occasions.import.sample');
-        Route::post('gifting-occasions/upload-images', [GiftingOccasionController::class, 'uploadImagesZip'])->name('gifting-occasions.images.upload');
-        Route::resource('gifting-occasions', GiftingOccasionController::class);
-
         // product routes
         Route::view('/products/media-library', 'admin.products.media-library')->name('products.media-library');
         Route::get('products/subcategories/{category}', [ProductController::class, 'subcategories'])->name('products.subcategories');
@@ -198,6 +197,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('products/reference/occasions', [ProductController::class, 'downloadOccasionReference'])->name('products.reference.occasions');
         Route::get('products/reference/customizations', [ProductController::class, 'downloadCustomizationReference'])->name('products.reference.customizations');
         Route::resource('products', ProductController::class)->names('products');
+
+        Route::resource('brands', BrandController::class)->names('brands');
 
         Route::resource('customizations', CustomizationController::class);
 
@@ -214,8 +215,26 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::resource('contact-branches', ContactBranchController::class);
 
+        Route::get('about-page', [AboutPageController::class, 'edit'])->name('about-page.edit');
+        Route::put('about-page', [AboutPageController::class, 'update'])->name('about-page.update');
+
+        Route::get('repair-page', [RepairPageController::class, 'edit'])->name('repair-page.edit');
+        Route::put('repair-page', [RepairPageController::class, 'update'])->name('repair-page.update');
+
+        Route::get('exchange-page', [ExchangeAdminController::class, 'edit'])->name('exchange-page.edit');
+        Route::put('exchange-page', [ExchangeAdminController::class, 'update'])->name('exchange-page.update');
+
+        Route::get('exchange-requests', [ExchangeAdminController::class, 'requests'])->name('exchange-requests.index');
+        Route::post('exchange-requests/{id}/status', [ExchangeAdminController::class, 'requestStatus']);
+        Route::delete('exchange-requests/{id}', [ExchangeAdminController::class, 'requestDestroy']);
+
+        Route::get('repair-bookings', [RepairBookingController::class, 'index'])->name('repair-bookings.index');
+        Route::patch('repair-bookings/{id}/status', [RepairBookingController::class, 'updateStatus'])->name('repair-bookings.status');
+        Route::delete('repair-bookings/{id}', [RepairBookingController::class, 'destroy'])->name('repair-bookings.destroy');
+
         Route::get('contact-enquiries/export', [ContactEnquiryController::class, 'export'])->name('contact-enquiries.export');
         Route::delete('contact-enquiries/bulk-delete', [ContactEnquiryController::class, 'bulkDelete'])->name('contact-enquiries.bulk-delete');
+        Route::patch('contact-enquiries/{id}/status', [ContactEnquiryController::class, 'updateStatus'])->name('contact-enquiries.status');
         Route::resource('contact-enquiries', ContactEnquiryController::class);
 
         Route::get('other-enquiries/export', [OtherEnquiryController::class, 'export'])->name('other-enquiries.export');
@@ -240,75 +259,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 
         // ✅ MAIN DASHBOARD
-        Route::get('/home-page', [HomePageController::class, 'index'])
-            ->name('home-page.index');
-
-        Route::prefix('home/sliders')->name('home.sliders.')->group(function () {
-
-            Route::get('/', [HomeSliderController::class, 'index'])->name('index');
-
-            Route::get('/create', [HomeSliderController::class, 'create'])->name('create');
-
-            Route::post('/store', [HomeSliderController::class, 'store'])->name('store');
-
-            Route::get('/edit/{id}', [HomeSliderController::class, 'edit'])->name('edit');
-
-            Route::put('/update/{id}', [HomeSliderController::class, 'update'])->name('update');
-
-            Route::delete('/delete/{id}', [HomeSliderController::class, 'destroy'])->name('destroy');
-        });
-
-        Route::prefix('home/text-sliders')->name('home.text-sliders.')->group(function () {
-
-            Route::get('/', [HomeTextSliderController::class, 'index'])->name('index');
-
-            Route::get('/create', [HomeTextSliderController::class, 'create'])->name('create');
-
-            Route::post('/store', [HomeTextSliderController::class, 'store'])->name('store');
-
-            Route::get('/edit/{id}', [HomeTextSliderController::class, 'edit'])->name('edit');
-
-            Route::put('/update/{id}', [HomeTextSliderController::class, 'update'])->name('update');
-
-            Route::delete('/delete/{id}', [HomeTextSliderController::class, 'destroy'])->name('destroy');
-        });
-
-        Route::resource('gallery-images', GalleryImageController::class)->names('gallery-images');
-
-        Route::get('home/brand-section', [HomeBrandSectionController::class, 'edit'])->name('home.brand-section.edit');
-        Route::post('home/brand-section', [HomeBrandSectionController::class, 'update'])->name('home.brand-section.update');
-        Route::resource('home-brand-section-images', HomeBrandSectionImageController::class);
-
-        Route::resource('home-deal-banners', HomeDealBannerController::class)->names('home-deal-banners');
-        Route::delete('home-deal-banners/delete/{id}', [HomeDealBannerController::class, 'destroy'])->name('home-deal-banners.delete');
-
-        Route::resource('home-hero-slides', HomeHeroSlideController::class)->names('home-hero-slides');
-        Route::resource('home-hero-banners', HomeHeroBannerController::class)->names('home-hero-banners');
-
-
-
-
-        // ================= WHY SECTION =================
-        Route::get('/home-why', [HomeWhyController::class, 'index'])
-            ->name('home.why.index');
-
-        Route::post('/home-why/update', [HomeWhyController::class, 'updateSection'])
-            ->name('home.why.update');
-
-        Route::post('/home-why/card/store', [HomeWhyController::class, 'storeCard'])
-            ->name('home.why.card.store');
-
-        Route::get('/home-why/card/{id}', [HomeWhyController::class, 'editCard'])
-            ->name('home.why.card.edit');
-
-        Route::post('/home-why/card/{id}', [HomeWhyController::class, 'updateCard'])
-            ->name('home.why.card.update');
-
-        Route::delete('/home-why/card/{id}', [HomeWhyController::class, 'deleteCard'])
-            ->name('home.why.card.delete');
-
-        Route::resource('home-feature-cards', HomeFeatureCardController::class);
-
+        Route::get('/home-page', [HomePageController::class, 'edit'])->name('home-page.index');
+        Route::put('/home-page', [HomePageController::class, 'update'])->name('home-page.update');
 
         Route::get('/seo', [SeoController::class, 'index'])->name('seo.index');
         Route::put('/seo/{id}', [SeoController::class, 'update'])->name('seo.update');

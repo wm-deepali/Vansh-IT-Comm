@@ -1,1745 +1,1043 @@
 @extends('layouts.app')
 @section('content')
 
+    @php
+        /* ───────────── helpers ───────────── */
+        // json string or array -> array
+        $arr = fn($v) => is_array($v) ? $v : (json_decode($v ?? '[]', true) ?: []);
+
+        // active rows only, ordered
+        $on = fn($c) => collect($c ?? [])->where('is_active', true)->sortBy('sort_order')->values();
+
+        // route name | URL | #anchor  ->  real href
+        $url = function ($v) {
+            if (!$v) return '#';
+            if (preg_match('#^(https?://|/|\#|mailto:|tel:)#', $v)) return $v;
+            return \Illuminate\Support\Facades\Route::has($v) ? route($v) : url($v);
+        };
+
+        // section headings (home_section_headings, keyed by "key")
+        $hRow  = fn($k) => ($headings ?? collect())->get($k);
+        $hShow = fn($k) => !$hRow($k) || $hRow($k)->is_active;
+        $hVal  = fn($k, $f, $d = null) => ($hRow($k)->$f ?? null) ?: $d;
+        $hLink = fn($k, $fallback) => ($hRow($k) && $hRow($k)->linkValue('link')) ? $url($hRow($k)->linkValue('link')) : $fallback;
+
+        // cta blocks (home_cta_blocks, keyed by "key")
+        $cta = fn($k) => ($ctaBlocks ?? collect())->get($k);
+
+        // active slides / lists
+        $slideList = $on($slides ?? []);
+        $trustList = $on($trustItems ?? []);
+        $whyList   = $on($whyItems ?? []);
+        $budgetList = $on($budgetCards ?? []);
+        $guidedList = $on($guided ?? []);
+        $stepList  = $on($steps ?? []);
+        $storeList = $on($stores ?? []);
+
+        /* ───────────── colour maps (full class names so Tailwind keeps them) ───────────── */
+        $heroTheme = [
+            'blue' => ['bg' => 'to-blue-950', 'badge' => 'bg-blue-500/20 border-blue-400/30 text-blue-300', 'badgeIcon' => 'text-amber-400', 'hl' => 'from-blue-400 to-sky-300', 'link' => 'text-sky-400 hover:text-sky-300', 'glow' => 'from-blue-600 to-cyan-500', 'top' => 'bg-blue-600', 'label' => 'text-blue-400', 'bottom' => 'text-emerald-400 border-emerald-500/30', 'btn' => 'shadow-blue-600/30'],
+            'emerald' => ['bg' => 'to-emerald-950', 'badge' => 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300', 'badgeIcon' => 'text-emerald-400', 'hl' => 'from-emerald-400 to-teal-300', 'link' => 'text-teal-400 hover:text-teal-300', 'glow' => 'from-emerald-600 to-teal-500', 'top' => 'bg-emerald-600', 'label' => 'text-emerald-400', 'bottom' => 'text-teal-300 border-teal-500/30', 'btn' => 'shadow-emerald-600/30'],
+            'purple' => ['bg' => 'to-purple-950', 'badge' => 'bg-purple-500/20 border-purple-400/30 text-purple-300', 'badgeIcon' => 'text-purple-400', 'hl' => 'from-purple-400 to-pink-300', 'link' => 'text-purple-300 hover:text-purple-200', 'glow' => 'from-purple-600 to-pink-500', 'top' => 'bg-purple-600', 'label' => 'text-purple-400', 'bottom' => 'text-pink-300 border-pink-500/30', 'btn' => 'shadow-purple-600/30'],
+            'amber' => ['bg' => 'to-amber-950', 'badge' => 'bg-amber-500/20 border-amber-400/30 text-amber-300', 'badgeIcon' => 'text-amber-400', 'hl' => 'from-amber-400 to-orange-300', 'link' => 'text-amber-300 hover:text-amber-200', 'glow' => 'from-amber-600 to-orange-500', 'top' => 'bg-amber-600', 'label' => 'text-amber-400', 'bottom' => 'text-amber-300 border-amber-500/30', 'btn' => 'shadow-amber-600/30'],
+            'rose' => ['bg' => 'to-rose-950', 'badge' => 'bg-rose-500/20 border-rose-400/30 text-rose-300', 'badgeIcon' => 'text-rose-400', 'hl' => 'from-rose-400 to-pink-300', 'link' => 'text-rose-300 hover:text-rose-200', 'glow' => 'from-rose-600 to-pink-500', 'top' => 'bg-rose-600', 'label' => 'text-rose-400', 'bottom' => 'text-rose-300 border-rose-500/30', 'btn' => 'shadow-rose-600/30'],
+            'indigo' => ['bg' => 'to-indigo-950', 'badge' => 'bg-indigo-500/20 border-indigo-400/30 text-indigo-300', 'badgeIcon' => 'text-indigo-400', 'hl' => 'from-indigo-400 to-sky-300', 'link' => 'text-indigo-300 hover:text-indigo-200', 'glow' => 'from-indigo-600 to-sky-500', 'top' => 'bg-indigo-600', 'label' => 'text-indigo-400', 'bottom' => 'text-sky-300 border-sky-500/30', 'btn' => 'shadow-indigo-600/30'],
+        ];
+
+        // small icon boxes (trust strip, why-us, store cards)
+        $tone = [
+            'blue' => 'bg-blue-50 text-blue-600 border-blue-100',
+            'emerald' => 'bg-emerald-50 text-emerald-600 border-emerald-100',
+            'purple' => 'bg-purple-50 text-purple-600 border-purple-100',
+            'amber' => 'bg-amber-50 text-amber-600 border-amber-100',
+            'sky' => 'bg-sky-50 text-sky-600 border-sky-100',
+            'rose' => 'bg-rose-50 text-rose-600 border-rose-100',
+            'teal' => 'bg-teal-50 text-teal-600 border-teal-100',
+            'indigo' => 'bg-indigo-50 text-indigo-600 border-indigo-100',
+        ];
+        $iconText = [
+            'blue' => 'text-blue-600', 'emerald' => 'text-emerald-600', 'purple' => 'text-purple-600', 'amber' => 'text-amber-600',
+            'sky' => 'text-sky-600', 'rose' => 'text-rose-600', 'teal' => 'text-teal-600', 'indigo' => 'text-indigo-600',
+        ];
+        $badgeTone = [
+            'blue' => 'bg-blue-50 text-blue-700 border-blue-200', 'emerald' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'purple' => 'bg-purple-50 text-purple-700 border-purple-200', 'amber' => 'bg-amber-50 text-amber-800 border-amber-200',
+            'sky' => 'bg-sky-50 text-sky-700 border-sky-200', 'rose' => 'bg-rose-50 text-rose-700 border-rose-200',
+            'teal' => 'bg-teal-50 text-teal-700 border-teal-200', 'indigo' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        ];
+        $hoverBorder = [
+            'blue' => 'hover:border-blue-500', 'emerald' => 'hover:border-emerald-500', 'purple' => 'hover:border-purple-500',
+            'amber' => 'hover:border-amber-500', 'sky' => 'hover:border-sky-500', 'rose' => 'hover:border-rose-500',
+            'teal' => 'hover:border-teal-500', 'indigo' => 'hover:border-indigo-500',
+        ];
+        $solid = [
+            'blue' => 'bg-blue-600', 'emerald' => 'bg-emerald-600', 'purple' => 'bg-purple-600', 'amber' => 'bg-amber-600',
+            'sky' => 'bg-sky-600', 'rose' => 'bg-rose-600', 'teal' => 'bg-teal-600', 'indigo' => 'bg-indigo-600',
+        ];
+
+        // guided cards
+        $guidedTheme = [
+            'blue' => ['bar' => 'from-blue-600 to-indigo-600', 'box' => 'bg-blue-50 border-blue-100 text-blue-600 group-hover:bg-blue-600', 'badge' => 'bg-blue-50 text-blue-700 border-blue-200', 'check' => 'bg-blue-100 text-blue-600', 'title' => 'group-hover:text-blue-600', 'btn' => 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'],
+            'emerald' => ['bar' => 'from-emerald-500 to-teal-600', 'box' => 'bg-emerald-50 border-emerald-100 text-emerald-600 group-hover:bg-emerald-600', 'badge' => 'bg-emerald-50 text-emerald-700 border-emerald-200', 'check' => 'bg-emerald-100 text-emerald-600', 'title' => 'group-hover:text-emerald-600', 'btn' => 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'],
+            'amber' => ['bar' => 'from-amber-500 to-orange-600', 'box' => 'bg-amber-50 border-amber-100 text-amber-600 group-hover:bg-amber-600', 'badge' => 'bg-amber-50 text-amber-800 border-amber-200', 'check' => 'bg-amber-100 text-amber-700', 'title' => 'group-hover:text-amber-600', 'btn' => 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'],
+            'purple' => ['bar' => 'from-purple-500 to-pink-600', 'box' => 'bg-purple-50 border-purple-100 text-purple-600 group-hover:bg-purple-600', 'badge' => 'bg-purple-50 text-purple-700 border-purple-200', 'check' => 'bg-purple-100 text-purple-600', 'title' => 'group-hover:text-purple-600', 'btn' => 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'],
+            'rose' => ['bar' => 'from-rose-500 to-pink-600', 'box' => 'bg-rose-50 border-rose-100 text-rose-600 group-hover:bg-rose-600', 'badge' => 'bg-rose-50 text-rose-700 border-rose-200', 'check' => 'bg-rose-100 text-rose-600', 'title' => 'group-hover:text-rose-600', 'btn' => 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'],
+            'sky' => ['bar' => 'from-sky-500 to-blue-600', 'box' => 'bg-sky-50 border-sky-100 text-sky-600 group-hover:bg-sky-600', 'badge' => 'bg-sky-50 text-sky-700 border-sky-200', 'check' => 'bg-sky-100 text-sky-600', 'title' => 'group-hover:text-sky-600', 'btn' => 'bg-sky-600 hover:bg-sky-700 shadow-sky-600/20'],
+        ];
+
+        $placeholder = asset('assets/img/product-1588872657578-7efd1f1555ed.jpg');
+    @endphp
 
     <!-- Main Content -->
     <main class="flex-grow">
 
         <!-- ==========================================
-             HERO SLIDER SECTION (Responsive Mobile, Tablet & Desktop)
-             ========================================== -->
-        <section class="relative bg-slate-950 text-white overflow-hidden" aria-label="Featured Offers">
-            <div id="hero-slider"
-                class="relative min-h-[460px] sm:min-h-[480px] md:min-h-[460px] lg:min-h-[520px] flex items-center">
+                 HERO SLIDER SECTION
+                 ========================================== -->
+        @if($slideList->isNotEmpty())
+            <section class="relative bg-slate-950 text-white overflow-hidden" aria-label="Featured Offers">
+                <div id="hero-slider"
+                    class="relative min-h-[460px] sm:min-h-[480px] md:min-h-[460px] lg:min-h-[520px] flex items-center">
 
-                <!-- Slide 1 (Primary Hero: All-in-One Certified Tech) -->
-                <div
-                    class="hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out flex items-center opacity-100 z-10 bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950">
-                    <div class="container-custom py-8 sm:py-10 md:py-8 lg:py-10">
-                        <div class="grid grid-cols-12 gap-4 md:gap-6 lg:gap-8 items-center">
+                    @foreach($slideList as $i => $s)
+                        @php $t = $heroTheme[$s->theme] ?? $heroTheme['blue']; @endphp
+                        <div
+                            class="hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out flex items-center {{ $i === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0' }} bg-gradient-to-r from-slate-950 via-slate-900 {{ $t['bg'] }}">
+                            <div class="container-custom py-8 sm:py-10 md:py-8 lg:py-10">
+                                <div class="grid grid-cols-12 gap-4 md:gap-6 lg:gap-8 items-center">
 
-                            <!-- Left Content -->
-                            <div
-                                class="col-span-12 md:col-span-7 space-y-3 sm:space-y-4 md:space-y-3 lg:space-y-4 text-left">
-                                <div
-                                    class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[10px] sm:text-xs font-bold tracking-wider uppercase">
-                                    <i class="fa-solid fa-bolt text-amber-400"></i> Tested Technology. Trusted Value.
-                                </div>
-                                <h1
-                                    class="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-[1.15] font-heading">
-                                    TECH THAT WORKS <br /><span
-                                        class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-sky-300">FOR
-                                        YOU.</span>
-                                </h1>
-                                <p
-                                    class="text-xs sm:text-sm md:text-xs lg:text-base text-slate-300 max-w-xl font-body leading-relaxed">
-                                    New & refurbished laptops, smartphones, and accessories. 20-point tested, transparent
-                                    condition grading, and reliable warranty support from VANSH IT & COMM.
-                                </p>
-                                <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
-                                    <a href="#"
-                                        class="btn-base btn-primary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-lg shadow-blue-600/30">
-                                        <i class="fa-solid fa-laptop"></i> SHOP LAPTOPS
-                                    </a>
-                                    <a href="#"
-                                        class="btn-base btn-secondary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white">
-                                        <i class="fa-solid fa-mobile-screen-button"></i> SHOP MOBILES
-                                    </a>
-                                    <a href="#"
-                                        class="inline-flex items-center gap-1.5 text-xs font-bold text-sky-400 hover:text-sky-300 py-1">
-                                        Need a Repair? Book Now â†’
-                                    </a>
-                                </div>
-                                <!-- Trust Points -->
-                                <div
-                                    class="pt-1 sm:pt-2 flex flex-wrap items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-slate-400">
-                                    <span class="inline-flex items-center gap-1.5"><i
-                                            class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> Up to 12-Mo
-                                        Warranty</span>
-                                    <span class="inline-flex items-center gap-1.5"><i
-                                            class="fa-solid fa-truck-fast text-blue-400 text-[10px]"></i> Pan-India Insured
-                                        Parcel</span>
-                                    <span class="inline-flex items-center gap-1.5"><i
-                                            class="fa-solid fa-file-invoice text-amber-400 text-[10px]"></i> GST Input
-                                        Credit</span>
-                                </div>
-                            </div>
-
-                            <!-- Right Image Showcase Card -->
-                            <div class="hidden md:flex md:col-span-5 justify-center">
-                                <div class="relative w-full max-w-md">
+                                    {{-- Text side --}}
                                     <div
-                                        class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-3xl blur-xl opacity-40">
-                                    </div>
-                                    <div
-                                        class="relative bg-slate-900/90 border border-slate-700/60 rounded-3xl p-3.5 lg:p-4 shadow-2xl backdrop-blur-md">
-                                        <div class="relative overflow-hidden rounded-2xl mb-2.5 lg:mb-3 group">
-                                            <img src="{{ asset('assets/img/product-1593642632823-8f785ba67e45.jpg')}}"
-                                                alt="Dell Latitude 5420 Business Laptop"
-                                                class="w-full h-44 lg:h-56 object-cover transform group-hover:scale-105 transition-transform duration-500 rounded-xl" />
-                                            <span
-                                                class="absolute top-2.5 left-2.5 bg-blue-600 text-white text-[9px] lg:text-[10px] font-extrabold uppercase px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-full shadow-md">
-                                                ðŸ”¥ Best Seller â€¢ 64% OFF
-                                            </span>
-                                            <span
-                                                class="absolute bottom-2.5 right-2.5 bg-slate-900/80 backdrop-blur-sm text-emerald-400 text-[10px] lg:text-[11px] font-bold px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg border border-emerald-500/30">
-                                                20-Point Verified
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center justify-between text-xs">
-                                            <div>
-                                                <span
-                                                    class="text-[9px] lg:text-[10px] uppercase font-bold text-blue-400 tracking-wider">Enterprise
-                                                    Grade</span>
-                                                <div class="font-extrabold text-white text-xs lg:text-base">Dell Latitude
-                                                    5420 i5 11th Gen</div>
-                                                <span class="text-[10px] lg:text-[11px] text-slate-400 font-body">16GB RAM
-                                                    â€¢ 512GB SSD â€¢ 14" FHD IPS</span>
+                                        class="col-span-12 md:col-span-7 space-y-3 sm:space-y-4 md:space-y-3 lg:space-y-4 text-left">
+                                        @if($s->badge_text)
+                                            <div
+                                                class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border {{ $t['badge'] }} text-[10px] sm:text-xs font-bold tracking-wider uppercase">
+                                                @if($s->badge_icon)<i class="{{ $s->badge_icon }} {{ $t['badgeIcon'] }}"></i>@endif
+                                                {{ $s->badge_text }}
                                             </div>
-                                            <div class="text-right flex-shrink-0 pl-2">
-                                                <span
-                                                    class="text-[10px] lg:text-xs text-slate-400 line-through">â‚¹89,999</span>
-                                                <div class="text-base lg:text-lg font-black text-emerald-400 font-heading">
-                                                    â‚¹32,499</div>
-                                            </div>
+                                        @endif
+
+                                        <{{ $i === 0 ? 'h1' : 'h2' }}
+                                            class="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-[1.15] font-heading">
+                                            {{ $s->title_line_1 }}
+                                            @if($s->title_highlight)
+                                                <br /><span
+                                                    class="text-transparent bg-clip-text bg-gradient-to-r {{ $t['hl'] }}">{{ $s->title_highlight }}</span>
+                                            @endif
+                                        </{{ $i === 0 ? 'h1' : 'h2' }}>
+
+                                        @if($s->description)
+                                            <p
+                                                class="text-xs sm:text-sm md:text-xs lg:text-base text-slate-300 max-w-xl font-body leading-relaxed">
+                                                {{ $s->description }}
+                                            </p>
+                                        @endif
+
+                                        <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
+                                            @if($s->btn_primary_text)
+                                                <a href="{{ $url($s->linkValue('btn_primary')) }}"
+                                                    class="btn-base btn-primary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-lg {{ $t['btn'] }}">
+                                                    @if($s->btn_primary_icon)<i class="{{ $s->btn_primary_icon }}"></i>@endif
+                                                    {{ $s->btn_primary_text }}
+                                                </a>
+                                            @endif
+                                            @if($s->btn_secondary_text)
+                                                <a href="{{ $url($s->linkValue('btn_secondary')) }}"
+                                                    class="btn-base btn-secondary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white">
+                                                    @if($s->btn_secondary_icon)<i class="{{ $s->btn_secondary_icon }}"></i>@endif
+                                                    {{ $s->btn_secondary_text }}
+                                                </a>
+                                            @endif
+                                            @if($s->link_text)
+                                                <a href="{{ $url($s->linkValue('link')) }}"
+                                                    class="inline-flex items-center gap-1.5 text-xs font-bold {{ $t['link'] }} py-1">
+                                                    {{ $s->link_text }}
+                                                </a>
+                                            @endif
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Slide 2 (Refurbished Business Laptops) -->
-                <div
-                    class="hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out flex items-center opacity-0 z-0 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950">
-                    <div class="container-custom py-8 sm:py-10 md:py-8 lg:py-10">
-                        <div class="grid grid-cols-12 gap-4 md:gap-6 lg:gap-8 items-center">
-
-                            <!-- Left Content -->
-                            <div
-                                class="col-span-12 md:col-span-7 space-y-3 sm:space-y-4 md:space-y-3 lg:space-y-4 text-left">
-                                <div
-                                    class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] sm:text-xs font-bold tracking-wider uppercase">
-                                    <i class="fa-solid fa-percent text-emerald-400"></i> UP TO 70% SAVINGS
-                                </div>
-                                <h2
-                                    class="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-[1.15] font-heading">
-                                    PREMIUM REFURBISHED <br /><span
-                                        class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">BUSINESS
-                                        LAPTOPS</span>
-                                </h2>
-                                <p
-                                    class="text-xs sm:text-sm md:text-xs lg:text-base text-slate-300 max-w-xl font-body leading-relaxed">
-                                    Tested. Trusted. Ready to Work. Quality enterprise ThinkPads, MacBooks, and Dell
-                                    Latitudes engineered for developers, students, and businesses starting from â‚¹14,499.
-                                </p>
-                                <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
-                                    <a href="#"
-                                        class="btn-base btn-primary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-lg shadow-blue-600/30">
-                                        <i class="fa-solid fa-laptop"></i> Shop Laptops
-                                    </a>
-                                    <a href="shop.html?badge=deal"
-                                        class="btn-base btn-secondary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white">
-                                        <i class="fa-solid fa-fire text-amber-400"></i> Explore Deals
-                                    </a>
-                                    <a href="about.html#diagnostic"
-                                        class="inline-flex items-center gap-1.5 text-xs font-bold text-teal-400 hover:text-teal-300 py-1">
-                                        Our 20-Point Checklist â†’
-                                    </a>
-                                </div>
-                                <!-- Trust Points -->
-                                <div
-                                    class="pt-1 sm:pt-2 flex flex-wrap items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-slate-400">
-                                    <span class="inline-flex items-center gap-1.5"><i
-                                            class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> Grade A
-                                        Flawless Body</span>
-                                    <span class="inline-flex items-center gap-1.5"><i
-                                            class="fa-solid fa-battery-three-quarters text-emerald-400 text-[10px]"></i>
-                                        80%+ Battery Health</span>
-                                    <span class="inline-flex items-center gap-1.5"><i
-                                            class="fa-solid fa-rotate-left text-teal-400 text-[10px]"></i> 7-Day
-                                        Replacement</span>
-                                </div>
-                            </div>
-
-                            <!-- Right Image Showcase Card -->
-                            <div class="hidden md:flex md:col-span-5 justify-center">
-                                <div class="relative w-full max-w-md">
-                                    <div
-                                        class="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-teal-500 rounded-3xl blur-xl opacity-40">
-                                    </div>
-                                    <div
-                                        class="relative bg-slate-900/90 border border-slate-700/60 rounded-3xl p-3.5 lg:p-4 shadow-2xl backdrop-blur-md">
-                                        <div class="relative overflow-hidden rounded-2xl mb-2.5 lg:mb-3 group">
-                                            <img src="{{ asset('assets/img/product-1588872657578-7efd1f1555ed.jpg')}}"
-                                                alt="Lenovo ThinkPad T480s Business Laptop"
-                                                class="w-full h-44 lg:h-56 object-cover transform group-hover:scale-105 transition-transform duration-500 rounded-xl" />
-                                            <span
-                                                class="absolute top-2.5 left-2.5 bg-emerald-600 text-white text-[9px] lg:text-[10px] font-extrabold uppercase px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-full shadow-md">
-                                                âš¡ Developer's Choice â€¢ 74% OFF
-                                            </span>
-                                            <span
-                                                class="absolute bottom-2.5 right-2.5 bg-slate-900/80 backdrop-blur-sm text-teal-300 text-[10px] lg:text-[11px] font-bold px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg border border-teal-500/30">
-                                                Original Charger Included
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center justify-between text-xs">
-                                            <div>
-                                                <span
-                                                    class="text-[9px] lg:text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Refurbished
-                                                    Grade A</span>
-                                                <div class="font-extrabold text-white text-xs lg:text-base">Lenovo ThinkPad
-                                                    T480s i5 8th Gen</div>
-                                                <span class="text-[10px] lg:text-[11px] text-slate-400 font-body">16GB RAM
-                                                    â€¢ 512GB SSD â€¢ Dual Battery</span>
+                                        @php $points = $arr($s->trust_points); @endphp
+                                        @if(count($points))
+                                            <div
+                                                class="pt-1 sm:pt-2 flex flex-wrap items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-slate-400">
+                                                @foreach($points as $p)
+                                                    <span class="inline-flex items-center gap-1.5">
+                                                        <i class="{{ $p['icon'] ?? '' }} {{ $p['color'] ?? '' }} text-[10px]"></i>
+                                                        {{ $p['text'] ?? '' }}
+                                                    </span>
+                                                @endforeach
                                             </div>
-                                            <div class="text-right flex-shrink-0 pl-2">
-                                                <span
-                                                    class="text-[10px] lg:text-xs text-slate-400 line-through">â‚¹78,000</span>
-                                                <div class="text-base lg:text-lg font-black text-emerald-400 font-heading">
-                                                    â‚¹19,999</div>
+                                        @endif
+                                    </div>
+
+                                    {{-- Product card side --}}
+                                    @if($s->card_title || $s->card_image)
+                                        <div class="hidden md:flex md:col-span-5 justify-center">
+                                            <div class="relative w-full max-w-md">
+                                                <div
+                                                    class="absolute -inset-1 bg-gradient-to-r {{ $t['glow'] }} rounded-3xl blur-xl opacity-40">
+                                                </div>
+                                                <div
+                                                    class="relative bg-slate-900/90 border border-slate-700/60 rounded-3xl p-3.5 lg:p-4 shadow-2xl backdrop-blur-md">
+                                                    <div class="relative overflow-hidden rounded-2xl mb-2.5 lg:mb-3 group">
+                                                        @if($s->card_image)
+                                                            <img src="{{ asset($s->card_image) }}"
+                                                                alt="{{ $s->card_image_alt ?: $s->card_title }}"
+                                                                @if($i > 0) loading="lazy" @endif
+                                                                class="w-full h-44 lg:h-56 object-cover transform group-hover:scale-105 transition-transform duration-500 rounded-xl" />
+                                                        @endif
+                                                        @if($s->card_top_badge)
+                                                            <span
+                                                                class="absolute top-2.5 left-2.5 {{ $t['top'] }} text-white text-[9px] lg:text-[10px] font-extrabold uppercase px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-full shadow-md">
+                                                                {{ $s->card_top_badge }}
+                                                            </span>
+                                                        @endif
+                                                        @if($s->card_bottom_badge)
+                                                            <span
+                                                                class="absolute bottom-2.5 right-2.5 bg-slate-900/80 backdrop-blur-sm {{ $t['bottom'] }} text-[10px] lg:text-[11px] font-bold px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg border">
+                                                                {{ $s->card_bottom_badge }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="flex items-center justify-between text-xs">
+                                                        <div>
+                                                            @if($s->card_label)
+                                                                <span
+                                                                    class="text-[9px] lg:text-[10px] uppercase font-bold {{ $t['label'] }} tracking-wider">{{ $s->card_label }}</span>
+                                                            @endif
+                                                            <div class="font-extrabold text-white text-xs lg:text-base">
+                                                                {{ $s->card_title }}</div>
+                                                            <span
+                                                                class="text-[10px] lg:text-[11px] text-slate-400 font-body">{{ $s->card_subtitle }}</span>
+                                                        </div>
+                                                        <div class="text-right flex-shrink-0 pl-2">
+                                                            @if($s->card_old_price)
+                                                                <span
+                                                                    class="text-[10px] lg:text-xs text-slate-400 line-through">{{ $s->card_old_price }}</span>
+                                                            @endif
+                                                            <div class="text-base lg:text-lg font-black text-emerald-400 font-heading">
+                                                                {{ $s->card_price }}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    @endif
+
                                 </div>
                             </div>
-
                         </div>
-                    </div>
+                    @endforeach
+
+                    @if($slideList->count() > 1)
+                        <!-- Slider Navigation Controls -->
+                        <button type="button" onclick="changeHeroSlide(-1)"
+                            class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-900/70 border border-slate-700 text-white hover:bg-blue-600 flex items-center justify-center transition-colors"
+                            aria-label="Previous Slide">
+                            <i class="fa-solid fa-chevron-left text-xs sm:text-sm"></i>
+                        </button>
+                        <button type="button" onclick="changeHeroSlide(1)"
+                            class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-900/70 border border-slate-700 text-white hover:bg-blue-600 flex items-center justify-center transition-colors"
+                            aria-label="Next Slide">
+                            <i class="fa-solid fa-chevron-right text-xs sm:text-sm"></i>
+                        </button>
+
+                        <!-- Slider Dots -->
+                        <div
+                            class="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2">
+                            @foreach($slideList as $i => $s)
+                                <button type="button" onclick="setHeroSlide({{ $i }})"
+                                    class="hero-dot {{ $i === 0 ? 'w-6 sm:w-8 h-1.5 sm:h-2 rounded-full bg-blue-500 transition-all' : 'w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-slate-600 hover:bg-slate-400 transition-all' }}"
+                                    aria-label="Slide {{ $i + 1 }}"></button>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
+            </section>
+        @endif
 
-                <!-- Slide 3 (Certified 5G Smartphones) -->
-                <div
-                    class="hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out flex items-center opacity-0 z-0 bg-gradient-to-r from-slate-950 via-slate-900 to-purple-950">
-                    <div class="container-custom py-8 sm:py-10 md:py-8 lg:py-10">
-                        <div class="grid grid-cols-12 gap-4 md:gap-6 lg:gap-8 items-center">
-
-                            <!-- Left Content -->
+        <!-- ==========================================
+                 TRUST STRIP
+                 ========================================== -->
+        @if($trustList->isNotEmpty())
+            <section class="bg-white border-b border-slate-200 py-3.5 sm:py-4 shadow-sm" aria-label="Trust Badges">
+                <div class="container-custom">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-5 text-slate-800">
+                        @foreach($trustList as $item)
                             <div
-                                class="col-span-12 md:col-span-7 space-y-3 sm:space-y-4 md:space-y-3 lg:space-y-4 text-left">
+                                class="flex items-center gap-2.5 sm:gap-3 p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 lg:bg-transparent lg:border-none lg:p-0 min-w-0 {{ $loop->last && $loop->count % 2 === 1 ? 'col-span-2 sm:col-span-1' : '' }}">
                                 <div
-                                    class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 text-[10px] sm:text-xs font-bold tracking-wider uppercase">
-                                    <i class="fa-solid fa-mobile-screen text-purple-400"></i> CERTIFIED SMARTPHONES
+                                    class="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl border flex items-center justify-center flex-shrink-0 text-sm sm:text-base lg:text-lg {{ $tone[$item->color] ?? $tone['blue'] }}">
+                                    <i class="{{ $item->icon }}"></i>
                                 </div>
-                                <h2
-                                    class="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-[1.15] font-heading">
-                                    NEW & REFURBISHED <br /><span
-                                        class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-300">FLAGSHIP
-                                        MOBILES</span>
-                                </h2>
-                                <p
-                                    class="text-xs sm:text-sm md:text-xs lg:text-base text-slate-300 max-w-xl font-body leading-relaxed">
-                                    Upgrade to Apple iPhones, Samsung Galaxy S-Series, and OnePlus 5G flagships. 100%
-                                    genuine parts, 85%+ battery health guarantee, and doorstep exchange bonus.
-                                </p>
-                                <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
-                                    <a href="#"
-                                        class="btn-base btn-primary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold shadow-lg shadow-purple-600/30 bg-purple-600 hover:bg-purple-700">
-                                        <i class="fa-solid fa-mobile-screen-button"></i> Shop Mobiles
-                                    </a>
-                                    <a href="{{ route('exchange') }}"
-                                        class="btn-base btn-secondary text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3 font-semibold bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white">
-                                        <i class="fa-solid fa-repeat text-pink-400"></i> Exchange Old Phone
-                                    </a>
-                                    <a href="{{ route('warranty') }}"
-                                        class="inline-flex items-center gap-1.5 text-xs font-bold text-purple-300 hover:text-purple-200 py-1">
-                                        Warranty Coverage â†’
-                                    </a>
-                                </div>
-                                <!-- Trust Points -->
-                                <div
-                                    class="pt-1 sm:pt-2 flex flex-wrap items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-slate-400">
-                                    <span class="inline-flex items-center gap-1.5"><i
-                                            class="fa-solid fa-circle-check text-purple-400 text-[10px]"></i> 85%+ Battery
-                                        Guarantee</span>
-                                    <span class="inline-flex items-center gap-1.5"><i
-                                            class="fa-solid fa-shield-halved text-pink-400 text-[10px]"></i> 6-Month
-                                        Warranty</span>
-                                    <span class="inline-flex items-center gap-1.5"><i
-                                            class="fa-solid fa-box-open text-purple-400 text-[10px]"></i> Cable
-                                        Included</span>
+                                <div class="min-w-0">
+                                    <h4
+                                        class="text-xs lg:text-sm font-bold leading-tight whitespace-nowrap text-slate-900 font-heading">
+                                        {{ $item->title }}</h4>
+                                    @if($item->subtitle)
+                                        <p class="text-[10px] sm:text-[11px] text-slate-500 leading-tight truncate font-body">
+                                            {{ $item->subtitle }}</p>
+                                    @endif
                                 </div>
                             </div>
-
-                            <!-- Right Image Showcase Card -->
-                            <div class="hidden md:flex md:col-span-5 justify-center">
-                                <div class="relative w-full max-w-md">
-                                    <div
-                                        class="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-500 rounded-3xl blur-xl opacity-40">
-                                    </div>
-                                    <div
-                                        class="relative bg-slate-900/90 border border-slate-700/60 rounded-3xl p-3.5 lg:p-4 shadow-2xl backdrop-blur-md">
-                                        <div class="relative overflow-hidden rounded-2xl mb-2.5 lg:mb-3 group">
-                                            <img src="{{ asset('assets/img/product-1592750475338-74b7b21085ab.jpg')}}"
-                                                alt="Apple iPhone 13 Certified Refurbished"
-                                                class="w-full h-44 lg:h-56 object-cover transform group-hover:scale-105 transition-transform duration-500 rounded-xl" />
-                                            <span
-                                                class="absolute top-2.5 left-2.5 bg-purple-600 text-white text-[9px] lg:text-[10px] font-extrabold uppercase px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-full shadow-md">
-                                                ðŸŒŸ Top Flagship â€¢ 47% OFF
-                                            </span>
-                                            <span
-                                                class="absolute bottom-2.5 right-2.5 bg-slate-900/80 backdrop-blur-sm text-pink-300 text-[10px] lg:text-[11px] font-bold px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg border border-pink-500/30">
-                                                88% Battery Health
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center justify-between text-xs">
-                                            <div>
-                                                <span
-                                                    class="text-[9px] lg:text-[10px] uppercase font-bold text-purple-400 tracking-wider">Certified
-                                                    Apple</span>
-                                                <div class="font-extrabold text-white text-xs lg:text-base">Apple iPhone 13
-                                                    128GB Midnight</div>
-                                                <span class="text-[10px] lg:text-[11px] text-slate-400 font-body">Super
-                                                    Retina XDR â€¢ A15 Bionic â€¢ 5G</span>
-                                            </div>
-                                            <div class="text-right flex-shrink-0 pl-2">
-                                                <span
-                                                    class="text-[10px] lg:text-xs text-slate-400 line-through">â‚¹69,900</span>
-                                                <div class="text-base lg:text-lg font-black text-emerald-400 font-heading">
-                                                    â‚¹36,999</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
+                        @endforeach
                     </div>
                 </div>
-
-                <!-- Slider Navigation Controls -->
-                <button type="button" onclick="changeHeroSlide(-1)"
-                    class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-900/70 border border-slate-700 text-white hover:bg-blue-600 flex items-center justify-center transition-colors"
-                    aria-label="Previous Slide">
-                    <i class="fa-solid fa-chevron-left text-xs sm:text-sm"></i>
-                </button>
-                <button type="button" onclick="changeHeroSlide(1)"
-                    class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-900/70 border border-slate-700 text-white hover:bg-blue-600 flex items-center justify-center transition-colors"
-                    aria-label="Next Slide">
-                    <i class="fa-solid fa-chevron-right text-xs sm:text-sm"></i>
-                </button>
-
-                <!-- Slider Dots -->
-                <div
-                    class="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2">
-                    <button type="button" onclick="setHeroSlide(0)"
-                        class="hero-dot w-6 sm:w-8 h-1.5 sm:h-2 rounded-full bg-blue-500 transition-all"
-                        aria-label="Slide 1"></button>
-                    <button type="button" onclick="setHeroSlide(1)"
-                        class="hero-dot w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-slate-600 hover:bg-slate-400 transition-all"
-                        aria-label="Slide 2"></button>
-                    <button type="button" onclick="setHeroSlide(2)"
-                        class="hero-dot w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-slate-600 hover:bg-slate-400 transition-all"
-                        aria-label="Slide 3"></button>
-                </div>
-            </div>
-        </section>
+            </section>
+        @endif
 
         <!-- ==========================================
-             TRUST STRIP (Responsive 2/3/5 Columns)
-             ========================================== -->
-        <section class="bg-white border-b border-slate-200 py-3.5 sm:py-4 shadow-sm" aria-label="Trust Badges">
-            <div class="container-custom">
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-5 text-slate-800">
-                    <div
-                        class="flex items-center gap-2.5 sm:gap-3 p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 lg:bg-transparent lg:border-none lg:p-0 min-w-0">
-                        <div
-                            class="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center flex-shrink-0 text-sm sm:text-base lg:text-lg">
-                            <i class="fa-solid fa-clipboard-check"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h4
-                                class="text-xs sm:text-xs lg:text-sm font-bold leading-tight whitespace-nowrap text-slate-900 font-heading">
-                                20+ Point Tested</h4>
-                            <p class="text-[10px] sm:text-[11px] text-slate-500 leading-tight truncate font-body">Hardware &
-                                screen verified</p>
-                        </div>
-                    </div>
-
-                    <div
-                        class="flex items-center gap-2.5 sm:gap-3 p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 lg:bg-transparent lg:border-none lg:p-0 min-w-0">
-                        <div
-                            class="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center flex-shrink-0 text-sm sm:text-base lg:text-lg">
-                            <i class="fa-solid fa-receipt"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h4
-                                class="text-xs sm:text-xs lg:text-sm font-bold leading-tight whitespace-nowrap text-slate-900 font-heading">
-                                GST Invoice</h4>
-                            <p class="text-[10px] sm:text-[11px] text-slate-500 leading-tight truncate font-body">Claim 18%
-                                input credit</p>
-                        </div>
-                    </div>
-
-                    <div
-                        class="flex items-center gap-2.5 sm:gap-3 p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 lg:bg-transparent lg:border-none lg:p-0 min-w-0">
-                        <div
-                            class="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center flex-shrink-0 text-sm sm:text-base lg:text-lg">
-                            <i class="fa-solid fa-shield-halved"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h4
-                                class="text-xs sm:text-xs lg:text-sm font-bold leading-tight whitespace-nowrap text-slate-900 font-heading">
-                                Warranty Covered</h4>
-                            <p class="text-[10px] sm:text-[11px] text-slate-500 leading-tight truncate font-body">Up to
-                                12-Mo protection</p>
-                        </div>
-                    </div>
-
-                    <div
-                        class="flex items-center gap-2.5 sm:gap-3 p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 lg:bg-transparent lg:border-none lg:p-0 min-w-0">
-                        <div
-                            class="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center flex-shrink-0 text-sm sm:text-base lg:text-lg">
-                            <i class="fa-solid fa-box-open"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h4
-                                class="text-xs sm:text-xs lg:text-sm font-bold leading-tight whitespace-nowrap text-slate-900 font-heading">
-                                Secure Shipping</h4>
-                            <p class="text-[10px] sm:text-[11px] text-slate-500 leading-tight truncate font-body">Pan-India
-                                insured parcel</p>
-                        </div>
-                    </div>
-
-                    <div
-                        class="flex items-center gap-2.5 sm:gap-3 p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 lg:bg-transparent lg:border-none lg:p-0 min-w-0 col-span-2 sm:col-span-1 lg:col-span-1">
-                        <div
-                            class="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center flex-shrink-0 text-sm sm:text-base lg:text-lg">
-                            <i class="fa-solid fa-headset"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h4
-                                class="text-xs sm:text-xs lg:text-sm font-bold leading-tight whitespace-nowrap text-slate-900 font-heading">
-                                Expert Support</h4>
-                            <p class="text-[10px] sm:text-[11px] text-slate-500 leading-tight truncate font-body">Direct
-                                technical help</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             SHOP BY CATEGORY (Responsive Grid & Larger Images)
-             ========================================== -->
-        <section class="section-padding bg-slate-50" aria-label="Categories">
-            <div class="container-custom">
-                <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
-                    <div>
-                        <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Explore Collections</span>
-                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">Shop By Category</h2>
-                        <p class="section-subtitle text-xs sm:text-sm">Verified laptops, smartphones, accessories, and
-                            certified repair solutions.</p>
-                    </div>
-                    <a href="{{ route('shop') }}"
-                        class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
-                        View All Products <i class="fa-solid fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-4">
-
-                    <!-- Category 1: Laptops -->
-                    <a href="#"
-                        class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
-                        <div
-                            class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
-                            <img src="{{ asset('assets/img/product-1588872657578-7efd1f1555ed.jpg')}}" alt="Laptops"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            <div
-                                class="absolute top-2 left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/95 text-blue-600 flex items-center justify-center text-xs shadow-sm">
-                                <i class="fa-solid fa-laptop"></i>
-                            </div>
-                        </div>
+                 SHOP BY CATEGORY
+                 ========================================== -->
+        @if($hShow('categories') && ($homeCategories ?? collect())->isNotEmpty())
+            <section class="section-padding bg-slate-50" aria-label="Categories">
+                <div class="container-custom">
+                    <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
                         <div>
-                            <h3
-                                class="text-sm sm:text-base lg:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight font-heading">
-                                Laptops</h3>
-                            <p class="text-[11px] sm:text-xs lg:text-[11px] text-slate-500 mb-2 leading-tight">Dell,
-                                ThinkPad, HP, Mac</p>
                             <span
-                                class="text-xs font-bold text-blue-600 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">Explore
-                                â†’</span>
-                        </div>
-                    </a>
-
-                    <!-- Category 2: Mobile Phones -->
-                    <a href="#"
-                        class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
-                        <div
-                            class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
-                            <img src="{{ asset('assets/img/product-1511707171634-5f897ff02aa9.jpg')}}" alt="Mobiles"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            <div
-                                class="absolute top-2 left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/95 text-blue-600 flex items-center justify-center text-xs shadow-sm">
-                                <i class="fa-solid fa-mobile-screen-button"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <h3
-                                class="text-sm sm:text-base lg:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight font-heading">
-                                Mobile Phones</h3>
-                            <p class="text-[11px] sm:text-xs lg:text-[11px] text-slate-500 mb-2 leading-tight">iPhones,
-                                Galaxy, OnePlus</p>
-                            <span
-                                class="text-xs font-bold text-blue-600 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">Explore
-                                â†’</span>
-                        </div>
-                    </a>
-
-                    <!-- Category 3: Accessories -->
-                    <a href="#"
-                        class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
-                        <div
-                            class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
-                            <img src="{{ asset('assets/img/product-1583863788434-e58a36330cf0.jpg')}}" alt="Accessories"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            <div
-                                class="absolute top-2 left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/95 text-blue-600 flex items-center justify-center text-xs shadow-sm">
-                                <i class="fa-solid fa-headphones"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <h3
-                                class="text-sm sm:text-base lg:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight font-heading">
-                                Accessories</h3>
-                            <p class="text-[11px] sm:text-xs lg:text-[11px] text-slate-500 mb-2 leading-tight">Chargers,
-                                SSD, RAM, Mice</p>
-                            <span
-                                class="text-xs font-bold text-blue-600 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">Explore
-                                â†’</span>
-                        </div>
-                    </a>
-
-                    <!-- Category 4: Refurbished Tech -->
-                    <a href="shop.html?condition=Refurbished"
-                        class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
-                        <div
-                            class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
-                            <img src="{{ asset('assets/img/product-1541807084-5c52b6b3adef.jpg')}}" alt="Refurbished"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            <div
-                                class="absolute top-2 left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/95 text-emerald-600 flex items-center justify-center text-xs shadow-sm">
-                                <i class="fa-solid fa-recycle"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <h3
-                                class="text-sm sm:text-base lg:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight font-heading">
-                                Refurbished</h3>
-                            <p class="text-[11px] sm:text-xs lg:text-[11px] text-slate-500 mb-2 leading-tight">20-Point
-                                Certified Devices</p>
-                            <span
-                                class="text-xs font-bold text-blue-600 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">Explore
-                                â†’</span>
-                        </div>
-                    </a>
-
-                    <!-- Category 5: Repair Services -->
-                    <a href="{{ route('repair') }}"
-                        class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
-                        <div
-                            class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
-                            <img src="{{ asset('assets/img/product-1588872657578-7efd1f1555ed.jpg')}}" alt="Repair"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            <div
-                                class="absolute top-2 left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/95 text-amber-600 flex items-center justify-center text-xs shadow-sm">
-                                <i class="fa-solid fa-screwdriver-wrench"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <h3
-                                class="text-sm sm:text-base lg:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight font-heading">
-                                Repair Services</h3>
-                            <p class="text-[11px] sm:text-xs lg:text-[11px] text-slate-500 mb-2 leading-tight">Screens,
-                                Batteries & OS</p>
-                            <span
-                                class="text-xs font-bold text-blue-600 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">Book
-                                â†’</span>
-                        </div>
-                    </a>
-
-                    <!-- Category 6: Device Exchange -->
-                    <a href="{{ route('exchange') }}"
-                        class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
-                        <div
-                            class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
-                            <img src="{{ asset('assets/img/product-1592750475338-74b7b21085ab.jpg')}}" alt="Exchange"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            <div
-                                class="absolute top-2 left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/95 text-purple-600 flex items-center justify-center text-xs shadow-sm">
-                                <i class="fa-solid fa-rotate"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <h3
-                                class="text-sm sm:text-base lg:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight font-heading">
-                                Exchange Tech</h3>
-                            <p class="text-[11px] sm:text-xs lg:text-[11px] text-slate-500 mb-2 leading-tight">Upgrade Your
-                                Old Device</p>
-                            <span
-                                class="text-xs font-bold text-blue-600 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">Calculate
-                                â†’</span>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             SPECIAL BLOCK: THE SMARTER WAY TO BUY TECH
-             ========================================== -->
-        <section class="py-8 sm:py-12 bg-slate-900 text-white relative overflow-hidden" aria-label="Brand Philosophy">
-            <div class="container-custom relative z-10">
-                <div
-                    class="bg-gradient-to-r from-slate-900 via-slate-800 to-blue-950 p-6 sm:p-8 md:p-10 lg:p-12 rounded-3xl border border-slate-700/60 shadow-xl">
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-center">
-                        <div class="md:col-span-8 space-y-3 sm:space-y-4">
-                            <span class="badge bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-3 py-1">THE
-                                VANSH ADVANTAGE</span>
-                            <h2
-                                class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight font-heading">
-                                THE SMARTER WAY TO BUY TECH
-                            </h2>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs sm:text-sm text-slate-300">
-                                <div class="flex items-start gap-2.5">
-                                    <i class="fa-solid fa-circle-check text-blue-400 mt-1"></i>
-                                    <div><strong>New</strong> when you want the latest release.</div>
-                                </div>
-                                <div class="flex items-start gap-2.5">
-                                    <i class="fa-solid fa-circle-check text-emerald-400 mt-1"></i>
-                                    <div><strong>Refurbished</strong> when you want maximum value.</div>
-                                </div>
-                                <div class="flex items-start gap-2.5">
-                                    <i class="fa-solid fa-circle-check text-amber-400 mt-1"></i>
-                                    <div><strong>Repair</strong> when you want to extend your device life.</div>
-                                </div>
-                                <div class="flex items-start gap-2.5">
-                                    <i class="fa-solid fa-circle-check text-purple-400 mt-1"></i>
-                                    <div><strong>Exchange</strong> when you're ready for an upgrade.</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="md:col-span-4 flex md:justify-end">
-                            <a href="{{ route('shop') }}"
-                                class="btn-base btn-primary px-6 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold shadow-lg shadow-blue-600/30 w-full sm:w-auto text-center justify-center">
-                                Explore All Offerings <i class="fa-solid fa-arrow-right ml-2 text-xs"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             FEATURED LAPTOPS SECTION (Responsive 2/3/4 Columns)
-             ========================================== -->
-        <section class="section-padding bg-white" aria-label="Featured Laptops">
-            <div class="container-custom">
-                <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
-                    <div>
-                        <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Enterprise Performance</span>
-                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">Featured Laptops</h2>
-                        <p class="section-subtitle text-xs sm:text-sm">Tested technology for work, study, creativity, and
-                            coding.</p>
-                    </div>
-                    <a href="#"
-                        class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
-                        Browse All (10+) <i class="fa-solid fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
-                    id="featured-laptops-grid">
-                    <!-- Dynamically populated from PRODUCTS_DATA -->
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             BUDGET LAPTOP CARDS (Responsive 1/3 Columns)
-             ========================================== -->
-        <section class="py-8 sm:py-10 bg-slate-50 border-y border-slate-200" aria-label="Budget Laptops">
-            <div class="container-custom">
-                <h3 class="text-lg sm:text-xl font-bold text-slate-900 mb-4 sm:mb-6 font-heading flex items-center gap-2">
-                    <i class="fa-solid fa-tags text-blue-600"></i> Shop Laptops By Budget
-                </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-3 gap-3.5 sm:gap-4">
-                    <a href="#?maxPrice=15000"
-                        class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-blue-900 to-slate-900 text-white shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 block text-decoration-none">
-                        <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-400">Entry &
-                            Students</span>
-                        <h4 class="text-lg sm:text-xl font-extrabold text-white mt-1 mb-1.5 sm:mb-2 font-heading">Laptops
-                            Under â‚¹15,000</h4>
-                        <p class="text-xs text-slate-300 mb-3 sm:mb-4 leading-relaxed">Fast SSDs, ideal for online study,
-                            office docs, and browsing.</p>
-                        <span
-                            class="text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg inline-flex items-center gap-1.5">View
-                            Products â†’</span>
-                    </a>
-
-                    <a href="#?minPrice=15000&maxPrice=25000"
-                        class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 block text-decoration-none">
-                        <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-blue-300">Most
-                            Popular</span>
-                        <h4 class="text-lg sm:text-xl font-extrabold text-white mt-1 mb-1.5 sm:mb-2 font-heading">Laptops
-                            â‚¹15K â€“ â‚¹25K</h4>
-                        <p class="text-xs text-slate-300 mb-3 sm:mb-4 leading-relaxed">Core i5 8th Gen, 16GB RAM, ThinkPads
-                            & Dell Latitudes.</p>
-                        <span
-                            class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg inline-flex items-center gap-1.5">View
-                            Products â†’</span>
-                    </a>
-
-                    <a href="#?minPrice=25000&maxPrice=35000"
-                        class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 text-white shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 block text-decoration-none">
-                        <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-300">Pro &
-                            Developers</span>
-                        <h4 class="text-lg sm:text-xl font-extrabold text-white mt-1 mb-1.5 sm:mb-2 font-heading">Laptops
-                            â‚¹25K â€“ â‚¹35K</h4>
-                        <p class="text-xs text-slate-300 mb-3 sm:mb-4 leading-relaxed">Core i5 11th Gen / M1 MacBooks with
-                            512GB NVMe SSD.</p>
-                        <span
-                            class="text-xs font-bold text-white bg-slate-700 hover:bg-slate-600 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg inline-flex items-center gap-1.5">View
-                            Products â†’</span>
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             FEATURED MOBILE PHONES SECTION (Responsive 2/3/4 Columns)
-             ========================================== -->
-        <section class="section-padding bg-white" aria-label="Featured Mobile Phones">
-            <div class="container-custom">
-                <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
-                    <div>
-                        <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Certified Smartphones</span>
-                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">Featured Mobile Phones
-                        </h2>
-                        <p class="section-subtitle text-xs sm:text-sm">Flagships, gaming devices, and everyday smartphones
-                            at smarter prices.</p>
-                    </div>
-                    <a href="#"
-                        class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
-                        Browse All (10+) <i class="fa-solid fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
-                    id="featured-mobiles-grid">
-                    <!-- Dynamically populated from PRODUCTS_DATA -->
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             GUIDED RECOMMENDATION (3 Columns Desktop)
-             ========================================== -->
-        <section class="section-padding bg-slate-50/80 border-y border-slate-200/80" aria-label="Product Finder Guide">
-            <div class="container-custom">
-                <div class="text-center max-w-2xl mx-auto mb-12">
-                    <span
-                        class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider">
-                        <i class="fa-solid fa-compass text-blue-600"></i> Guided Recommendation
-                    </span>
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 font-heading tracking-tight mt-3 mb-2">
-                        What's Right For You?
-                    </h2>
-                    <p class="text-sm sm:text-base text-slate-600 font-body">
-                        Find the exact technology tailored to your performance, budget, and daily workflow.
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
-
-                    <!-- Option 1: Laptop -->
-                    <div
-                        class="bg-white rounded-2xl sm:rounded-3xl p-5 md:p-5 lg:p-7 border border-slate-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
-                        <div class="h-1.5 w-full absolute top-0 left-0 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
-                        <div>
-                            <div class="flex items-center justify-between mb-3.5">
-                                <div
-                                    class="w-12 h-12 md:w-11 md:h-11 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center text-xl md:text-lg lg:text-2xl group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm">
-                                    <i class="fa-solid fa-laptop"></i>
-                                </div>
-                                <span
-                                    class="badge bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full">High
-                                    Performance</span>
-                            </div>
-
-                            <h3
-                                class="text-lg md:text-lg lg:text-xl font-extrabold text-slate-900 font-heading mb-1.5 group-hover:text-blue-600 transition-colors">
-                                Need a Laptop?</h3>
-                            <p
-                                class="text-xs md:text-xs lg:text-sm text-slate-600 mb-4 md:mb-4 lg:mb-5 leading-relaxed font-body">
-                                Tailored configurations for coding, business multitasking, CAD/design, and academic study.
-                            </p>
-
-                            <ul
-                                class="space-y-2 md:space-y-2 lg:space-y-2.5 text-xs md:text-xs lg:text-sm text-slate-700 mb-5 md:mb-5 lg:mb-6 bg-slate-50/80 p-3 md:p-3.5 lg:p-4 rounded-xl md:rounded-2xl border border-slate-100">
-                                <li class="flex items-center gap-2">
-                                    <span
-                                        class="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[9px] flex-shrink-0 font-bold"><i
-                                            class="fa-solid fa-check"></i></span>
-                                    <span class="truncate"><strong>8GB to 32GB</strong> RAM options</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span
-                                        class="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[9px] flex-shrink-0 font-bold"><i
-                                            class="fa-solid fa-check"></i></span>
-                                    <span class="truncate">Fast NVMe SSD storage</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span
-                                        class="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[9px] flex-shrink-0 font-bold"><i
-                                            class="fa-solid fa-check"></i></span>
-                                    <span class="truncate"><strong>Up to 12-Month</strong> Warranty</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <a href="#"
-                            class="btn-base btn-primary w-full py-2.5 md:py-2.5 lg:py-3 text-xs md:text-xs lg:text-sm font-bold shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 group-hover:gap-3 transition-all rounded-xl">
-                            <span>Find My Laptop</span> <i class="fa-solid fa-arrow-right text-xs"></i>
-                        </a>
-                    </div>
-
-                    <!-- Option 2: Mobile -->
-                    <div
-                        class="bg-white rounded-2xl sm:rounded-3xl p-5 md:p-5 lg:p-7 border border-slate-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
-                        <div class="h-1.5 w-full absolute top-0 left-0 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
-                        <div>
-                            <div class="flex items-center justify-between mb-3.5">
-                                <div
-                                    class="w-12 h-12 md:w-11 md:h-11 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center text-xl md:text-lg lg:text-2xl group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-sm">
-                                    <i class="fa-solid fa-mobile-screen-button"></i>
-                                </div>
-                                <span
-                                    class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full">5G
-                                    & Flagships</span>
-                            </div>
-
-                            <h3
-                                class="text-lg md:text-lg lg:text-xl font-extrabold text-slate-900 font-heading mb-1.5 group-hover:text-emerald-600 transition-colors">
-                                Need a Phone?</h3>
-                            <p
-                                class="text-xs md:text-xs lg:text-sm text-slate-600 mb-4 md:mb-4 lg:mb-5 leading-relaxed font-body">
-                                High-end camera sensors, long-lasting battery life, and vivid AMOLED 120Hz high refresh
-                                screens.</p>
-
-                            <ul
-                                class="space-y-2 md:space-y-2 lg:space-y-2.5 text-xs md:text-xs lg:text-sm text-slate-700 mb-5 md:mb-5 lg:mb-6 bg-slate-50/80 p-3 md:p-3.5 lg:p-4 rounded-xl md:rounded-2xl border border-slate-100">
-                                <li class="flex items-center gap-2">
-                                    <span
-                                        class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[9px] flex-shrink-0 font-bold"><i
-                                            class="fa-solid fa-check"></i></span>
-                                    <span class="truncate"><strong>85%+ Verified</strong> Battery Health</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span
-                                        class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[9px] flex-shrink-0 font-bold"><i
-                                            class="fa-solid fa-check"></i></span>
-                                    <span class="truncate">100% Original OEM components</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span
-                                        class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[9px] flex-shrink-0 font-bold"><i
-                                            class="fa-solid fa-check"></i></span>
-                                    <span class="truncate"><strong>5G Connectivity</strong> & Dual SIM</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <a href="#"
-                            class="btn-base w-full py-2.5 md:py-2.5 lg:py-3 text-xs md:text-xs lg:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 group-hover:gap-3 transition-all rounded-xl">
-                            <span>Find My Phone</span> <i class="fa-solid fa-arrow-right text-xs"></i>
-                        </a>
-                    </div>
-
-                    <!-- Option 3: Repair -->
-                    <div
-                        class="bg-white rounded-2xl sm:rounded-3xl p-5 md:p-5 lg:p-7 border border-slate-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
-                        <div class="h-1.5 w-full absolute top-0 left-0 bg-gradient-to-r from-amber-500 to-orange-600"></div>
-                        <div>
-                            <div class="flex items-center justify-between mb-3.5">
-                                <div
-                                    class="w-12 h-12 md:w-11 md:h-11 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center text-xl md:text-lg lg:text-2xl group-hover:scale-110 group-hover:bg-amber-600 group-hover:text-white transition-all duration-300 shadow-sm">
-                                    <i class="fa-solid fa-screwdriver-wrench"></i>
-                                </div>
-                                <span
-                                    class="badge bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full">Expert
-                                    Service</span>
-                            </div>
-
-                            <h3
-                                class="text-lg md:text-lg lg:text-xl font-extrabold text-slate-900 font-heading mb-1.5 group-hover:text-amber-600 transition-colors">
-                                Need a Repair?</h3>
-                            <p
-                                class="text-xs md:text-xs lg:text-sm text-slate-600 mb-4 md:mb-4 lg:mb-5 leading-relaxed font-body">
-                                Expert diagnosis for screens, batteries, keyboards, charging ports, and OS speedup.</p>
-
-                            <ul
-                                class="space-y-2 md:space-y-2 lg:space-y-2.5 text-xs md:text-xs lg:text-sm text-slate-700 mb-5 md:mb-5 lg:mb-6 bg-slate-50/80 p-3 md:p-3.5 lg:p-4 rounded-xl md:rounded-2xl border border-slate-100">
-                                <li class="flex items-center gap-2">
-                                    <span
-                                        class="w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[9px] flex-shrink-0 font-bold"><i
-                                            class="fa-solid fa-check"></i></span>
-                                    <span class="truncate"><strong>Transparent</strong> repair quotation</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span
-                                        class="w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[9px] flex-shrink-0 font-bold"><i
-                                            class="fa-solid fa-check"></i></span>
-                                    <span class="truncate">Quality tested replacement parts</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span
-                                        class="w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[9px] flex-shrink-0 font-bold"><i
-                                            class="fa-solid fa-check"></i></span>
-                                    <span class="truncate"><strong>Quick turnaround</strong> times</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <a href="{{ route('repair') }}epair') }}"
-                            class="btn-base w-full py-2.5 md:py-2.5 lg:py-3 text-xs md:text-xs lg:text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-md shadow-slate-900/20 flex items-center justify-center gap-2 group-hover:gap-3 transition-all rounded-xl">
-                            <span>Book Repair Service</span> <i class="fa-solid fa-arrow-right text-xs"></i>
-                        </a>
-                    </div>
-
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             ACCESSORIES SECTION (4 Columns Desktop)
-             ========================================== -->
-        <section class="section-padding bg-white" aria-label="Accessories">
-            <div class="container-custom">
-                <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
-                    <div>
-                        <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Gear & Upgrades</span>
-                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">Computer & Mobile
-                            Accessories</h2>
-                        <p class="section-subtitle text-xs sm:text-sm">GaN fast chargers, NVMe SSDs, mechanical keyboards,
-                            ergonomic stands, and audio.</p>
-                    </div>
-                    <a href="#"
-                        class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
-                        View All <i class="fa-solid fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
-                    id="accessories-grid">
-                    <!-- Dynamically populated from PRODUCTS_DATA -->
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             TRUSTED MANUFACTURERS â€” SHOP BY BRAND (Responsive Grid)
-             ========================================== -->
-        <section class="section-padding bg-slate-50 border-y border-slate-200" aria-label="Top Brands">
-            <div class="container-custom">
-                <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
-                    <div>
-                        <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Certified Technology
-                            Partners</span>
-                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">Shop By Brand</h2>
-                        <p class="section-subtitle text-xs sm:text-sm">Browse top laptop and smartphone manufacturers tested
-                            across 20 diagnostic points.</p>
-                    </div>
-                    <a href="{{ route('shop') }}"
-                        class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 font-body whitespace-nowrap">
-                        View All <i class="fa-solid fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
-
-                <!-- 12 Official Brand Cards Grid (2 Col Mobile / 4 Col Tablet / 6 Col Desktop) -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-
-                    <!-- 1. Apple -->
-                    <a href="shop.html?brand=Apple"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-slate-800 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center">
-                            <svg class="h-8 sm:h-9 w-auto max-w-[85%] fill-current text-slate-900 group-hover:scale-110 transition-transform duration-200"
-                                viewBox="0 0 170 170" aria-label="Apple">
-                                <path
-                                    d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.65-7.79-11.85-14.24-6.3-9.67-11.23-20.76-14.78-33.28-3.56-12.51-5.34-24.36-5.34-35.53 0-14.65 3.75-26.65 11.25-36 7.5-9.35 16.89-14.15 28.16-14.4 5.25 0 11.08 1.45 17.47 4.35 6.39 2.91 10.37 4.42 11.95 4.54 1.34-.12 5.56-1.69 12.66-4.72 7.1-3.03 13.06-4.44 17.88-4.22 13.8.76 24.58 5.64 32.34 14.65-12.02 7.33-17.9 17.1-17.65 29.31.25 9.75 4.08 17.9 11.5 24.45 7.42 6.55 16.32 10.3 26.7 11.26-2.53 7.85-5.69 15.69-9.48 23.51zM119.22 33.15c0-7.37 2.65-14.17 7.95-20.4 5.3-6.23 11.83-10.23 19.59-12 0 1.25.07 2.47.2 3.65-.13 7.62-2.9 14.65-8.31 21.09-5.41 6.44-12.14 10.15-20.19 11.13-.13-1.12-.24-2.28-.24-3.47z" />
-                            </svg>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Apple</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">MacBook
-                                & iPhone</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 2. Dell -->
-                    <a href="#?brand=Dell"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-blue-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center">
-                            <svg class="h-5 sm:h-6 w-auto max-w-[85%] group-hover:scale-105 transition-transform duration-200"
-                                viewBox="0 0 110 32" fill="#0076CE" aria-label="Dell">
-                                <path
-                                    d="M0 2.4h11.2c8.8 0 15.2 5.3 15.2 13.6s-6.4 13.6-15.2 13.6H0V2.4zm7.8 21.6h3.2c4.7 0 7.6-3.3 7.6-8s-2.9-8-7.6-8H7.8V24zM44.5 19.3l-12.4-4.4 2.6-7.2 13.6 4.8 2-5.6-19.8-7-8.7 24.8 20.3 7.2 2-5.7-14.1-4.9 2.5-7.1 12 4.3zM52.3 2.4h7.9v21.6h12.2v5.6H52.3V2.4zm23 0h7.9v21.6h12.2v5.6H75.3V2.4z" />
-                            </svg>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Dell</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">Latitude
-                                & Precision</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 3. Lenovo -->
-                    <a href="#?brand=Lenovo"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-red-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center">
-                            <div
-                                class="bg-[#E2231A] text-white px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded font-black tracking-tight text-xs sm:text-sm font-sans leading-none shadow-sm group-hover:scale-105 transition-transform duration-200 uppercase">
-                                Lenovo
-                            </div>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Lenovo</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">ThinkPad
-                                & IdeaPad</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 4. HP -->
-                    <a href="#?brand=HP"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-sky-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center">
-                            <svg class="h-8 sm:h-10 w-8 sm:w-10 max-w-[85%] group-hover:scale-110 transition-transform duration-200"
-                                viewBox="0 0 100 100" aria-label="HP">
-                                <circle cx="50" cy="50" r="48" fill="#0096D6" />
-                                <g fill="#FFFFFF">
-                                    <path d="M37.5 18 L26.5 82 h9.5 L47 24.5 Z" />
-                                    <path d="M50 18 L39 82 h9.5 L59.5 24.5 Z" />
-                                    <path d="M46 45 h20.5 l-1.8 10.5 H44.2 Z" />
-                                    <path d="M64 18 L53 82 h9.5 L73.5 24.5 Z" />
-                                </g>
-                            </svg>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">HP</span>
-                            <span
-                                class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">EliteBook
-                                & ProBook</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 5. Samsung -->
-                    <a href="#?brand=Samsung"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-blue-800 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center px-1">
-                            <svg class="h-4 sm:h-5 w-auto max-w-[90%] group-hover:scale-105 transition-transform duration-200"
-                                viewBox="0 0 180 32" fill="#1428A0" aria-label="Samsung">
-                                <path
-                                    d="M17.5 8.2c-2.3-1.3-4.8-1.9-7.3-1.9-3.8 0-6 1.8-6 4.3 0 2.8 2.8 3.9 6.8 4.9 5.8 1.4 10.9 3.2 10.9 9.3 0 6.6-5.5 10.2-12.7 10.2-3.8 0-7.8-.9-11.2-2.8l2.2-5.4c2.8 1.7 5.8 2.5 8.9 2.5 4.3 0 6.6-1.8 6.6-4.6 0-3.1-2.9-4.2-7.2-5.3C3 18 0 15.8 0 10.6 0 4.6 5-0.1 11.8-0.1c3.5 0 7 .8 9.9 2.3l-4.2 6zM46.7 0h6.6l14.7 34.3h-6.7l-3.3-8.2H42l-3.3 8.2h-6.7L46.7 0zm8.8 20.8l-5.5-13.6-5.5 13.6h11zM72 0h7.3l9.4 17.5L98.1 0h7.3v34.3h-6.1V12.7L90.4 28.5h-3.4L78.1 12.7v21.6H72V0zm40.5 8.2c-2.3-1.3-4.8-1.9-7.3-1.9-3.8 0-6 1.8-6 4.3 0 2.8 2.8 3.9 6.8 4.9 5.8 1.4 10.9 3.2 10.9 9.3 0 6.6-5.5 10.2-12.7 10.2-3.8 0-7.8-.9-11.2-2.8l2.2-5.4c2.8 1.7 5.8 2.5 8.9 2.5 4.3 0 6.6-1.8 6.6-4.6 0-3.1-2.9-4.2-7.2-5.3C99 18 96 15.8 96 10.6c0-6 5-10.7 11.8-10.7 3.5 0 7 .8 9.9 2.3l-5.2 6zm20.8-8.2h6.4v21.6c0 4.8 2.8 7.3 6.9 7.3 4.1 0 6.9-2.5 6.9-7.3V0h6.4v21.3c0 8.7-5.5 13.6-13.3 13.6-7.8 0-13.3-4.9-13.3-13.6V0zm34.2 0h6.4l14.2 20.5V0h6.4v34.3h-6.4L173.9 13.8v20.5h-6.4V0z" />
-                            </svg>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Samsung</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">Galaxy S
-                                & M Series</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 6. OnePlus -->
-                    <a href="#?brand=OnePlus"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-red-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center">
-                            <div class="flex items-center gap-1.5 group-hover:scale-105 transition-transform duration-200">
-                                <div
-                                    class="w-6 sm:w-7 h-6 sm:h-7 bg-[#EB0028] text-white rounded-md flex items-center justify-center font-bold text-xs shadow-sm relative">
-                                    <span class="font-black text-xs">1</span>
-                                    <span class="absolute top-0.5 right-0.5 text-[8px] font-black leading-none">+</span>
-                                </div>
-                                <span
-                                    class="font-black text-[11px] sm:text-xs tracking-wider text-slate-900 font-sans">ONEPLUS</span>
-                            </div>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">OnePlus</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">Flagship
-                                & Nord 5G</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 7. Google Pixel -->
-                    <a href="#?brand=Google"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-blue-500 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center">
-                            <svg class="h-8 sm:h-9 w-8 sm:w-9 max-w-[85%] group-hover:scale-110 transition-transform duration-200"
-                                viewBox="0 0 48 48" aria-label="Google">
-                                <path fill="#EA4335"
-                                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                                <path fill="#4285F4"
-                                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                                <path fill="#FBBC05"
-                                    d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                                <path fill="#34A853"
-                                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                            </svg>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Google
-                                Pixel</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">Tensor
-                                AI Cameras</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 8. Asus -->
-                    <a href="#?brand=Asus"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-blue-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center px-1">
-                            <svg class="h-4 sm:h-5 w-auto max-w-[90%] group-hover:scale-105 transition-transform duration-200"
-                                viewBox="0 0 140 28" fill="#00539B" aria-label="Asus">
-                                <path
-                                    d="M13.2 0L0 27.5h7.8l2.9-6.3h14.5l2.9 6.3h8L22.9 0h-9.7zm3.1 6.5l5.1 10.5h-10.2L16.3 6.5zM43.7 7.7c-2.3-1.1-4.8-1.7-7.4-1.7-4 0-6.4 1.8-6.4 4.4 0 3 3.1 4.1 7.2 5.2 6.1 1.5 11.5 3.4 11.5 9.9 0 7-5.9 10.8-13.5 10.8-4 0-8.3-1-11.9-3l2.3-5.7c3 1.8 6.2 2.7 9.5 2.7 4.6 0 7-1.9 7-4.9 0-3.3-3.1-4.5-7.7-5.6C28.4 18.7 25 16.3 25 10.8c0-6.4 5.3-11.4 12.5-11.4 3.7 0 7.4.9 10.5 2.5l-4.3 5.8zm27.4-7.7h7.2v17.2c0 3.8 2.2 5.8 5.5 5.8 3.3 0 5.5-2 5.5-5.8V0h7.2v17c0 7.5-4.4 11.6-12.7 11.6-8.3 0-12.7-4.1-12.7-11.6V0zm34.8 7.7c-2.3-1.1-4.8-1.7-7.4-1.7-4 0-6.4 1.8-6.4 4.4 0 3 3.1 4.1 7.2 5.2 6.1 1.5 11.5 3.4 11.5 9.9 0 7-5.9 10.8-13.5 10.8-4 0-8.3-1-11.9-3l2.3-5.7c3 1.8 6.2 2.7 9.5 2.7 4.6 0 7-1.9 7-4.9 0-3.3-3.1-4.5-7.7-5.6-5.8-1.5-9.2-3.9-9.2-9.4 0-6.4 5.3-11.4 12.5-11.4 3.7 0 7.4.9 10.5 2.5l-4.3 5.8z" />
-                            </svg>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Asus</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">TUF &
-                                ROG Gaming</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 9. Xiaomi -->
-                    <a href="#?brand=Xiaomi"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-orange-500 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center">
-                            <div
-                                class="w-9 sm:w-10 h-9 sm:h-10 bg-[#FF6900] text-white rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-base sm:text-lg shadow-sm group-hover:scale-110 transition-transform duration-200 font-sans">
-                                <span class="font-extrabold tracking-tighter">mi</span>
-                            </div>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Xiaomi</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">Redmi &
-                                Pro 5G</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 10. Realme -->
-                    <a href="#?brand=Realme"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-amber-500 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center">
-                            <span
-                                class="text-xl sm:text-2xl font-black text-[#F5B50A] tracking-tight group-hover:scale-110 transition-transform duration-200 font-sans">realme</span>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Realme</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">Narzo &
-                                GT Series</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 11. Acer -->
-                    <a href="#?brand=Acer"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-lime-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center px-1">
-                            <svg class="h-5 sm:h-6 w-auto max-w-[90%] group-hover:scale-105 transition-transform duration-200"
-                                viewBox="0 0 110 30" fill="#83B81A" aria-label="Acer">
-                                <path
-                                    d="M14.5 7.5C7.2 7.5 1.5 12.7 1.5 19.5c0 6.8 5.7 12 13 12 4.6 0 8.5-2.2 10.7-5.5l-4.6-2.8c-1.4 2-3.6 3.3-6.1 3.3-4.2 0-7.3-2.9-7.7-6.9h20.6c.1-.7.1-1.3.1-2 0-6.1-4.5-10.1-13-10.1zm-7.7 9.5c.5-3.8 3.5-6.5 7.7-6.5 4.2 0 7.2 2.7 7.7 6.5H6.8zm33.8-9.5c-7.3 0-13 5.3-13 12.2 0 6.9 5.7 12.2 13 12.2 5.5 0 10.1-3 12-7.5l-4.8-2.3c-1.2 2.8-4 4.5-7.2 4.5-4.4 0-7.7-3.1-7.7-6.9s3.3-6.9 7.7-6.9c3.2 0 6 1.7 7.2 4.5l4.8-2.3c-1.9-4.5-6.5-7.5-12-7.5zm27.4 0c-7.2 0-13 5.2-13 12 0 6.8 5.7 12 13 12 4.6 0 8.5-2.2 10.7-5.5l-4.6-2.8c-1.4 2-3.6 3.3-6.1 3.3-4.2 0-7.3-2.9-7.7-6.9h20.6c.1-.7.1-1.3.1-2 0-6.1-4.5-10.1-13-10.1zm-7.7 9.5c.5-3.8 3.5-6.5 7.7-6.5 4.2 0 7.2 2.7 7.7 6.5H60.3zm31.2-9h-5.2v23.4h5.5v-11.2c0-4.5 3.3-7.2 7.7-7.2.7 0 1.5.1 2.2.3V7.8c-.8-.2-1.7-.3-2.5-.3-3.6 0-6.4 1.8-7.7 4.8V8z" />
-                            </svg>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Acer</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">Aspire &
-                                Nitro</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                    <!-- 12. Microsoft -->
-                    <a href="#?brand=Microsoft"
-                        class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-sky-500 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
-                        <div class="h-12 sm:h-14 flex items-center justify-center">
-                            <div class="flex items-center gap-2 group-hover:scale-105 transition-transform duration-200">
-                                <div class="grid grid-cols-2 gap-0.5 w-5 sm:w-6 h-5 sm:h-6">
-                                    <div class="bg-[#F25022] rounded-[1px]"></div>
-                                    <div class="bg-[#7FBA00] rounded-[1px]"></div>
-                                    <div class="bg-[#00A4EF] rounded-[1px]"></div>
-                                    <div class="bg-[#FFB900] rounded-[1px]"></div>
-                                </div>
-                                <span
-                                    class="font-bold text-[11px] sm:text-xs text-slate-900 font-sans tracking-tight">Microsoft</span>
-                            </div>
-                        </div>
-                        <div class="mt-1">
-                            <span
-                                class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">Microsoft</span>
-                            <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">Surface
-                                Pro & Studio</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
-                            Series â†’</span>
-                    </a>
-
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             HOW WE REFURBISH (6-Step Timeline Responsive)
-             ========================================== -->
-        <section class="section-padding bg-white" aria-label="Refurbishment Process" id="how-we-refurbish">
-            <div class="container-custom">
-                <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
-                    <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Quality Control Protocol</span>
-                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">How We Refurbish</h2>
-                    <p class="section-subtitle text-xs sm:text-sm">Every device undergoes our strict 6-stage engineering and
-                        testing cycle.</p>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-                    <div
-                        class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 relative text-center flex flex-col items-center justify-start">
-                        <div
-                            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center mx-auto mb-2.5 sm:mb-3">
-                            1</div>
-                        <h4 class="text-[11px] sm:text-xs font-bold text-slate-900 uppercase mb-1">Device Sourced</h4>
-                        <p class="text-[10px] sm:text-[11px] text-slate-500 leading-snug">Corporate off-lease or open box
-                            origin check.</p>
-                    </div>
-
-                    <div
-                        class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 relative text-center flex flex-col items-center justify-start">
-                        <div
-                            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center mx-auto mb-2.5 sm:mb-3">
-                            2</div>
-                        <h4 class="text-[11px] sm:text-xs font-bold text-slate-900 uppercase mb-1">Inspection</h4>
-                        <p class="text-[10px] sm:text-[11px] text-slate-500 leading-snug">Physical body, hinges, keyboard,
-                            port grading.</p>
-                    </div>
-
-                    <div
-                        class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 relative text-center flex flex-col items-center justify-start">
-                        <div
-                            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center mx-auto mb-2.5 sm:mb-3">
-                            3</div>
-                        <h4 class="text-[11px] sm:text-xs font-bold text-slate-900 uppercase mb-1">Hardware Test</h4>
-                        <p class="text-[10px] sm:text-[11px] text-slate-500 leading-snug">20-Point Motherboard, RAM, SSD &
-                            battery stress test.</p>
-                    </div>
-
-                    <div
-                        class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 relative text-center flex flex-col items-center justify-start">
-                        <div
-                            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center mx-auto mb-2.5 sm:mb-3">
-                            4</div>
-                        <h4 class="text-[11px] sm:text-xs font-bold text-slate-900 uppercase mb-1">Thermal Clean</h4>
-                        <p class="text-[10px] sm:text-[11px] text-slate-500 leading-snug">Fan dust clearing & thermal paste
-                            re-application.</p>
-                    </div>
-
-                    <div
-                        class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 relative text-center flex flex-col items-center justify-start">
-                        <div
-                            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center mx-auto mb-2.5 sm:mb-3">
-                            5</div>
-                        <h4 class="text-[11px] sm:text-xs font-bold text-slate-900 uppercase mb-1">QC & Software</h4>
-                        <p class="text-[10px] sm:text-[11px] text-slate-500 leading-snug">Clean OS installation & genuine
-                            driver testing.</p>
-                    </div>
-
-                    <div
-                        class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 relative text-center flex flex-col items-center justify-start">
-                        <div
-                            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center mx-auto mb-2.5 sm:mb-3">
-                            6</div>
-                        <h4 class="text-[11px] sm:text-xs font-bold text-slate-900 uppercase mb-1">Dispatched</h4>
-                        <p class="text-[10px] sm:text-[11px] text-slate-500 leading-snug">Multi-layer bubble pack with
-                            charger & warranty.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             WHY VANSH IT & COMM (Responsive Grid)
-             ========================================== -->
-        <section class="section-padding bg-slate-50" aria-label="Why Choose Us">
-            <div class="container-custom">
-                <div class="text-center max-w-xl mx-auto mb-8 sm:mb-12">
-                    <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">The Standard We Set</span>
-                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">Why VANSH IT & COMM</h2>
-                    <p class="section-subtitle text-xs sm:text-sm">Transparent condition, genuine components, and honest
-                        customer support.</p>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-                    <div class="card-base p-4 sm:p-5">
-                        <i class="fa-solid fa-shield-virus text-blue-600 text-xl sm:text-2xl mb-2.5 sm:mb-3"></i>
-                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 mb-1">20+ Point Tested</h4>
-                        <p class="text-[11px] sm:text-xs text-slate-500">Full diagnostic hardware evaluation.</p>
-                    </div>
-
-                    <div class="card-base p-4 sm:p-5">
-                        <i class="fa-solid fa-file-invoice text-emerald-600 text-xl sm:text-2xl mb-2.5 sm:mb-3"></i>
-                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 mb-1">GST Tax Invoice</h4>
-                        <p class="text-[11px] sm:text-xs text-slate-500">Claim 18% input credit for businesses.</p>
-                    </div>
-
-                    <div class="card-base p-4 sm:p-5">
-                        <i class="fa-solid fa-award text-purple-600 text-xl sm:text-2xl mb-2.5 sm:mb-3"></i>
-                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 mb-1">Warranty Included</h4>
-                        <p class="text-[11px] sm:text-xs text-slate-500">Warranty as specified on product.</p>
-                    </div>
-
-                    <div class="card-base p-4 sm:p-5">
-                        <i class="fa-solid fa-battery-three-quarters text-amber-600 text-xl sm:text-2xl mb-2.5 sm:mb-3"></i>
-                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 mb-1">Battery Health Check</h4>
-                        <p class="text-[11px] sm:text-xs text-slate-500">85%+ retention certified backup.</p>
-                    </div>
-
-                    <div class="card-base p-4 sm:p-5">
-                        <i class="fa-solid fa-truck-shield text-sky-600 text-xl sm:text-2xl mb-2.5 sm:mb-3"></i>
-                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 mb-1">Secure Delivery</h4>
-                        <p class="text-[11px] sm:text-xs text-slate-500">Insured logistics with tracking.</p>
-                    </div>
-
-                    <div class="card-base p-4 sm:p-5">
-                        <i class="fa-solid fa-headset text-rose-600 text-xl sm:text-2xl mb-2.5 sm:mb-3"></i>
-                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 mb-1">Expert Support</h4>
-                        <p class="text-[11px] sm:text-xs text-slate-500">Direct technical help when needed.</p>
-                    </div>
-
-                    <div class="card-base p-4 sm:p-5">
-                        <i class="fa-solid fa-magnifying-glass-chart text-teal-600 text-xl sm:text-2xl mb-2.5 sm:mb-3"></i>
-                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 mb-1">Transparent Grading</h4>
-                        <p class="text-[11px] sm:text-xs text-slate-500">Actual device photos upon request.</p>
-                    </div>
-
-                    <div class="card-base p-4 sm:p-5">
-                        <i class="fa-solid fa-hand-holding-dollar text-indigo-600 text-xl sm:text-2xl mb-2.5 sm:mb-3"></i>
-                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 mb-1">Value Pricing</h4>
-                        <p class="text-[11px] sm:text-xs text-slate-500">Up to 70% lower than brand new MRP.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             REPAIR CTA SECTION (Responsive Grid)
-             ========================================== -->
-        <section class="py-12 sm:py-16 bg-slate-950 text-white relative overflow-hidden" aria-label="Repair Call to Action">
-            <div class="container-custom">
-                <div class="grid grid-cols-12 gap-6 sm:gap-8 items-center">
-                    <div class="col-span-12 md:col-span-7 space-y-4">
-                        <span
-                            class="badge bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-3 py-1">PROFESSIONAL
-                            WORKSHOP</span>
-                        <h2
-                            class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight font-heading">
-                            Need a Laptop or Mobile Repair?
-                        </h2>
-                        <p class="text-xs sm:text-sm text-slate-300 font-body leading-relaxed max-w-xl">
-                            From screen replacements to charging issues, get professional device support. Tell us what went
-                            wrong and our team can help identify the right solution.
-                        </p>
-                        <div class="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
-                            <a href="{{ route('repair') }}"
-                                class="btn-base btn-primary px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold shadow-lg shadow-blue-600/30">
-                                <i class="fa-solid fa-wrench"></i> Book a Repair
-                            </a>
-                            <a href="{{ route('contact') }}"
-                                class="btn-base btn-secondary bg-white/10 text-white border-white/20 px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold hover:bg-white/20">
-                                <i class="fa-solid fa-comments"></i> Talk to Technician
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="col-span-12 md:col-span-5 mt-4 md:mt-0">
-                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-3">
-                            <h4 class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider mb-2 font-heading">
-                                Common Fast Fixes</h4>
-                            <div
-                                class="flex items-center justify-between text-xs py-2 border-b border-slate-800 text-slate-300">
-                                <span><i class="fa-solid fa-display text-blue-400 mr-2"></i> Laptop / Mobile Screen
-                                    Replacement</span>
-                                <span class="text-emerald-400 font-bold">Same Day Available</span>
-                            </div>
-                            <div
-                                class="flex items-center justify-between text-xs py-2 border-b border-slate-800 text-slate-300">
-                                <span><i class="fa-solid fa-battery-half text-amber-400 mr-2"></i> OEM Battery
-                                    Replacement</span>
-                                <span class="text-slate-400">Tested Capacity</span>
-                            </div>
-                            <div class="flex items-center justify-between text-xs py-2 text-slate-300">
-                                <span><i class="fa-solid fa-bolt text-purple-400 mr-2"></i> SSD / RAM Upgrade & Speed
-                                    Boost</span>
-                                <span class="text-blue-400 font-bold">In 30 Minutes</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             DEVICE EXCHANGE / UPGRADE CTA (Responsive)
-             ========================================== -->
-        <section class="section-padding bg-slate-50" aria-label="Trade In and Upgrade">
-            <div class="container-custom">
-                <div class="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-12 shadow-sm">
-                    <div class="grid grid-cols-12 gap-6 sm:gap-8 items-center">
-                        <div class="col-span-12 md:col-span-8 space-y-3">
-                            <span
-                                class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1">UPGRADE
-                                PROGRAM</span>
+                                class="text-xs font-bold text-blue-600 uppercase tracking-wider">{{ $hVal('categories', 'eyebrow', 'Explore Collections') }}</span>
                             <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">
-                                Your Old Device. Your Next Upgrade.
-                            </h2>
-                            <p class="text-xs sm:text-sm text-slate-600 max-w-xl font-body">
-                                Trade in your working or used laptop and smartphone to get instant credit towards any
-                                refurbished or new product.
-                            </p>
+                                {{ $hVal('categories', 'title', 'Shop By Category') }}</h2>
+                            @if($sub = $hVal('categories', 'subtitle'))
+                                <p class="section-subtitle text-xs sm:text-sm">{{ $sub }}</p>
+                            @endif
                         </div>
-                        <div class="col-span-12 md:col-span-4 flex md:justify-end">
-                            <a href="{{ route('exchange') }}"
-                                class="btn-base btn-success px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold shadow-md whitespace-nowrap">
-                                <i class="fa-solid fa-calculator mr-2"></i> Calculate Trade-In Value
+                        <a href="{{ $hLink('categories', route('shop')) }}"
+                            class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
+                            {{ $hVal('categories', 'link_text', 'View All Products') }} <i
+                                class="fa-solid fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-4">
+                        @foreach($homeCategories as $category)
+                            <a href="{{ route('shop', ['category' => $category->slug]) }}"
+                                class="category-card p-3 sm:p-4 lg:p-3.5 flex flex-col justify-between group text-decoration-none bg-white rounded-2xl border border-slate-200/90 hover:border-blue-600 hover:shadow-md transition-all">
+                                <div
+                                    class="w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-3 relative">
+                                    <img src="{{ $category->image_url ?? $placeholder }}" alt="{{ $category->name }}"
+                                        loading="lazy" onerror="this.onerror=null; this.src='{{ $placeholder }}';"
+                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                    <div
+                                        class="absolute top-2 left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/95 text-blue-600 flex items-center justify-center text-xs shadow-sm">
+                                        <i class="fa-solid {{ $category->icon ?: 'fa-box' }}"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3
+                                        class="text-sm sm:text-base lg:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight font-heading">
+                                        {{ $category->name }}
+                                    </h3>
+                                    @if($category->sub_title)
+                                        <p class="text-[11px] sm:text-xs lg:text-[11px] text-slate-500 mb-2 leading-tight">
+                                            {{ $category->sub_title }}</p>
+                                    @endif
+                                    <span
+                                        class="text-xs font-bold text-blue-600 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">Explore
+                                        →</span>
+                                </div>
                             </a>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 BRAND PHILOSOPHY (CTA block: brand_philosophy)
+                 ========================================== -->
+        @php $bp = $cta('brand_philosophy'); @endphp
+        @if($bp && $bp->is_active)
+            <section class="py-8 sm:py-12 bg-slate-900 text-white relative overflow-hidden" aria-label="Brand Philosophy">
+                <div class="container-custom relative z-10">
+                    <div
+                        class="bg-gradient-to-r from-slate-900 via-slate-800 to-blue-950 p-6 sm:p-8 md:p-10 lg:p-12 rounded-3xl border border-slate-700/60 shadow-xl">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-center">
+                            <div class="md:col-span-8 space-y-3 sm:space-y-4">
+                                @if($bp->badge_text)
+                                    <span
+                                        class="badge bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-3 py-1">{{ $bp->badge_text }}</span>
+                                @endif
+                                <h2
+                                    class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight font-heading">
+                                    {{ $bp->title }}
+                                </h2>
+                                @if($bp->description)
+                                    <p class="text-xs sm:text-sm text-slate-300">{{ $bp->description }}</p>
+                                @endif
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs sm:text-sm text-slate-300">
+                                    @foreach($arr($bp->items) as $it)
+                                        <div class="flex items-start gap-2.5">
+                                            <i class="{{ $it['icon'] ?? 'fa-solid fa-circle-check' }} {{ $it['color'] ?? 'text-blue-400' }} mt-1"></i>
+                                            <div>{!! $it['text'] ?? '' !!}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @if($bp->btn_1_text)
+                                <div class="md:col-span-4 flex md:justify-end">
+                                    <a href="{{ $url($bp->linkValue('btn_1')) }}"
+                                        class="btn-base btn-primary px-6 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold shadow-lg shadow-blue-600/30 w-full sm:w-auto text-center justify-center">
+                                        {{ $bp->btn_1_text }}
+                                        @if($bp->btn_1_icon)<i class="{{ $bp->btn_1_icon }} ml-2 text-xs"></i>@endif
+                                    </a>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        @endif
 
         <!-- ==========================================
-             STORE LOCATIONS (4-Card Responsive Grid)
-             ========================================== -->
-        <section class="py-10 sm:py-12 bg-white" aria-label="Store Locations">
-            <div class="container-custom">
-                <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
-                    <div>
-                        <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Physical Hub &
-                            Logistics</span>
-                        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 font-heading">Store Locations & Hubs
+                 FEATURED SECTION #1  (heading key: featured_1)
+                 ========================================== -->
+        @php $section = ($homeSections ?? collect())->get(0); @endphp
+        @if($section && $hShow('featured_1'))
+            @php $category = $section['category']; @endphp
+            <section class="section-padding bg-white" aria-label="Featured {{ $category->name }}">
+                <div class="container-custom">
+                    <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
+                        <div>
+                            <span
+                                class="text-xs font-bold text-blue-600 uppercase tracking-wider">{{ $hVal('featured_1', 'eyebrow', 'Featured Picks') }}</span>
+                            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">
+                                {{ $hVal('featured_1', 'title', 'Featured ' . $category->name) }}
+                            </h2>
+                            @if($sub = $hVal('featured_1', 'subtitle', $category->sub_title))
+                                <p class="section-subtitle text-xs sm:text-sm">{{ $sub }}</p>
+                            @endif
+                        </div>
+                        <a href="{{ $hLink('featured_1', route('shop', ['category' => $category->slug])) }}"
+                            class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
+                            {{ $hVal('featured_1', 'link_text', 'Browse All') }} <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                        @foreach($section['products'] as $product)
+                            @include('partials.product-card', ['product' => $product, 'listingAttributes' => $section['listingAttributes']])
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 BUDGET CARDS  (heading key: budget)
+                 ========================================== -->
+        @if($budgetList->isNotEmpty() && $hShow('budget'))
+            <section class="py-8 sm:py-10 bg-slate-50 border-y border-slate-200" aria-label="Budget Laptops">
+                <div class="container-custom">
+                    <h3
+                        class="text-lg sm:text-xl font-bold text-slate-900 mb-4 sm:mb-6 font-heading flex items-center gap-2">
+                        <i class="fa-solid fa-tags text-blue-600"></i> {{ $hVal('budget', 'title', 'Shop Laptops By Budget') }}
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
+                        @foreach($budgetList as $b)
+                            @php
+                                $q = array_filter([
+                                    'minPrice' => $b->min_price,
+                                    'maxPrice' => $b->max_price,
+                                    'category' => optional($b->category ?? null)->slug,
+                                ]);
+                            @endphp
+                            <a href="{{ route('shop', $q) }}"
+                                class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br {{ $b->gradient ?: 'from-blue-900 to-slate-900' }} text-white shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 block text-decoration-none">
+                                @if($b->label)
+                                    <span
+                                        class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider {{ $b->label_color ?: 'text-emerald-400' }}">{{ $b->label }}</span>
+                                @endif
+                                <h4 class="text-lg sm:text-xl font-extrabold text-white mt-1 mb-1.5 sm:mb-2 font-heading">
+                                    {{ $b->title }}</h4>
+                                @if($b->description)
+                                    <p class="text-xs text-slate-300 mb-3 sm:mb-4 leading-relaxed">{{ $b->description }}</p>
+                                @endif
+                                <span
+                                    class="text-xs font-bold text-white {{ $b->button_color ?: 'bg-blue-600' }} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg inline-flex items-center gap-1.5">{{ $b->button_text }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 FEATURED SECTION #2  (heading key: featured_2)
+                 ========================================== -->
+        @php $section = ($homeSections ?? collect())->get(1); @endphp
+        @if($section && $hShow('featured_2'))
+            @php $category = $section['category']; @endphp
+            <section class="section-padding bg-white" aria-label="Featured {{ $category->name }}">
+                <div class="container-custom">
+                    <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
+                        <div>
+                            <span
+                                class="text-xs font-bold text-blue-600 uppercase tracking-wider">{{ $hVal('featured_2', 'eyebrow', 'Featured Picks') }}</span>
+                            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">
+                                {{ $hVal('featured_2', 'title', 'Featured ' . $category->name) }}
+                            </h2>
+                            @if($sub = $hVal('featured_2', 'subtitle', $category->sub_title))
+                                <p class="section-subtitle text-xs sm:text-sm">{{ $sub }}</p>
+                            @endif
+                        </div>
+                        <a href="{{ $hLink('featured_2', route('shop', ['category' => $category->slug])) }}"
+                            class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
+                            {{ $hVal('featured_2', 'link_text', 'Browse All') }} <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                        @foreach($section['products'] as $product)
+                            @include('partials.product-card', ['product' => $product, 'listingAttributes' => $section['listingAttributes']])
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 GUIDED RECOMMENDATION  (heading key: guided)
+                 ========================================== -->
+        @if($guidedList->isNotEmpty() && $hShow('guided'))
+            <section class="section-padding bg-slate-50/80 border-y border-slate-200/80" aria-label="Product Finder Guide">
+                <div class="container-custom">
+                    <div class="text-center max-w-2xl mx-auto mb-12">
+                        <span
+                            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                            <i class="fa-solid fa-compass text-blue-600"></i>
+                            {{ $hVal('guided', 'eyebrow', 'Guided Recommendation') }}
+                        </span>
+                        <h2
+                            class="text-3xl sm:text-4xl font-extrabold text-slate-900 font-heading tracking-tight mt-3 mb-2">
+                            {{ $hVal('guided', 'title', "What's Right For You?") }}
                         </h2>
-                        <p class="section-subtitle text-xs sm:text-sm">Visit our experience store, service workshop, or
-                            track express dispatch centers.</p>
+                        @if($sub = $hVal('guided', 'subtitle'))
+                            <p class="text-sm sm:text-base text-slate-600 font-body">{{ $sub }}</p>
+                        @endif
                     </div>
-                    <a href="{{ route('contact') }}" class="text-xs font-bold text-blue-600 hover:underline whitespace-nowrap">
-                        View All Details â†’
-                    </a>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+                        @foreach($guidedList as $g)
+                            @php $gt = $guidedTheme[$g->color] ?? $guidedTheme['blue']; @endphp
+                            <div
+                                class="bg-white rounded-2xl sm:rounded-3xl p-5 md:p-5 lg:p-7 border border-slate-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+                                <div class="h-1.5 w-full absolute top-0 left-0 bg-gradient-to-r {{ $gt['bar'] }}"></div>
+                                <div>
+                                    <div class="flex items-center justify-between mb-3.5">
+                                        <div
+                                            class="w-12 h-12 md:w-11 md:h-11 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl border flex items-center justify-center text-xl md:text-lg lg:text-2xl group-hover:scale-110 group-hover:text-white transition-all duration-300 shadow-sm {{ $gt['box'] }}">
+                                            <i class="{{ $g->icon }}"></i>
+                                        </div>
+                                        @if($g->badge)
+                                            <span
+                                                class="badge border text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full {{ $gt['badge'] }}">{{ $g->badge }}</span>
+                                        @endif
+                                    </div>
+
+                                    <h3
+                                        class="text-lg md:text-lg lg:text-xl font-extrabold text-slate-900 font-heading mb-1.5 transition-colors {{ $gt['title'] }}">
+                                        {{ $g->title }}</h3>
+                                    @if($g->description)
+                                        <p
+                                            class="text-xs md:text-xs lg:text-sm text-slate-600 mb-4 md:mb-4 lg:mb-5 leading-relaxed font-body">
+                                            {{ $g->description }}</p>
+                                    @endif
+
+                                    @php $feat = $arr($g->features); @endphp
+                                    @if(count($feat))
+                                        <ul
+                                            class="space-y-2 md:space-y-2 lg:space-y-2.5 text-xs md:text-xs lg:text-sm text-slate-700 mb-5 md:mb-5 lg:mb-6 bg-slate-50/80 p-3 md:p-3.5 lg:p-4 rounded-xl md:rounded-2xl border border-slate-100">
+                                            @foreach($feat as $f)
+                                                <li class="flex items-center gap-2">
+                                                    <span
+                                                        class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] flex-shrink-0 font-bold {{ $gt['check'] }}"><i
+                                                            class="fa-solid fa-check"></i></span>
+                                                    <span class="truncate">{!! $f !!}</span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </div>
+
+                                @if($g->button_text)
+                                    <a href="{{ $url($g->linkValue('button')) }}"
+                                        class="btn-base w-full py-2.5 md:py-2.5 lg:py-3 text-xs md:text-xs lg:text-sm font-bold text-white shadow-md flex items-center justify-center gap-2 group-hover:gap-3 transition-all rounded-xl {{ $gt['btn'] }}">
+                                        <span>{{ $g->button_text }}</span> <i class="fa-solid fa-arrow-right text-xs"></i>
+                                    </a>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-
-                    <!-- Card 1: Main Experience Store -->
-                    <div
-                        class="card-base p-5 sm:p-6 flex flex-col justify-between bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-500 transition-all">
-                        <div>
-                            <div class="flex items-center justify-between mb-3">
-                                <div
-                                    class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shadow-sm">
-                                    <i class="fa-solid fa-store"></i>
-                                </div>
-                                <span
-                                    class="badge bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">Retail
-                                    Store</span>
-                            </div>
-                            <h4 class="text-base font-bold text-slate-900 mb-1 font-heading">Main Experience Store</h4>
-                            <p class="text-xs text-slate-500 mb-4 font-body">[Store location will be updated here.]</p>
-                            <div class="text-xs text-slate-600 space-y-1.5 mb-5 font-body">
-                                <div class="flex items-center gap-2"><i
-                                        class="fa-regular fa-clock text-slate-400 w-3.5"></i> <span>Mon â€“ Sat: 10:00 AM
-                                        â€“ 8:30 PM</span></div>
-                                <div class="flex items-center gap-2"><i class="fa-solid fa-phone text-slate-400 w-3.5"></i>
-                                    <span>[Add business phone number]</span>
-                                </div>
-                            </div>
-                        </div>
-                        <a href="{{ route('contact') }}"
-                            class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Contact Store</a>
-                    </div>
-
-                    <!-- Card 2: Repair & Service Center -->
-                    <div
-                        class="card-base p-5 sm:p-6 flex flex-col justify-between bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition-all">
-                        <div>
-                            <div class="flex items-center justify-between mb-3">
-                                <div
-                                    class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shadow-sm">
-                                    <i class="fa-solid fa-screwdriver-wrench"></i>
-                                </div>
-                                <span
-                                    class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">Fast
-                                    Repair</span>
-                            </div>
-                            <h4 class="text-base font-bold text-slate-900 mb-1 font-heading">Repair & Service Center</h4>
-                            <p class="text-xs text-slate-500 mb-4 font-body">[Service center address coming soon.]</p>
-                            <div class="text-xs text-slate-600 space-y-1.5 mb-5 font-body">
-                                <div class="flex items-center gap-2"><i
-                                        class="fa-regular fa-clock text-slate-400 w-3.5"></i> <span>Mon â€“ Sat: 10:30 AM
-                                        â€“ 7:30 PM</span></div>
-                                <div class="flex items-center gap-2"><i
-                                        class="fa-solid fa-headset text-slate-400 w-3.5"></i> <span>Technician Support
-                                        Available</span></div>
-                            </div>
-                        </div>
-                        <a href="{{ route('repair') }}" class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Book
-                            Service</a>
-                    </div>
-
-                    <!-- Card 3: Online Hub & Warehouse -->
-                    <div
-                        class="card-base p-5 sm:p-6 flex flex-col justify-between bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-purple-500 transition-all">
-                        <div>
-                            <div class="flex items-center justify-between mb-3">
-                                <div
-                                    class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg shadow-sm">
-                                    <i class="fa-solid fa-warehouse"></i>
-                                </div>
-                                <span
-                                    class="badge bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">QA
-                                    Hub</span>
-                            </div>
-                            <h4 class="text-base font-bold text-slate-900 mb-1 font-heading">Online Hub & Warehouse</h4>
-                            <p class="text-xs text-slate-500 mb-4 font-body">Direct dispatches across India with 24-hr QA.
-                            </p>
-                            <div class="text-xs text-slate-600 space-y-1.5 mb-5 font-body">
-                                <div class="flex items-center gap-2"><i
-                                        class="fa-solid fa-truck-fast text-slate-400 w-3.5"></i> <span>Same-Day Dispatch
-                                        Available</span></div>
-                                <div class="flex items-center gap-2"><i
-                                        class="fa-solid fa-shield-halved text-slate-400 w-3.5"></i> <span>100% Insured
-                                        Shipping</span></div>
-                            </div>
-                        </div>
-                        <a href="{{ route('shop') }}" class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Browse
-                            Inventory</a>
-                    </div>
-
-                    <!-- Card 4: Pan India Dispatch Hub -->
-                    <div
-                        class="card-base p-5 sm:p-6 flex flex-col justify-between bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-500 transition-all">
-                        <div>
-                            <div class="flex items-center justify-between mb-3">
-                                <div
-                                    class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg shadow-sm">
-                                    <i class="fa-solid fa-truck-fast"></i>
-                                </div>
-                                <span
-                                    class="badge bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">Pan-India</span>
-                            </div>
-                            <h4 class="text-base font-bold text-slate-900 mb-1 font-heading">Pan India Dispatch Hub</h4>
-                            <p class="text-xs text-slate-500 mb-4 font-body">Express Courier Packing & Dispatch Unit.</p>
-                            <div class="text-xs text-slate-600 space-y-1.5 mb-5 font-body">
-                                <div class="flex items-center gap-2"><i class="fa-solid fa-box text-slate-400 w-3.5"></i>
-                                    <span>19,000+ Pincodes Covered</span>
-                                </div>
-                                <div class="flex items-center gap-2"><i
-                                        class="fa-solid fa-shield-halved text-slate-400 w-3.5"></i> <span>Insured Transit
-                                        Packaging</span></div>
-                            </div>
-                        </div>
-                        <a href="{{ route('user.track-order') }}"
-                            class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">Track Dispatch</a>
-                    </div>
-
-                </div>
-            </div>
-        </section>
+            </section>
+        @endif
 
         <!-- ==========================================
-             CUSTOMER REVIEWS (4 Columns Desktop)
-             ========================================== -->
-        <section class="section-padding bg-slate-50 border-t border-slate-200" aria-label="Customer Testimonials">
-            <div class="container-custom">
-                <div class="text-center max-w-xl mx-auto mb-10">
-                    <span
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2">
-                        <i class="fa-solid fa-star text-amber-400"></i> Trusted by Buyers
-                    </span>
-                    <h2 class="text-3xl font-extrabold text-slate-900 font-heading">Customer Reviews</h2>
-                    <p class="text-xs text-slate-500 font-body">Sample feedback from verified customers across India.</p>
-                </div>
+                 FEATURED SECTION #3 / ACCESSORIES  (heading key: accessories)
+                 ========================================== -->
+        @php $section = ($homeSections ?? collect())->get(2); @endphp
+        @if($section && $hShow('accessories'))
+            @php $category = $section['category']; @endphp
+            <section class="section-padding bg-white" aria-label="{{ $category->name }}">
+                <div class="container-custom">
+                    <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
+                        <div>
+                            <span
+                                class="text-xs font-bold text-blue-600 uppercase tracking-wider">{{ $hVal('accessories', 'eyebrow', 'Gear & Upgrades') }}</span>
+                            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">
+                                {{ $hVal('accessories', 'title', $category->name) }}</h2>
+                            @if($sub = $hVal('accessories', 'subtitle', $category->sub_title))
+                                <p class="section-subtitle text-xs sm:text-sm">{{ $sub }}</p>
+                            @endif
+                        </div>
+                        <a href="{{ $hLink('accessories', route('shop', ['category' => $category->slug])) }}"
+                            class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 whitespace-nowrap">
+                            {{ $hVal('accessories', 'link_text', 'View All') }} <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5" id="reviews-container">
-                    <!-- Dynamically populated from REVIEWS_DATA -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                        @foreach($section['products'] as $product)
+                            @include('partials.product-card', ['product' => $product, 'listingAttributes' => $section['listingAttributes']])
+                        @endforeach
+                    </div>
                 </div>
-            </div>
-        </section>
-
-        <!-- ==========================================
-             FREQUENTLY ASKED QUESTIONS (FAQ Desktop)
-             ========================================== -->
-        <section class="section-padding bg-white" aria-label="FAQs">
-            <div class="container-custom max-w-4xl">
-                <div class="text-center mb-10">
-                    <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Got Questions?</span>
-                    <h2 class="text-3xl font-extrabold text-slate-900 font-heading">Frequently Asked Questions</h2>
-                    <p class="section-subtitle">Clear information regarding testing, warranty, returns, and repairs.</p>
-                </div>
-
-                <div class="space-y-3" id="faq-accordion-container">
-                    <!-- Dynamically populated from FAQS_DATA -->
-                </div>
-            </div>
-        </section>
+            </section>
+        @endif
 
         <!-- ==========================================
-             FINAL CTA SECTION (Desktop)
-             ========================================== -->
-        <section class="py-16 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950 text-white text-center"
-            aria-label="Final Call to Action">
-            <div class="container-custom max-w-3xl space-y-4">
-                <span class="badge bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-3 py-1">BUY SMART.
-                    UPGRADE BETTER.</span>
-                <h2 class="text-4xl font-extrabold text-white tracking-tight font-heading">
-                    READY TO UPGRADE?
-                </h2>
-                <p class="text-base text-slate-300 font-body leading-relaxed">
-                    Find the right device, get expert help, or give your current device a second life with VANSH IT & COMM.
-                </p>
-                <div class="flex flex-wrap items-center justify-center gap-3 pt-4">
-                    <a href="#"
-                        class="btn-base btn-primary px-6 py-3 font-semibold shadow-lg shadow-blue-600/30">
-                        Explore Laptops
-                    </a>
-                    <a href="#"
-                        class="btn-base btn-secondary bg-white/10 text-white border-white/20 px-6 py-3 font-semibold hover:bg-white/20">
-                        Explore Mobiles
-                    </a>
-                    <a href="{{ route('repair') }}"
-                        class="btn-base btn-dark bg-slate-800 text-white border border-slate-700 px-6 py-3 font-semibold hover:bg-slate-700">
-                        Book a Repair
-                    </a>
+                 BRANDS  (heading key: brands)
+                 ========================================== -->
+        @if(($homeBrands ?? collect())->isNotEmpty() && $hShow('brands'))
+            <section class="section-padding bg-slate-50 border-y border-slate-200" aria-label="Top Brands">
+                <div class="container-custom">
+                    <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
+                        <div>
+                            <span
+                                class="text-xs font-bold text-blue-600 uppercase tracking-wider">{{ $hVal('brands', 'eyebrow', 'Certified Technology Partners') }}</span>
+                            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">
+                                {{ $hVal('brands', 'title', 'Shop By Brand') }}</h2>
+                            @if($sub = $hVal('brands', 'subtitle'))
+                                <p class="section-subtitle text-xs sm:text-sm">{{ $sub }}</p>
+                            @endif
+                        </div>
+                        <a href="{{ $hLink('brands', route('shop')) }}"
+                            class="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 font-body whitespace-nowrap">
+                            {{ $hVal('brands', 'link_text', 'View All') }} <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                        @foreach($homeBrands as $brand)
+                            <a href="{{ route('shop', ['brand' => [$brand->id]]) }}"
+                                class="card-base p-3.5 sm:p-4 lg:p-5 flex flex-col items-center justify-between text-center group hover:border-blue-600 transition-all text-decoration-none min-h-[140px] sm:min-h-[150px] lg:min-h-[160px] bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:shadow-md">
+                                <div class="h-12 sm:h-14 flex items-center justify-center w-full">
+                                    @if($brand->logo_url)
+                                        <img src="{{ $brand->logo_url }}" alt="{{ $brand->name }}" loading="lazy"
+                                            class="max-h-10 sm:max-h-12 w-auto max-w-[85%] object-contain group-hover:scale-105 transition-transform duration-200" />
+                                    @else
+                                        <span
+                                            class="text-base sm:text-lg font-black text-slate-800 tracking-tight group-hover:scale-105 transition-transform duration-200 font-heading">{{ $brand->name }}</span>
+                                    @endif
+                                </div>
+                                <div class="mt-1">
+                                    <span
+                                        class="font-extrabold text-xs sm:text-sm text-slate-900 block group-hover:text-blue-600 transition-colors font-heading">{{ $brand->name }}</span>
+                                    @if($brand->products_count > 0)
+                                        <span class="text-[10px] sm:text-[11px] text-slate-500 font-body block mt-0.5 truncate">
+                                            {{ $brand->products_count }} {{ $brand->products_count === 1 ? 'Product' : 'Products' }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <span
+                                    class="text-[10px] font-bold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-body">Explore
+                                    →</span>
+                            </a>
+                        @endforeach
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 HOW WE REFURBISH  (heading key: refurbish)
+                 ========================================== -->
+        @if($stepList->isNotEmpty() && $hShow('refurbish'))
+            <section class="section-padding bg-white" aria-label="Refurbishment Process" id="how-we-refurbish">
+                <div class="container-custom">
+                    <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
+                        <span
+                            class="text-xs font-bold text-blue-600 uppercase tracking-wider">{{ $hVal('refurbish', 'eyebrow', 'Quality Control Protocol') }}</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">
+                            {{ $hVal('refurbish', 'title', 'How We Refurbish') }}</h2>
+                        @if($sub = $hVal('refurbish', 'subtitle'))
+                            <p class="section-subtitle text-xs sm:text-sm">{{ $sub }}</p>
+                        @endif
+                    </div>
+
+                    <div
+                        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 {{ $stepList->count() >= 6 ? 'lg:grid-cols-6' : 'lg:grid-cols-' . max($stepList->count(), 1) }} gap-3 sm:gap-4">
+                        @foreach($stepList as $st)
+                            <div
+                                class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 relative text-center flex flex-col items-center justify-start">
+                                <div
+                                    class="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-white font-extrabold text-xs flex items-center justify-center mx-auto mb-2.5 sm:mb-3 {{ $solid[$st->color] ?? $solid['blue'] }}">
+                                    {{ $loop->iteration }}</div>
+                                <h4 class="text-[11px] sm:text-xs font-bold text-slate-900 uppercase mb-1">{{ $st->title }}</h4>
+                                @if($st->description)
+                                    <p class="text-[10px] sm:text-[11px] text-slate-500 leading-snug">{{ $st->description }}</p>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 WHY CHOOSE US  (heading key: why_us)
+                 ========================================== -->
+        @if($whyList->isNotEmpty() && $hShow('why_us'))
+            <section class="section-padding bg-slate-50" aria-label="Why Choose Us">
+                <div class="container-custom">
+                    <div class="text-center max-w-xl mx-auto mb-8 sm:mb-12">
+                        <span
+                            class="text-xs font-bold text-blue-600 uppercase tracking-wider">{{ $hVal('why_us', 'eyebrow', 'The Standard We Set') }}</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">
+                            {{ $hVal('why_us', 'title', 'Why VANSH IT & COMM') }}</h2>
+                        @if($sub = $hVal('why_us', 'subtitle'))
+                            <p class="section-subtitle text-xs sm:text-sm">{{ $sub }}</p>
+                        @endif
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                        @foreach($whyList as $w)
+                            <div class="card-base p-4 sm:p-5">
+                                <i
+                                    class="{{ $w->icon }} {{ $iconText[$w->color] ?? 'text-blue-600' }} text-xl sm:text-2xl mb-2.5 sm:mb-3"></i>
+                                <h4 class="text-xs sm:text-sm font-bold text-slate-900 mb-1">{{ $w->title }}</h4>
+                                @if($w->subtitle)
+                                    <p class="text-[11px] sm:text-xs text-slate-500">{{ $w->subtitle }}</p>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 REPAIR CTA  (CTA block: repair_cta)
+                 ========================================== -->
+        @php $rc = $cta('repair_cta'); @endphp
+        @if($rc && $rc->is_active)
+            <section class="py-12 sm:py-16 bg-slate-950 text-white relative overflow-hidden"
+                aria-label="Repair Call to Action">
+                <div class="container-custom">
+                    <div class="grid grid-cols-12 gap-6 sm:gap-8 items-center">
+                        <div class="col-span-12 md:col-span-7 space-y-4">
+                            @if($rc->badge_text)
+                                <span
+                                    class="badge bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-3 py-1">{{ $rc->badge_text }}</span>
+                            @endif
+                            <h2
+                                class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight font-heading">
+                                {{ $rc->title }}
+                            </h2>
+                            @if($rc->description)
+                                <p class="text-xs sm:text-sm text-slate-300 font-body leading-relaxed max-w-xl">
+                                    {{ $rc->description }}</p>
+                            @endif
+                            <div class="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
+                                @if($rc->btn_1_text)
+                                    <a href="{{ $url($rc->linkValue('btn_1')) }}"
+                                        class="btn-base btn-primary px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold shadow-lg shadow-blue-600/30">
+                                        @if($rc->btn_1_icon)<i class="{{ $rc->btn_1_icon }}"></i>@endif {{ $rc->btn_1_text }}
+                                    </a>
+                                @endif
+                                @if($rc->btn_2_text)
+                                    <a href="{{ $url($rc->linkValue('btn_2')) }}"
+                                        class="btn-base btn-secondary bg-white/10 text-white border-white/20 px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold hover:bg-white/20">
+                                        @if($rc->btn_2_icon)<i class="{{ $rc->btn_2_icon }}"></i>@endif {{ $rc->btn_2_text }}
+                                    </a>
+                                @endif
+                                @if($rc->btn_3_text)
+                                    <a href="{{ $url($rc->linkValue('btn_3')) }}"
+                                        class="btn-base btn-dark bg-slate-800 text-white border border-slate-700 px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold hover:bg-slate-700">
+                                        @if($rc->btn_3_icon)<i class="{{ $rc->btn_3_icon }}"></i>@endif {{ $rc->btn_3_text }}
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+
+                        @php $fixes = $arr($rc->items); @endphp
+                        @if(count($fixes))
+                            <div class="col-span-12 md:col-span-5 mt-4 md:mt-0">
+                                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-3">
+                                    <h4
+                                        class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider mb-2 font-heading">
+                                        Common Fast Fixes</h4>
+                                    @foreach($fixes as $fx)
+                                        <div
+                                            class="flex items-center justify-between gap-3 text-xs py-2 text-slate-300 {{ !$loop->last ? 'border-b border-slate-800' : '' }}">
+                                            <span><i class="{{ $fx['icon'] ?? '' }} {{ $fx['color'] ?? '' }} mr-2"></i>
+                                                {{ $fx['text'] ?? '' }}</span>
+                                            @if(!empty($fx['tag']))
+                                                <span class="text-emerald-400 font-bold text-right">{{ $fx['tag'] }}</span>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 EXCHANGE CTA  (CTA block: exchange_cta)
+                 ========================================== -->
+        @php $ex = $cta('exchange_cta'); @endphp
+        @if($ex && $ex->is_active)
+            <section class="section-padding bg-slate-50" aria-label="Trade In and Upgrade">
+                <div class="container-custom">
+                    <div class="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-12 shadow-sm">
+                        <div class="grid grid-cols-12 gap-6 sm:gap-8 items-center">
+                            <div class="col-span-12 md:col-span-8 space-y-3">
+                                @if($ex->badge_text)
+                                    <span
+                                        class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1">{{ $ex->badge_text }}</span>
+                                @endif
+                                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">{{ $ex->title }}
+                                </h2>
+                                @if($ex->description)
+                                    <p class="text-xs sm:text-sm text-slate-600 max-w-xl font-body">{{ $ex->description }}</p>
+                                @endif
+                            </div>
+                            @if($ex->btn_1_text)
+                                <div class="col-span-12 md:col-span-4 flex md:justify-end">
+                                    <a href="{{ $url($ex->linkValue('btn_1')) }}"
+                                        class="btn-base btn-success px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold shadow-md whitespace-nowrap">
+                                        @if($ex->btn_1_icon)<i class="{{ $ex->btn_1_icon }} mr-2"></i>@endif
+                                        {{ $ex->btn_1_text }}
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 STORE LOCATIONS  (heading key: store_locations)
+                 ========================================== -->
+        @if($storeList->isNotEmpty() && $hShow('store_locations'))
+            <section class="py-10 sm:py-12 bg-white" aria-label="Store Locations">
+                <div class="container-custom">
+                    <div class="flex flex-row items-end justify-between mb-6 sm:mb-8">
+                        <div>
+                            <span
+                                class="text-xs font-bold text-blue-600 uppercase tracking-wider">{{ $hVal('store_locations', 'eyebrow', 'Physical Hub & Logistics') }}</span>
+                            <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 font-heading">
+                                {{ $hVal('store_locations', 'title', 'Store Locations & Hubs') }}</h2>
+                            @if($sub = $hVal('store_locations', 'subtitle'))
+                                <p class="section-subtitle text-xs sm:text-sm">{{ $sub }}</p>
+                            @endif
+                        </div>
+                        @if($hVal('store_locations', 'link_text'))
+                            <a href="{{ $hLink('store_locations', route('contact')) }}"
+                                class="text-xs font-bold text-blue-600 hover:underline whitespace-nowrap">
+                                {{ $hVal('store_locations', 'link_text') }}
+                            </a>
+                        @endif
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        @foreach($storeList as $st)
+                            <div
+                                class="card-base p-5 sm:p-6 flex flex-col justify-between bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all {{ $hoverBorder[$st->color] ?? 'hover:border-blue-500' }}">
+                                <div>
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div
+                                            class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-sm {{ $tone[$st->color] ?? $tone['blue'] }}">
+                                            <i class="{{ $st->icon }}"></i>
+                                        </div>
+                                        @if($st->badge)
+                                            <span
+                                                class="badge border text-[10px] font-bold uppercase px-2 py-0.5 rounded-full {{ $badgeTone[$st->color] ?? $badgeTone['blue'] }}">{{ $st->badge }}</span>
+                                        @endif
+                                    </div>
+                                    <h4 class="text-base font-bold text-slate-900 mb-1 font-heading">{{ $st->title }}</h4>
+                                    @if($st->address)
+                                        <p class="text-xs text-slate-500 mb-4 font-body">{{ $st->address }}</p>
+                                    @endif
+                                    <div class="text-xs text-slate-600 space-y-1.5 mb-5 font-body">
+                                        @foreach($arr($st->details) as $d)
+                                            <div class="flex items-center gap-2">
+                                                <i class="{{ $d['icon'] ?? '' }} text-slate-400 w-3.5"></i>
+                                                <span>{{ $d['text'] ?? '' }}</span>
+                                            </div>
+                                        @endforeach
+                                        @if($st->phone)
+                                            <div class="flex items-center gap-2">
+                                                <i class="fa-solid fa-phone text-slate-400 w-3.5"></i>
+                                                <a href="tel:{{ preg_replace('/[^0-9+]/', '', $st->phone) }}">{{ $st->phone }}</a>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                @if($st->button_text)
+                                    <a href="{{ $url($st->linkValue('button')) }}"
+                                        class="btn-base btn-secondary btn-sm w-full text-xs font-semibold py-2">{{ $st->button_text }}</a>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 CUSTOMER REVIEWS  (heading key: reviews)
+                 ========================================== -->
+        @if($hShow('reviews'))
+            <section class="section-padding bg-slate-50 border-t border-slate-200" aria-label="Customer Testimonials">
+                <div class="container-custom">
+                    <div class="text-center max-w-xl mx-auto mb-10">
+                        <span
+                            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2">
+                            <i class="fa-solid fa-star text-amber-400"></i>
+                            {{ $hVal('reviews', 'eyebrow', 'Trusted by Buyers') }}
+                        </span>
+                        <h2 class="text-3xl font-extrabold text-slate-900 font-heading">
+                            {{ $hVal('reviews', 'title', 'Customer Reviews') }}</h2>
+                        @if($sub = $hVal('reviews', 'subtitle'))
+                            <p class="text-xs text-slate-500 font-body">{{ $sub }}</p>
+                        @endif
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5" id="reviews-container">
+                        <!-- Dynamically populated from REVIEWS_DATA -->
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 FAQ  (heading key: faq)
+                 ========================================== -->
+        @if(($homeFaqs ?? collect())->isNotEmpty() && $hShow('faq'))
+            <section class="section-padding bg-white" aria-label="FAQs">
+                <div class="container-custom max-w-4xl">
+                    <div class="text-center mb-10">
+                        <span
+                            class="text-xs font-bold text-blue-600 uppercase tracking-wider">{{ $hVal('faq', 'eyebrow', 'Got Questions?') }}</span>
+                        <h2 class="text-3xl font-extrabold text-slate-900 font-heading">
+                            {{ $hVal('faq', 'title', 'Frequently Asked Questions') }}</h2>
+                        @if($sub = $hVal('faq', 'subtitle'))
+                            <p class="section-subtitle">{{ $sub }}</p>
+                        @endif
+                    </div>
+
+                    <div class="space-y-3" id="faq-accordion-container">
+                        @foreach($homeFaqs as $idx => $faq)
+                            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                                <button type="button" onclick="toggleFaq({{ $idx }})"
+                                    class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/80 text-left font-bold text-slate-900 text-sm transition-colors">
+                                    <span>{{ $faq->question }}</span>
+                                    <i class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"
+                                        id="faq-icon-{{ $idx }}"></i>
+                                </button>
+                                <div id="faq-ans-{{ $idx }}"
+                                    class="hidden p-4 bg-white text-xs text-slate-600 border-t border-slate-100 leading-relaxed font-body">
+                                    {!! $faq->answer !!}
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- ==========================================
+                 FINAL CTA  (CTA block: final_cta)
+                 ========================================== -->
+        @php $fc = $cta('final_cta'); @endphp
+        @if($fc && $fc->is_active)
+            <section class="py-16 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950 text-white text-center"
+                aria-label="Final Call to Action">
+                <div class="container-custom max-w-3xl space-y-4">
+                    @if($fc->badge_text)
+                        <span
+                            class="badge bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-3 py-1">{{ $fc->badge_text }}</span>
+                    @endif
+                    <h2 class="text-4xl font-extrabold text-white tracking-tight font-heading">{{ $fc->title }}</h2>
+                    @if($fc->description)
+                        <p class="text-base text-slate-300 font-body leading-relaxed">{{ $fc->description }}</p>
+                    @endif
+                    <div class="flex flex-wrap items-center justify-center gap-3 pt-4">
+                        @if($fc->btn_1_text)
+                            <a href="{{ $url($fc->linkValue('btn_1')) }}"
+                                class="btn-base btn-primary px-6 py-3 font-semibold shadow-lg shadow-blue-600/30">
+                                @if($fc->btn_1_icon)<i class="{{ $fc->btn_1_icon }}"></i>@endif {{ $fc->btn_1_text }}
+                            </a>
+                        @endif
+                        @if($fc->btn_2_text)
+                            <a href="{{ $url($fc->linkValue('btn_2')) }}"
+                                class="btn-base btn-secondary bg-white/10 text-white border-white/20 px-6 py-3 font-semibold hover:bg-white/20">
+                                @if($fc->btn_2_icon)<i class="{{ $fc->btn_2_icon }}"></i>@endif {{ $fc->btn_2_text }}
+                            </a>
+                        @endif
+                        @if($fc->btn_3_text)
+                            <a href="{{ $url($fc->linkValue('btn_3')) }}"
+                                class="btn-base btn-dark bg-slate-800 text-white border border-slate-700 px-6 py-3 font-semibold hover:bg-slate-700">
+                                @if($fc->btn_3_icon)<i class="{{ $fc->btn_3_icon }}"></i>@endif {{ $fc->btn_3_text }}
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </section>
+        @endif
 
     </main>
-
 
 @endsection
 
 @push('scripts')
 
     <script>
-        // Initialize Homepage Content & Slider
         document.addEventListener('DOMContentLoaded', () => {
-            // Render Header & Footer
-            Components.renderHeader('home');
-            Components.renderFooter();
 
-            // Render Featured Laptops (first 4 laptops)
-            const laptops = PRODUCTS_DATA.filter(p => p.category === 'laptops').slice(0, 4);
-            ProductsEngine.renderProductsGrid('featured-laptops-grid', laptops);
-
-            // Render Featured Mobiles (first 4 mobiles)
-            const mobiles = PRODUCTS_DATA.filter(p => p.category === 'mobile-phones').slice(0, 4);
-            ProductsEngine.renderProductsGrid('featured-mobiles-grid', mobiles);
-
-            // Render Accessories (first 4 accessories)
-            const accessories = PRODUCTS_DATA.filter(p => p.category === 'accessories').slice(0, 4);
-            ProductsEngine.renderProductsGrid('accessories-grid', accessories);
-
-            // Render Reviews
+            // Render Reviews (only if the static REVIEWS_DATA exists on this page)
             const revContainer = document.getElementById('reviews-container');
-            if (revContainer) {
+            if (revContainer && typeof REVIEWS_DATA !== 'undefined') {
                 revContainer.innerHTML = REVIEWS_DATA.map(r => `
-              <div class="card-base p-5 flex flex-col justify-between h-full bg-white rounded-2xl border border-slate-200 hover:shadow-md transition-all">
-                <div>
-                  <div class="flex items-center text-amber-400 text-xs mb-3 gap-0.5">
-                    ${'<i class="fa-solid fa-star"></i>'.repeat(r.rating)}
-                    <span class="text-slate-400 text-[10px] font-medium ml-2 font-body">${r.date || 'Verified'}</span>
-                  </div>
-                  <p class="text-xs text-slate-700 italic mb-5 leading-relaxed font-body">"${r.comment}"</p>
-                </div>
-                <div class="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <div class="min-w-0 flex-1 pr-1">
-                    <strong class="text-xs font-bold text-slate-900 block truncate font-heading">${r.name}</strong>
-                    <span class="text-[10px] text-slate-400 block truncate font-body">${r.city} â€¢ ${r.product}</span>
-                  </div>
-                  <span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-extrabold flex-shrink-0 whitespace-nowrap px-2 py-0.5 rounded-md inline-flex items-center gap-1 uppercase tracking-wider">
-                    <i class="fa-solid fa-circle-check text-emerald-600"></i> ${r.badge}
-                  </span>
-                </div>
-              </div>
-            `).join('');
+                    <div class="card-base p-5 flex flex-col justify-between h-full bg-white rounded-2xl border border-slate-200 hover:shadow-md transition-all">
+                        <div>
+                            <div class="flex items-center text-amber-400 text-xs mb-3 gap-0.5">
+                                ${'<i class="fa-solid fa-star"></i>'.repeat(r.rating)}
+                                <span class="text-slate-400 text-[10px] font-medium ml-2 font-body">${r.date || 'Verified'}</span>
+                            </div>
+                            <p class="text-xs text-slate-700 italic mb-5 leading-relaxed font-body">"${r.comment}"</p>
+                        </div>
+                        <div class="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <div class="min-w-0 flex-1 pr-1">
+                                <strong class="text-xs font-bold text-slate-900 block truncate font-heading">${r.name}</strong>
+                                <span class="text-[10px] text-slate-400 block truncate font-body">${r.city} • ${r.product}</span>
+                            </div>
+                            <span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-extrabold flex-shrink-0 whitespace-nowrap px-2 py-0.5 rounded-md inline-flex items-center gap-1 uppercase tracking-wider">
+                                <i class="fa-solid fa-circle-check text-emerald-600"></i> ${r.badge}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
             }
 
-            // Render FAQs
-            const faqContainer = document.getElementById('faq-accordion-container');
-            if (faqContainer) {
-                faqContainer.innerHTML = FAQS_DATA.slice(0, 6).map((f, idx) => `
-              <div class="border border-slate-200 rounded-xl overflow-hidden">
-                <button 
-                  type="button" 
-                  onclick="toggleFaq(${idx})" 
-                  class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/80 text-left font-bold text-slate-900 text-sm transition-colors"
-                >
-                  <span>${f.question}</span>
-                  <i class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform" id="faq-icon-${idx}"></i>
-                </button>
-                <div id="faq-ans-${idx}" class="hidden p-4 bg-white text-xs text-slate-600 border-t border-slate-100 leading-relaxed font-body">
-                  ${f.answer}
-                </div>
-              </div>
-            `).join('');
-            }
-
-            // Start Hero Slider Autoplay
-            startHeroSlider();
+            // Start Hero Slider Autoplay (only when there is more than one slide)
+            if (document.querySelectorAll('.hero-slide').length > 1) startHeroSlider();
         });
 
         // Hero Slider Engine
@@ -1779,7 +1077,7 @@
 
         function startHeroSlider() {
             sliderInterval = setInterval(() => {
-                changeHeroSlide(1);
+                setHeroSlide(currentSlide + 1);
             }, 5000);
         }
 

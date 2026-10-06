@@ -45,32 +45,28 @@
                   id="faq-search-input"
                   placeholder="Type a keyword (warranty, test, GST)..."
                   class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-600"
-                  oninput="filterFaqs(this.value)"
+                  oninput="setFaqQuery(this.value)"
                 />
               </div>
             </div>
 
-            <div class="pt-2 border-t border-slate-100">
-              <h4 class="text-xs font-bold text-slate-800 mb-2 font-heading">Filter by Topic:</h4>
-              <div class="space-y-1 text-xs">
-                <button type="button" onclick="filterFaqCategory('')" class="w-full text-left px-3 py-2 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-between faq-cat-btn" data-cat="">
-                  <span>All Topics</span>
-                  <i class="fa-solid fa-check text-[10px]"></i>
-                </button>
-                <button type="button" onclick="filterFaqCategory('Warranty')" class="w-full text-left px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-50 font-medium flex items-center justify-between faq-cat-btn" data-cat="Warranty">
-                  <span>Warranty & Claims</span>
-                </button>
-                <button type="button" onclick="filterFaqCategory('Testing')" class="w-full text-left px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-50 font-medium flex items-center justify-between faq-cat-btn" data-cat="Testing">
-                  <span>20-Point QC Testing</span>
-                </button>
-                <button type="button" onclick="filterFaqCategory('Shipping')" class="w-full text-left px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-50 font-medium flex items-center justify-between faq-cat-btn" data-cat="Shipping">
-                  <span>Shipping & Returns</span>
-                </button>
-                <button type="button" onclick="filterFaqCategory('Payments')" class="w-full text-left px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-50 font-medium flex items-center justify-between faq-cat-btn" data-cat="Payments">
-                  <span>GST Billing & Payments</span>
-                </button>
+            @if($categories->isNotEmpty())
+              <div class="pt-2 border-t border-slate-100">
+                <h4 class="text-xs font-bold text-slate-800 mb-2 font-heading">Filter by Topic:</h4>
+                <div class="space-y-1 text-xs">
+                  <button type="button" onclick="setFaqCategory('')" class="faq-cat-btn w-full text-left px-3 py-2 rounded-xl flex items-center justify-between" data-cat="">
+                    <span>All Topics</span>
+                    <i class="fa-solid fa-check text-[10px] faq-check"></i>
+                  </button>
+                  @foreach($categories as $key => $label)
+                    <button type="button" onclick="setFaqCategory('{{ $key }}')" class="faq-cat-btn w-full text-left px-3 py-2 rounded-xl flex items-center justify-between" data-cat="{{ $key }}">
+                      <span>{{ $label }}</span>
+                      <i class="fa-solid fa-check text-[10px] faq-check"></i>
+                    </button>
+                  @endforeach
+                </div>
               </div>
-            </div>
+            @endif
           </div>
 
           <!-- Helpdesk Contact Box -->
@@ -92,7 +88,31 @@
 
         <!-- Right Column: Accordion List -->
         <div class="lg:col-span-8">
-          <div class="space-y-3" id="faq-list-container"></div>
+          <div class="space-y-3" id="faq-list-container">
+            @foreach($faqs as $faq)
+              <div class="faq-item border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm"
+                   data-category="{{ $faq->category }}"
+                   data-search="{{ strtolower($faq->question . ' ' . strip_tags($faq->answer) . ' ' . ($faq->category ? \App\Models\Faq::CATEGORIES[$faq->category] ?? $faq->category : '')) }}">
+                <button
+                  type="button"
+                  onclick="toggleFaq({{ $faq->id }})"
+                  class="w-full flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50 text-left font-bold text-slate-900 text-xs sm:text-sm transition-colors"
+                >
+                  <span class="flex items-center gap-2.5">
+                    <i class="fa-regular fa-circle-question text-blue-600"></i> {{ $faq->question }}
+                  </span>
+                  <i class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform ml-2" id="faq-icon-{{ $faq->id }}"></i>
+                </button>
+                <div id="faq-ans-{{ $faq->id }}" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed font-body border-t border-slate-100 pt-3">
+                  {!! nl2br(e($faq->answer)) !!}
+                </div>
+              </div>
+            @endforeach
+          </div>
+
+          <div id="faq-empty" class="{{ $faqs->isEmpty() ? '' : 'hidden' }} text-center py-12 text-xs text-slate-500 bg-white p-8 rounded-2xl border border-slate-200">
+            No FAQs matching your query.
+          </div>
         </div>
 
       </div>
@@ -103,77 +123,57 @@
 
 @push('scripts')
   <script>
+    let faqQuery = '';
+    let faqCategory = '';
+
+    const ACTIVE_CLASSES   = ['bg-blue-50', 'text-blue-600', 'font-bold'];
+    const INACTIVE_CLASSES = ['text-slate-600', 'hover:bg-slate-50', 'font-medium'];
+
     document.addEventListener('DOMContentLoaded', () => {
-      Components.renderHeader('faq');
-      Components.renderFooter();
-      renderAllFaqs(FAQS_DATA);
+      updateCategoryButtons();
     });
 
-    function renderAllFaqs(faqs) {
-      const container = document.getElementById('faq-list-container');
-      if (faqs.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-12 text-xs text-slate-500 bg-white p-8 rounded-2xl border border-slate-200">
-            No FAQs matching your query.
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = faqs.map((f, idx) => `
-        <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
-          <button
-            type="button"
-            onclick="toggleFaq(${idx})"
-            class="w-full flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50 text-left font-bold text-slate-900 text-xs sm:text-sm transition-colors"
-          >
-            <span class="flex items-center gap-2.5">
-              <i class="fa-regular fa-circle-question text-blue-600"></i> ${f.question}
-            </span>
-            <i class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform ml-2" id="faq-icon-${idx}"></i>
-          </button>
-          <div id="faq-ans-${idx}" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed font-body border-t border-slate-100 pt-3">
-            ${f.answer}
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function toggleFaq(idx) {
-      const ans = document.getElementById(`faq-ans-${idx}`);
-      const icon = document.getElementById(`faq-icon-${idx}`);
+    function toggleFaq(id) {
+      const ans = document.getElementById(`faq-ans-${id}`);
+      const icon = document.getElementById(`faq-icon-${id}`);
       if (!ans) return;
       ans.classList.toggle('hidden');
       if (icon) icon.classList.toggle('rotate-180');
     }
 
-    function filterFaqs(query) {
-      const q = (query || '').toLowerCase().trim();
-      const filtered = FAQS_DATA.filter(f =>
-        f.question.toLowerCase().includes(q) ||
-        f.answer.toLowerCase().includes(q) ||
-        f.category.toLowerCase().includes(q)
-      );
-      renderAllFaqs(filtered);
+    function setFaqQuery(value) {
+      faqQuery = (value || '').toLowerCase().trim();
+      applyFaqFilters();
     }
 
-    function filterFaqCategory(cat) {
-      document.querySelectorAll('.faq-cat-btn').forEach(btn => {
-        if (btn.getAttribute('data-cat') === cat) {
-          btn.className = 'w-full text-left px-3 py-2 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-between faq-cat-btn';
-          btn.innerHTML = `<span>${btn.querySelector('span').innerText}</span> <i class="fa-solid fa-check text-[10px]"></i>`;
-        } else {
-          btn.className = 'w-full text-left px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-50 font-medium flex items-center justify-between faq-cat-btn';
-          btn.innerHTML = `<span>${btn.querySelector('span').innerText}</span>`;
-        }
+    function setFaqCategory(cat) {
+      faqCategory = cat;
+      updateCategoryButtons();
+      applyFaqFilters();
+    }
+
+    function applyFaqFilters() {
+      let visible = 0;
+
+      document.querySelectorAll('.faq-item').forEach(item => {
+        const matchesCat = !faqCategory || item.dataset.category === faqCategory;
+        const matchesQuery = !faqQuery || item.dataset.search.includes(faqQuery);
+        const show = matchesCat && matchesQuery;
+        item.classList.toggle('hidden', !show);
+        if (show) visible++;
       });
 
-      if (!cat) {
-        renderAllFaqs(FAQS_DATA);
-      } else {
-        const filtered = FAQS_DATA.filter(f => f.category.toLowerCase() === cat.toLowerCase());
-        renderAllFaqs(filtered);
-      }
+      document.getElementById('faq-empty').classList.toggle('hidden', visible > 0);
+    }
+
+    function updateCategoryButtons() {
+      document.querySelectorAll('.faq-cat-btn').forEach(btn => {
+        const active = btn.dataset.cat === faqCategory;
+        btn.classList.remove(...ACTIVE_CLASSES, ...INACTIVE_CLASSES);
+        btn.classList.add(...(active ? ACTIVE_CLASSES : INACTIVE_CLASSES));
+        const check = btn.querySelector('.faq-check');
+        if (check) check.classList.toggle('hidden', !active);
+      });
     }
   </script>
 @endpush

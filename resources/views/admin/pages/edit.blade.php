@@ -175,9 +175,20 @@
             margin-bottom: 6px;
         }
 
+        .field-label .req {
+            color: var(--red);
+            margin-left: 2px;
+        }
+
         .field-hint {
             font-size: 11.5px;
             color: var(--text-hint);
+            margin-top: 4px;
+        }
+
+        .field-error {
+            font-size: 11.5px;
+            color: var(--red);
             margin-top: 4px;
         }
 
@@ -430,22 +441,26 @@
 
                                 <div class="two-col" style="margin-bottom:16px">
                                     <div class="field-group" style="margin:0">
-                                        <label class="field-label">Page Name (Slug)</label>
-                                        <input type="text" name="page_name" class="field-input"
-                                            value="{{ $page->page_name }}">
-                                        <div class="field-hint">Used in the URL: /page/<strong>slug</strong></div>
+                                        <label class="field-label">Page Name (Slug) <span class="req">*</span></label>
+                                        <input type="text" name="page_name" id="page_name" class="field-input"
+                                            value="{{ old('page_name', $page->page_name) }}" required>
+                                        <div class="field-hint">Used in the URL: /page/<strong>slug</strong>. Changing it breaks existing links to this page.</div>
+                                        @error('page_name') <div class="field-error">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="field-group" style="margin:0">
-                                        <label class="field-label">Heading</label>
+                                        <label class="field-label">Heading <span class="req">*</span></label>
                                         <input type="text" name="heading" class="field-input"
-                                            value="{{ $page->heading }}">
+                                            value="{{ old('heading', $page->heading) }}" required>
+                                        @error('heading') <div class="field-error">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
 
                                 <div class="field-group">
-                                    <label class="field-label">Page Content</label>
+                                    <label class="field-label">Page Content <span class="req">*</span></label>
                                     <textarea name="content" id="content" class="field-textarea editor"
-                                        style="min-height:200px">{{ $page->content }}</textarea>
+                                        style="min-height:200px">{{ old('content', $page->content) }}</textarea>
+                                    <div class="field-hint">Start sections with Heading 3 so they match the site's policy styling.</div>
+                                    @error('content') <div class="field-error">{{ $message }}</div> @enderror
                                 </div>
 
                             </div>
@@ -460,12 +475,12 @@
                                 <div class="field-group">
                                     <label class="field-label">Meta Title</label>
                                     <input type="text" name="meta_title" class="field-input"
-                                        value="{{ $page->meta_title }}">
+                                        value="{{ old('meta_title', $page->meta_title) }}">
                                 </div>
                                 <div class="field-group">
                                     <label class="field-label">Meta Description</label>
                                     <textarea name="meta_description"
-                                        class="field-textarea">{{ $page->meta_description }}</textarea>
+                                        class="field-textarea">{{ old('meta_description', $page->meta_description) }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -487,12 +502,59 @@
                                         <div class="toggle-sub">Visible to visitors</div>
                                     </div>
                                     <select name="status" class="field-select-sm">
-                                        <option value="active" {{ $page->status === 'active' ? 'selected' : '' }}>Active
-                                        </option>
-                                        <option value="block" {{ $page->status === 'block' ? 'selected' : '' }}>Block
-                                        </option>
+                                        <option value="active" {{ old('status', $page->status) === 'active' ? 'selected' : '' }}>Active</option>
+                                        <option value="block" {{ old('status', $page->status) === 'block' ? 'selected' : '' }}>Block</option>
                                     </select>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Terms & Policies page -->
+                        <div class="section-card">
+                            <div class="section-card-header">
+                                <h5>Terms &amp; Policies Page</h5>
+                            </div>
+                            <div class="section-card-body">
+
+                                <div class="field-group">
+                                    <label class="field-label">Show as a tab</label>
+                                    <select name="show_in_policies" class="field-select">
+                                        <option value="0" {{ old('show_in_policies', $page->show_in_policies ? '1' : '0') == '0' ? 'selected' : '' }}>No</option>
+                                        <option value="1" {{ old('show_in_policies', $page->show_in_policies ? '1' : '0') == '1' ? 'selected' : '' }}>Yes</option>
+                                    </select>
+                                    <div class="field-hint">Shows this page as a tab on the Terms &amp; Policies page.</div>
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Tab Order</label>
+                                    <input type="number" name="sort_order" class="field-input" min="0"
+                                        value="{{ old('sort_order', $page->sort_order ?? 0) }}">
+                                    <div class="field-hint">Lower numbers appear first.</div>
+                                    @error('sort_order') <div class="field-error">{{ $message }}</div> @enderror
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Icon</label>
+                                    <input type="text" name="icon" class="field-input"
+                                        value="{{ old('icon', $page->icon) }}"
+                                        placeholder="e.g. fa-file-contract">
+                                    <div class="field-hint">Any Font Awesome icon name. Default: fa-file-lines.</div>
+                                    @error('icon') <div class="field-error">{{ $message }}</div> @enderror
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Badge Text</label>
+                                    <input type="text" name="badge" class="field-input" maxlength="40"
+                                        value="{{ old('badge', $page->badge) }}"
+                                        placeholder="e.g. AGREEMENT">
+                                </div>
+
+                                <div class="field-group">
+                                    <label class="field-label">Short Description</label>
+                                    <textarea name="summary" class="field-textarea" rows="3" maxlength="300"
+                                        placeholder="One line shown under the heading">{{ old('summary', $page->summary) }}</textarea>
+                                </div>
+
                             </div>
                         </div>
 
@@ -550,4 +612,14 @@
 <script>
     CKEDITOR.config.versionCheck = false;
     CKEDITOR.replace('content');
+
+    // Clean the slug: lowercase, spaces to hyphens, strip odd characters
+    document.getElementById('page_name').addEventListener('blur', function () {
+        this.value = this.value
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]+/g, '')
+            .replace(/-+/g, '-');
+    });
 </script>

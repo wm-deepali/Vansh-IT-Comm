@@ -111,8 +111,4 @@ class Category extends Model
             : asset('storage/' . $this->image);
     }
 
-    public function brands()
-    {
-        return $this->belongsToMany(Brand::class, 'brand_category');
-    }
 }
