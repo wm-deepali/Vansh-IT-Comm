@@ -1,8 +1,5 @@
 @extends('layouts.app')
 
-@section('title', 'Order Confirmed — Thank You | VANSH IT & COMM')
-@section('meta_description', 'Your order has been placed successfully. Track your parcel dispatch and view your order summary.')
-
 @section('content')
 
   @php
@@ -39,16 +36,19 @@
     <div class="container-custom max-w-4xl">
 
       <!-- Order Success Banner -->
-      <div class="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-sm text-center mb-8 relative overflow-hidden">
+      <div
+        class="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-sm text-center mb-8 relative overflow-hidden">
         <div class="absolute -top-12 -right-12 w-40 h-40 bg-emerald-50 rounded-full blur-2xl pointer-events-none"></div>
         <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-blue-50 rounded-full blur-2xl pointer-events-none"></div>
 
         <div class="relative z-10">
-          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-emerald-500 text-white flex items-center justify-center text-3xl sm:text-4xl mx-auto mb-4 shadow-lg shadow-emerald-500/30 animate-bounce">
+          <div
+            class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-emerald-500 text-white flex items-center justify-center text-3xl sm:text-4xl mx-auto mb-4 shadow-lg shadow-emerald-500/30 animate-bounce">
             <i class="fa-solid fa-check"></i>
           </div>
 
-          <span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 font-bold uppercase tracking-wider mb-2 inline-block">
+          <span
+            class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 font-bold uppercase tracking-wider mb-2 inline-block">
             <i class="fa-solid fa-circle-check text-emerald-500 mr-1.5"></i> Order Placed Successfully
           </span>
 
@@ -56,12 +56,14 @@
             Thank You For Your Order!
           </h1>
           <p class="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto mb-6">
-            We have received your order. Our engineering team is conducting the final 20-Point QC inspection before handing your parcel to our express courier partner.
+            We have received your order. Our engineering team is conducting the final 20-Point QC inspection before
+            handing your parcel to our express courier partner.
             A confirmation has been sent to <strong class="text-slate-700">{{ $order->customer_email }}</strong>.
           </p>
 
           <!-- Order Meta Quick Pill -->
-          <div class="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-medium">
+          <div
+            class="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-medium">
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-bold">Order ID</span>
               <strong class="text-blue-600 text-sm font-extrabold">{{ $order->order_number }}</strong>
@@ -131,7 +133,8 @@
                   @endif
 
                   @foreach($item->addons as $addon)
-                    <div class="text-[11px] text-slate-500 truncate">+ {{ $addon->detail }} ({{ $money($addon->price) }})</div>
+                    <div class="text-[11px] text-slate-500 truncate">+ {{ $addon->detail }} ({{ $money($addon->price) }})
+                    </div>
                   @endforeach
 
                   <div class="text-[11px] text-slate-500 mt-0.5">
@@ -151,7 +154,8 @@
 
           <!-- Shipping Address Card -->
           <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3 text-xs">
-            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider font-heading flex items-center gap-1.5 pb-2 border-b border-slate-100">
+            <h3
+              class="text-xs font-bold text-slate-900 uppercase tracking-wider font-heading flex items-center gap-1.5 pb-2 border-b border-slate-100">
               <i class="fa-solid fa-location-dot text-blue-600"></i> Shipping Details
             </h3>
             <div class="space-y-1 text-slate-600">
@@ -164,7 +168,8 @@
 
           <!-- Total Summary Card -->
           <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3 text-xs">
-            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider font-heading pb-2 border-b border-slate-100">
+            <h3
+              class="text-xs font-bold text-slate-900 uppercase tracking-wider font-heading pb-2 border-b border-slate-100">
               Payment Breakdown
             </h3>
             <div class="space-y-2 text-slate-600">
@@ -172,36 +177,42 @@
                 <span>Subtotal</span>
                 <span class="font-semibold text-slate-800">{{ $money($order->subtotal) }}</span>
               </div>
-
               @if($order->discount > 0)
-                <div class="flex items-center justify-between text-emerald-600 font-semibold">
+              <div class="flex items-center justify-between text-emerald-600 font-semibold">
                   <span>Discount{{ $order->coupon_code ? ' (' . $order->coupon_code . ')' : '' }}</span>
                   <span>- {{ $money($order->discount) }}</span>
                 </div>
               @endif
 
               @if($order->tax_amount > 0)
-                @if($order->gst_type === 'igst' && $order->igst_amount > 0)
-                  <div class="flex items-center justify-between">
-                    <span>IGST ({{ rtrim(rtrim(number_format($order->igst_rate, 2), '0'), '.') }}%)</span>
-                    <span class="font-semibold text-slate-800">{{ $money($order->igst_amount) }}</span>
-                  </div>
-                @else
-                  @if($order->cgst_amount > 0)
-                    <div class="flex items-center justify-between">
+              @if($order->gst_type === 'igst' && $order->igst_amount > 0)
+              <div class="flex items-center justify-between">
+                <span>IGST ({{ rtrim(rtrim(number_format($order->igst_rate, 2), '0'), '.') }}%)</span>
+                <span class="font-semibold text-slate-800">{{ $money($order->igst_amount) }}</span>
+              </div>
+              @else
+              @if($order->cgst_amount > 0)
+              <div class="flex items-center justify-between">
                       <span>CGST ({{ rtrim(rtrim(number_format($order->cgst_rate, 2), '0'), '.') }}%)</span>
                       <span class="font-semibold text-slate-800">{{ $money($order->cgst_amount) }}</span>
                     </div>
-                  @endif
+                    @endif
                   @if($order->sgst_amount > 0)
-                    <div class="flex items-center justify-between">
-                      <span>SGST ({{ rtrim(rtrim(number_format($order->sgst_rate, 2), '0'), '.') }}%)</span>
+                  <div class="flex items-center justify-between">
+                    <span>SGST ({{ rtrim(rtrim(number_format($order->sgst_rate, 2), '0'), '.') }}%)</span>
                       <span class="font-semibold text-slate-800">{{ $money($order->sgst_amount) }}</span>
                     </div>
                   @endif
                 @endif
               @endif
-
+              
+              @if($order->shipping_charge > 0)
+                <div class="flex items-center justify-between">
+                  <span>Shipping</span>
+                  <span class="font-semibold text-slate-800">{{ $money($order->shipping_charge) }}</span>
+                </div>
+              @endif
+              
               <div class="flex items-center justify-between pt-3 border-t border-slate-200">
                 <span class="font-bold text-slate-900">{{ $isPaid ? 'Total Amount Paid' : 'Total Amount' }}</span>
                 <strong class="text-base font-extrabold text-slate-900">{{ $money($order->grand_total) }}</strong>
@@ -233,7 +244,8 @@
                 </a>
               @endif
 
-              <a href="{{ route('shop') }}" class="btn-base btn-secondary w-full py-2.5 text-xs font-semibold justify-center bg-slate-50">
+              <a href="{{ route('shop') }}"
+                class="btn-base btn-secondary w-full py-2.5 text-xs font-semibold justify-center bg-slate-50">
                 Continue Shopping
               </a>
             </div>

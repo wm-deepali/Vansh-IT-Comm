@@ -451,17 +451,19 @@
 
 <body>
 
-    {{-- ── Action bar (browser preview only, hidden in PDF) ── --}}
+    {{-- ── Action bar (browser preview only, hidden in PDF) ──
+    $backUrl / $downloadUrl are optional. The customer side passes its own
+    routes; the admin side passes nothing and falls back to the admin routes. --}}
     @if(!isset($isPdf) || !$isPdf)
         <div class="print-bar">
-            <a href="{{ route('admin.orders.show', $order) }}" class="btn-back">
+            <a href="{{ $backUrl ?? route('admin.orders.show', $order) }}" class="btn-back">
                 ← Back to Order
             </a>
             <div style="display:flex;gap:8px">
                 <button onclick="window.print()" class="btn-print">
                     🖨 Print
                 </button>
-                <a href="{{ route('admin.orders.invoice.download', $order) }}" class="btn-pdf">
+                <a href="{{ $downloadUrl ?? route('admin.orders.invoice.download', $order) }}" class="btn-pdf">
                     ⬇ Download PDF
                 </a>
             </div>
@@ -768,6 +770,14 @@
                             @endif
 
                         @endif
+
+                        @if(($invoice->shipping_charge ?? 0) > 0)
+                            <tr>
+                                <td class="t-label">Shipping</td>
+                                <td class="t-value">&#8377;{{ number_format($invoice->shipping_charge, 2) }}</td>
+                            </tr>
+                        @endif
+
                         <tr class="t-total">
                             <td class="t-label">Grand Total</td>
                             <td class="t-value">&#8377;{{ number_format($invoice->grand_total, 2) }}</td>

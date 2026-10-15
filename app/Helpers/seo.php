@@ -1,13 +1,10 @@
 <?php
 
+use App\Models\DynamicPage;
 use App\Models\SeoPage;
 use App\Models\Blog;
 use App\Models\Product;
-use App\Models\Collection;
 use App\Models\Category;
-use App\Models\DynamicPage;
-use App\Models\GiftingOccasion;
-use App\Models\AttributeValue;
 
 function getSeo()
 {
@@ -15,75 +12,57 @@ function getSeo()
 
     switch ($route) {
 
-        // Collection Page
-        case 'collections.listing':
-            return Collection::where(
-                'slug',
-                request()->route('slug')
-            )->first();
+        // /category/{slug}
+        case 'category.show':
+            return Category::where('slug', request()->route('slug'))->first();
 
-        // Attribute Page
-        case 'attribute.listing':
-            return AttributeValue::where(
-                'slug',
-                request()->route('valueSlug')
-            )->first();
+        // /product/{slug}
+        case 'product.show':
+            return Product::where('slug', request()->route('slug'))->first();
 
-        // Blog Detail
-        case 'blog.details':
-            return Blog::where(
-                'slug',
-                request()->route('slug')
-            )->first();
+        // /blog/{slug}
+        case 'blog.detail':
+            return Blog::where('slug', request()->route('slug'))->first();
 
-        // Product Listing Page (Category/Subcategory)
-        case 'products.listing':
-            return Category::where(
-                'slug',
-                request()->route('slug')
-            )->first();
+        // /policies?tab=<page_name>  (controller isi tarah tab choose karta hai)
+        case 'policies':
+            $tab = request()->query('tab');
 
-        // Product Detail Page
-        case 'product.details':
-            return Product::where(
-                'slug',
-                request()->route('slug')
-            )->first();
+            if ($tab) {
+                $page = DynamicPage::policies()->where('page_name', $tab)->first();
+                if ($page) {
+                    return $page;
+                }
+            }
 
-        // Occasion Detail Page
-        case 'occasions.listing':
-            return GiftingOccasion::where(
-                'slug',
-                request()->route('slug')
-            )->first();
-
-        // Dynamic Page
-        case 'dynamic.page':
-            $slug = request()->route('slug');
-            return DynamicPage::get()
-            ->first(function ($p) use ($slug) {
-                return Str::slug($p->page_name) === $slug;
-            });
-
+            return SeoPage::where('page_key', 'policies')->first();
 
         default:
-
+            // route name => seo_pages.page_key
             $map = [
-                'home' => 'home',
-                'categories' => 'categories',
-                'occasions' => 'occasions',
-                'cart' => 'cart',
-                'checkout' => 'checkout',
-                'about-us' => 'about',
-                'why-us' => 'why_choose_us',
-                'contact-us' => 'contact',
-                'bulk-enquiry' => 'bulk_enquiry',
-                'blogs' => 'blog',
-                'faqs' => 'faq',
+                'home'             => 'home',
+                'shop'             => 'shop',
+                'categories'       => 'categories',
+                'about'            => 'about',
+                'contact'          => 'contact',
+                'blog'             => 'blog',
+                'faq'              => 'faq',
+                'repair'           => 'repair',
+                'exchange'         => 'exchange',
+                'cart'             => 'cart',
+                'wishlist'         => 'wishlist',
+                'checkout'         => 'checkout',
+                'user.login'       => 'login',
+                'user.register'    => 'register',
+                'user.account'     => 'account',
+                'user.track-order' => 'track_order',
             ];
 
-            $key = $map[$route] ?? 'home';
+            // Unmapped route (order.success, cart.add, etc.) → koi SEO record nahi
+            if (!isset($map[$route])) {
+                return null;
+            }
 
-            return SeoPage::where('page_key', $key)->first();
+            return SeoPage::where('page_key', $map[$route])->first();
     }
 }

@@ -23,6 +23,8 @@ use App\Models\Collection;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\Format;
+use App\Models\Attribute;
+use App\Models\AttributeValue;
 
 class ProductController extends Controller
 {
@@ -101,8 +103,8 @@ class ProductController extends Controller
     protected function cleanKeySpecs(Request $request): array
     {
         return collect($request->input('key_specs', []))
-            ->filter(fn ($row) => filled($row['label'] ?? null) && filled($row['value'] ?? null))
-            ->map(fn ($row) => [
+            ->filter(fn($row) => filled($row['label'] ?? null) && filled($row['value'] ?? null))
+            ->map(fn($row) => [
                 'label' => trim($row['label']),
                 'value' => trim($row['value']),
             ])
@@ -220,6 +222,55 @@ class ProductController extends Controller
         return response()->json($attributes);
     }
 
+    /**
+     * Quick-add an attribute value from the product create/edit screen (AJAX).
+     * Duplicate (case-insensitive) hone par naya nahi banata, existing wali hi return karta hai.
+     */
+    public function storeAttributeValue(Request $request)
+    {
+        $request->validate([
+            'attribute_id' => 'required|exists:attributes,id',
+        ]);
+
+        $attribute = Attribute::where('has_values', 1)->findOrFail($request->attribute_id);
+
+        $rules = ['value' => 'required|string|max:255'];
+
+        if ($attribute->type === 'color_swatch') {
+            $rules['hex_code'] = 'required|string|max:20';
+        }
+
+        $request->validate($rules);
+
+        $value = trim($request->value);
+
+        $existing = AttributeValue::where('attribute_id', $attribute->id)
+            ->whereRaw('LOWER(value) = ?', [mb_strtolower($value)])
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'id' => $existing->id,
+                'value' => $existing->value,
+                'existing' => true,
+            ]);
+        }
+
+        $attributeValue = AttributeValue::create([
+            'attribute_id' => $attribute->id,
+            'value' => $value,
+            'hex_code' => $attribute->type === 'color_swatch' ? $request->hex_code : null,
+            'sort_order' => ((int) AttributeValue::where('attribute_id', $attribute->id)->max('sort_order')) + 1,
+            'status' => 1,
+        ]);
+
+        return response()->json([
+            'id' => $attributeValue->id,
+            'value' => $attributeValue->value,
+            'existing' => false,
+        ]);
+    }
+
 
     public function store(Request $request)
     {
@@ -237,6 +288,7 @@ class ProductController extends Controller
             'min_qty' => 'nullable|integer|min:1',
             'sku' => 'nullable|string|max:255',
             'images.*' => 'nullable|image|max:2048',
+            'weight' => 'nullable|integer|min:0',
 
             'key_specs.*.label' => 'nullable|string|max:100',
             'key_specs.*.value' => 'nullable|string|max:255',
@@ -264,6 +316,7 @@ class ProductController extends Controller
                     : $this->generateUniqueSlug($request->name),
                 'short_description' => $request->short_description,
                 'description' => $request->description,
+                'weight' => $request->weight,
 
                 // ✅ electronics fields
                 'condition' => $request->condition ?: null,
@@ -579,6 +632,7 @@ class ProductController extends Controller
             'min_qty' => 'nullable|integer|min:1',
             'sku' => 'nullable|string|max:255',
             'images.*' => 'nullable|image|max:2048',
+            'weight' => 'nullable|integer|min:0',
 
             'key_specs.*.label' => 'nullable|string|max:100',
             'key_specs.*.value' => 'nullable|string|max:255',
@@ -606,6 +660,7 @@ class ProductController extends Controller
 
                 'short_description' => $request->short_description,
                 'description' => $request->description,
+                'weight' => $request->weight,
 
                 // ✅ electronics fields
                 'condition' => $request->condition ?: null,

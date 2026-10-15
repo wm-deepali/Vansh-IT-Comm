@@ -1,7 +1,5 @@
 @extends('layouts.app')
 
-@section('title', ($search !== '' ? 'Results for "' . $search . '"' : 'Shop All Products') . ' | ' . config('app.name'))
-@section('meta_description', 'Browse laptops, mobile phones and accessories at ' . config('app.name') . '.')
 @section('active_page', 'shop')
 
 @section('content')

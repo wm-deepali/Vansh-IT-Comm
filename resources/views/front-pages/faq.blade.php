@@ -1,8 +1,5 @@
 @extends('layouts.app')
 
-@section('title', 'Frequently Asked Questions (FAQ) | VANSH IT & COMM')
-@section('meta_description', 'Answers to common questions regarding refurbished device testing, warranty, returns, invoices, and repairs.')
-
 @section('content')
 
   <main class="flex-grow py-6 sm:py-10">

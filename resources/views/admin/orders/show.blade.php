@@ -877,6 +877,13 @@
                                 @endif
                             @endif
 
+                            @if($order->shipping_charge > 0)
+                                <div class="price-row">
+                                    <span class="label">Shipping</span>
+                                    <span class="value">₹{{ number_format($order->shipping_charge, 2) }}</span>
+                                </div>
+                            @endif
+
                             <div class="price-row total">
                                 <span class="label">Total</span>
                                 <span class="value">₹{{ number_format($order->grand_total, 2) }}</span>

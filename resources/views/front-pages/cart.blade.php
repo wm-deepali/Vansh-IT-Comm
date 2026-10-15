@@ -1,13 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Shopping Cart | ' . config('app.name'))
-@section('meta_description', 'Review items in your cart, apply promo coupons, and proceed to secure checkout.')
-
 @section('content')
 
   @php
     $currency = config('shop.currency', '₹');
-    $freeShipAt = (int) config('shop.free_shipping_threshold', 999);
+    $freeShipAt = (float) ($freeShipAt ?? 0); // from ShippingSetting via CartController
     $fallback = asset('assets/img/product-1588872657578-7efd1f1555ed.jpg'); // placeholder only
     $money = fn($n) => $currency . number_format((float) $n);
     $hasItems = $cart && $cart->items->isNotEmpty();
@@ -80,6 +77,9 @@
                   <p class="text-slate-600" id="shipping-progress-desc">Free Pan-India delivery on orders above
                     {{ $money($freeShipAt) }}.
                   </p>
+                  <div style="margin-top:8px;height:6px;background:#dbeafe;border-radius:9999px;overflow:hidden">
+                    <div id="shipping-progress-bar" style="height:100%;width:0%;background:#2563eb;border-radius:9999px;transition:width .3s"></div>
+                  </div>
                 </div>
               </div>
             @endif
@@ -215,8 +215,19 @@
                 <span class="font-semibold text-slate-800" id="summary-tax">{{ $money($s['tax']) }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span>Estimated Shipping</span>
-                <span class="font-semibold text-slate-800" id="summary-shipping">—</span>
+                <span>Shipping</span>
+                <span class="font-semibold {{ ($s['shipping_free'] ?? false) ? 'text-emerald-600' : 'text-slate-800' }}"
+                  id="summary-shipping">
+                  @if(!($s['shipping_known'] ?? false))
+                    Calculated at checkout
+                  @elseif(($s['shipping'] ?? 0) > 0)
+                    {{ $money($s['shipping']) }}
+                  @elseif($s['shipping_free'] ?? false)
+                    FREE
+                  @else
+                    {{ $money(0) }}
+                  @endif
+                </span>
               </div>
 
               <div class="pt-3 border-t border-slate-200 flex items-baseline justify-between text-sm">
@@ -330,15 +341,31 @@
         $('summary-tax-row').classList.toggle('hidden', !(s.tax > 0));
         $('summary-tax').textContent = money(s.tax);
 
-        // Shipping + free-delivery progress
-        const qualifies = CART.freeShipAt > 0 && s.subtotal >= CART.freeShipAt;
-        $('summary-shipping').textContent = qualifies ? 'FREE' : 'Calculated at checkout';
+        // Shipping row (server decides: unknown / charge / FREE)
+        const shipEl = $('summary-shipping');
+        if (!s.shipping_known) {
+          shipEl.textContent = 'Calculated at checkout';
+          shipEl.className = 'font-semibold text-slate-800';
+        } else if (s.shipping > 0) {
+          shipEl.textContent = money(s.shipping);
+          shipEl.className = 'font-semibold text-slate-800';
+        } else if (s.shipping_free) {
+          shipEl.textContent = 'FREE';
+          shipEl.className = 'font-semibold text-emerald-600';
+        } else {
+          shipEl.textContent = money(0);
+          shipEl.className = 'font-semibold text-slate-800';
+        }
 
+        // Free-delivery progress (basis = items total minus coupon, same as the server)
         const desc = $('shipping-progress-desc');
-        if (desc) {
+        const bar = $('shipping-progress-bar');
+        if (desc && CART.freeShipAt > 0) {
+          const qualifies = s.payable >= CART.freeShipAt;
           desc.innerHTML = qualifies
             ? `<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> Congratulations!</span> You have qualified for <strong>FREE Pan-India Delivery</strong>.`
-            : `Add ${money(CART.freeShipAt - s.subtotal)} more to unlock FREE delivery.`;
+            : `Add ${money(CART.freeShipAt - s.payable)} more to unlock FREE delivery.`;
+          if (bar) bar.style.width = Math.min(100, Math.max(0, (s.payable / CART.freeShipAt) * 100)) + '%';
         }
       }
 

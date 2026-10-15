@@ -12,6 +12,7 @@ use App\Models\CartItem;
 use App\Models\Wishlist;
 use App\Models\AuthLog;
 use App\Services\GeoIpService;
+use App\Services\Tracking\PixelTracker;
 use Jenssegers\Agent\Agent;
 
 class CustomerAuthController extends Controller
@@ -19,7 +20,7 @@ class CustomerAuthController extends Controller
     public function registerForm(Request $request)
     {
         if (Auth::guard('customer')->check()) {
-            return redirect()->route('user.dashboard.index');
+            return redirect()->route('user.dashboard');
         }
 
         $this->rememberIntended($request);
@@ -30,7 +31,7 @@ class CustomerAuthController extends Controller
     public function loginForm(Request $request)
     {
         if (Auth::guard('customer')->check()) {
-            return redirect()->route('user.dashboard.index');
+            return redirect()->route('user.dashboard');
         }
 
         $this->rememberIntended($request);
@@ -61,11 +62,11 @@ class CustomerAuthController extends Controller
         $customer = Customer::create($validated);
 
         \App\Models\AdminNotification::notify([
-            'type'      => 'customer',
-            'title'     => 'New customer registered',
-            'message'   => "{$customer->name} ({$customer->email}) created a new account.",
-            'icon'      => 'fa-user-plus',
-            'url'       => route('admin.customers.show', $customer->id),
+            'type' => 'customer',
+            'title' => 'New customer registered',
+            'message' => "{$customer->name} ({$customer->email}) created a new account.",
+            'icon' => 'fa-user-plus',
+            'url' => route('admin.customers.show', $customer->id),
             'link_text' => 'View Customer',
         ]);
 
@@ -77,8 +78,8 @@ class CustomerAuthController extends Controller
             ]
         );
 
-        // Capture the guest session id BEFORE regenerating it, so the guest
-        // cart/wishlist tied to this session can still be found and merged.
+        // Capture the guest session id BEFORE logging in / regenerating it, so the
+        // guest cart/wishlist tied to this session can still be found and merged.
         $guestSessionId = session()->getId();
 
         Auth::guard('customer')->login($customer);
@@ -88,24 +89,24 @@ class CustomerAuthController extends Controller
 
         $request->session()->regenerate();
 
-        // Modal (AJAX) signup — the page reloads / redirects on the client
+        // AJAX signup — the client fires tracking_events, then redirects.
+        // (No fire_* flash here, otherwise the landing page would fire it again.)
         if ($request->expectsJson()) {
             session()->flash('success', 'Registration completed successfully.');
-            session()->flash('fire_signup_event', 'email_password');
 
             return response()->json([
                 'status' => true,
                 'message' => 'Registration completed successfully.',
                 'redirect' => $this->postAuthRedirect($request),
+                'tracking_events' => PixelTracker::signUpEvent('email'),
             ]);
         }
 
-        // Sends the customer back to wherever they came from (e.g. the cart
-        // page) instead of always landing on the dashboard after signup.
+        // Plain POST — layout fires the event from this flash after the redirect
         return redirect()
-            ->intended(route('user.dashboard.index'))
+            ->intended(route('user.dashboard'))
             ->with('success', 'Registration completed successfully.')
-            ->with('fire_signup_event', 'email_password');
+            ->with('fire_signup_event', 'email');
     }
 
     public function login(Request $request)
@@ -118,11 +119,13 @@ class CustomerAuthController extends Controller
         $remember = $request->boolean('remember');
         $meta = $this->captureLoginMeta($request);
 
+        // Must be captured BEFORE attempt(): attempt() migrates the session id,
+        // after which the guest cart/wishlist can no longer be found by it.
+        $guestSessionId = session()->getId();
+
         if (Auth::guard('customer')->attempt($credentials, $remember)) {
 
             $customer = Auth::guard('customer')->user();
-
-            $guestSessionId = session()->getId();
 
             $this->mergeGuestCart($customer, $guestSessionId);
             $this->mergeGuestWishlist($customer, $guestSessionId);
@@ -131,25 +134,27 @@ class CustomerAuthController extends Controller
 
             AuthLog::create(array_merge([
                 'customer_id' => $customer->id,
-                'user_type'   => 'customer',
-                'email'       => $customer->email,
-                'event'       => 'login',
-                'status'      => 'success',
-                'ip_address'  => $request->ip(),
-                'user_agent'  => $request->userAgent(),
+                'user_type' => 'customer',
+                'email' => $customer->email,
+                'event' => 'login',
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ], $meta));
 
+            // AJAX login — the client fires tracking_events, then redirects
             if ($request->expectsJson()) {
                 session()->flash('success', 'Login successful.');
-                session()->flash('fire_login_event', true);
 
                 return response()->json([
                     'status' => true,
                     'message' => 'Login successful.',
                     'redirect' => $this->postAuthRedirect($request),
+                    'tracking_events' => PixelTracker::loginEvent(),
                 ]);
             }
 
+            // Plain POST — layout fires the event from this flash after the redirect
             return redirect()
                 ->intended(route('user.dashboard.index'))
                 ->with('success', 'Login successful.')
@@ -157,12 +162,12 @@ class CustomerAuthController extends Controller
         }
 
         AuthLog::create(array_merge([
-            'user_type'     => 'customer',
-            'email'         => $credentials['email'],
-            'event'         => 'login_failed',
-            'status'        => 'failed',
-            'ip_address'    => $request->ip(),
-            'user_agent'    => $request->userAgent(),
+            'user_type' => 'customer',
+            'email' => $credentials['email'],
+            'event' => 'login_failed',
+            'status' => 'failed',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
             'error_message' => 'Invalid email or password',
         ], $meta));
 
@@ -206,19 +211,22 @@ class CustomerAuthController extends Controller
             ]
         );
 
+        $isNewCustomer = $customer->wasRecentlyCreated;
+
         // Only fires for a genuinely new signup, not existing Google login
-        if ($customer->wasRecentlyCreated) {
+        if ($isNewCustomer) {
             \App\Models\AdminNotification::notify([
-                'type'      => 'customer',
-                'title'     => 'New customer registered',
-                'message'   => "{$customer->name} ({$customer->email}) signed up via Google.",
-                'icon'      => 'fa-user-plus',
-                'url'       => route('admin.customers.show', $customer->id),
+                'type' => 'customer',
+                'title' => 'New customer registered',
+                'message' => "{$customer->name} ({$customer->email}) signed up via Google.",
+                'icon' => 'fa-user-plus',
+                'url' => route('admin.customers.show', $customer->id),
                 'link_text' => 'View Customer',
             ]);
         }
 
-        $isNewCustomer = $customer->wasRecentlyCreated;
+        // Capture BEFORE login() — login migrates the session id
+        $guestSessionId = session()->getId();
 
         Auth::guard('customer')->login($customer);
 
@@ -226,22 +234,22 @@ class CustomerAuthController extends Controller
 
         AuthLog::create(array_merge([
             'customer_id' => $customer->id,
-            'user_type'   => 'customer',
-            'email'       => $customer->email,
-            'event'       => 'login',
-            'status'      => 'success',
-            'ip_address'  => request()->ip(),
-            'user_agent'  => request()->userAgent(),
+            'user_type' => 'customer',
+            'email' => $customer->email,
+            'event' => 'login',
+            'status' => 'success',
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
         ], $meta));
-
-        $guestSessionId = session()->getId();
 
         $this->mergeGuestCart($customer, $guestSessionId);
         $this->mergeGuestWishlist($customer, $guestSessionId);
 
-        // Flash for session-based tracking, same as email/password paths above
+        request()->session()->regenerate();
+
+        // Google is a full-page redirect, so the layout fires the event from this flash
         if ($isNewCustomer) {
-            session()->flash('fire_signup_event', 'google_oauth');
+            session()->flash('fire_signup_event', 'google');
         } else {
             session()->flash('fire_login_event', true);
         }
@@ -256,6 +264,7 @@ class CustomerAuthController extends Controller
         if ($customer) {
             // Close out the open session's duration, mirroring the admin logout flow
             $lastLogin = AuthLog::where('customer_id', $customer->id)
+                ->where('event', 'login')
                 ->success()
                 ->whereNull('logged_out_at')
                 ->latest('id')
@@ -263,19 +272,18 @@ class CustomerAuthController extends Controller
 
             if ($lastLogin) {
                 $lastLogin->update([
-                    'logged_out_at'    => now(),
-                    'duration_seconds' => now()->diffInSeconds($lastLogin->created_at),
+                    'logged_out_at' => now(),
+                    'duration_seconds' => $lastLogin->created_at->diffInSeconds(now()),
                 ]);
             }
-
             AuthLog::create([
                 'customer_id' => $customer->id,
-                'user_type'   => 'customer',
-                'email'       => $customer->email,
-                'event'       => 'logout',
-                'status'      => 'success',
-                'ip_address'  => $request->ip(),
-                'user_agent'  => $request->userAgent(),
+                'user_type' => 'customer',
+                'email' => $customer->email,
+                'event' => 'logout',
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
         }
 
@@ -302,7 +310,7 @@ class CustomerAuthController extends Controller
         $host = parse_url($target, PHP_URL_HOST);
 
         $isLocalPath = $host === null && str_starts_with($target, '/') && !str_starts_with($target, '//');
-        $isSameHost  = $host !== null && strcasecmp($host, $request->getHost()) === 0;
+        $isSameHost = $host !== null && strcasecmp($host, $request->getHost()) === 0;
 
         return ($isLocalPath || $isSameHost) ? $target : null;
     }
@@ -327,7 +335,7 @@ class CustomerAuthController extends Controller
     private function postAuthRedirect(Request $request): string
     {
         return $this->safeTarget($request->input('redirect'), $request)
-            ?? redirect()->intended(route('user.dashboard.index'))->getTargetUrl();
+            ?? redirect()->intended(route('user.dashboard'))->getTargetUrl();
     }
 
     /**
@@ -344,11 +352,11 @@ class CustomerAuthController extends Controller
 
         return [
             'device_type' => $deviceType,
-            'browser'     => trim($agent->browser() . ' ' . $agent->version($agent->browser())),
-            'platform'    => trim($agent->platform() . ' ' . $agent->version($agent->platform())),
-            'city'        => $geo['city'],
-            'country'     => $geo['country'],
-            'isp'         => $geo['isp'],
+            'browser' => trim($agent->browser() . ' ' . $agent->version($agent->browser())),
+            'platform' => trim($agent->platform() . ' ' . $agent->version($agent->platform())),
+            'city' => $geo['city'],
+            'country' => $geo['country'],
+            'isp' => $geo['isp'],
         ];
     }
 
@@ -362,47 +370,38 @@ class CustomerAuthController extends Controller
             return;
         }
 
-        $userCart = Cart::firstOrCreate(
-            [
-                'user_id' => $customer->id
-            ],
-            [
-                'session_id' => $guestSessionId,
-                'total_amount' => 0
-            ]
-        );
+        $userCart = Cart::where('user_id', $customer->id)->first();
+
+        // Customer has no cart yet: the guest cart simply becomes theirs (keeps its coupon too)
+        if (!$userCart) {
+            $guestCart->update(['user_id' => $customer->id]);
+            $guestCart->recalculateTotals();
+            return;
+        }
 
         if ($guestCart->id == $userCart->id) {
-
-            $userCart->update([
-                'user_id' => $customer->id
-            ]);
-
             return;
         }
 
         foreach ($guestCart->items as $item) {
 
-            // Two line items only count as "the same" if product + every
-            // variant reference + the selected attribute snapshot all match.
-            // Otherwise different size/color combos would collapse into one row.
-            $existingItem = CartItem::where('cart_id', $userCart->id)
-                ->where('product_id', $item->product_id)
-                ->where('price_variant_id', $item->price_variant_id)
-                ->where('image_variant_id', $item->image_variant_id)
-                ->where('stock_variant_id', $item->stock_variant_id)
-                ->where('sku_variant_id', $item->sku_variant_id)
-                ->get()
-                ->first(function ($candidate) use ($item) {
-                    return $candidate->selected_attributes === $item->selected_attributes;
-                });
+            // Same rule as CartController::add(): customized lines (with addons) never merge
+            $existingItem = $item->addons->isEmpty()
+                ? CartItem::where('cart_id', $userCart->id)
+                    ->where('product_id', $item->product_id)
+                    ->where('price_variant_id', $item->price_variant_id)
+                    ->where('image_variant_id', $item->image_variant_id)
+                    ->where('stock_variant_id', $item->stock_variant_id)
+                    ->where('sku_variant_id', $item->sku_variant_id)
+                    ->doesntHave('addons')
+                    ->get()
+                    ->first(fn($candidate) => $candidate->selected_attributes === $item->selected_attributes)
+                : null;
 
             if ($existingItem) {
 
                 $existingItem->quantity += $item->quantity;
-                $existingItem->total =
-                    $existingItem->quantity * $existingItem->price;
-
+                $existingItem->total = $existingItem->quantity * $existingItem->price;
                 $existingItem->save();
 
             } else {
@@ -420,7 +419,6 @@ class CustomerAuthController extends Controller
                     'total' => $item->total,
                 ]);
 
-                // Carry over addons attached to the guest's line item
                 foreach ($item->addons as $addon) {
                     $newItem->addons()->create([
                         'addon_id' => $addon->addon_id,
@@ -431,23 +429,16 @@ class CustomerAuthController extends Controller
             }
         }
 
-        $userCart->update([
-            'total_amount' => $userCart->items()->sum('total')
-        ]);
-
-        $guestCart->items()->each(function ($item) {
-            $item->addons()->delete();
-        });
+        $guestCart->items()->each(fn($item) => $item->addons()->delete());
         $guestCart->items()->delete();
         $guestCart->delete();
+
+        $userCart->recalculateTotals();
     }
 
     private function mergeGuestWishlist(Customer $customer, $guestSessionId)
     {
-        $guestWishlistItems = Wishlist::where(
-            'session_id',
-            $guestSessionId
-        )->get();
+        $guestWishlistItems = Wishlist::where('session_id', $guestSessionId)->get();
 
         if ($guestWishlistItems->isEmpty()) {
             return;
@@ -455,18 +446,11 @@ class CustomerAuthController extends Controller
 
         foreach ($guestWishlistItems as $item) {
 
-            $exists = Wishlist::where(
-                'customer_id',
-                $customer->id
-            )
-                ->where(
-                    'product_id',
-                    $item->product_id
-                )
+            $exists = Wishlist::where('customer_id', $customer->id)
+                ->where('product_id', $item->product_id)
                 ->exists();
 
             if (!$exists) {
-
                 Wishlist::create([
                     'customer_id' => $customer->id,
                     'session_id' => null,
@@ -476,10 +460,8 @@ class CustomerAuthController extends Controller
             }
         }
 
-        Wishlist::where(
-            'session_id',
-            session()->getId()
-        )->delete();
+        // Was session()->getId() (the NEW id) — must delete by the guest id
+        Wishlist::where('session_id', $guestSessionId)->delete();
     }
 
 }

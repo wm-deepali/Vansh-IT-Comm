@@ -1,7 +1,5 @@
 @extends('layouts.app')
 
-@section('title', 'My Wishlist | ' . config('app.name'))
-@section('meta_description', 'View and manage your saved products at ' . config('app.name') . '.')
 @section('active_page', 'wishlist')
 
 @section('content')

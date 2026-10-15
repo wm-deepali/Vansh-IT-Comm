@@ -291,28 +291,6 @@
                                     </select>
                                 </div>
 
-                                <div class="toggle-row">
-                                    <div>
-                                        <div class="toggle-label">Required</div>
-                                        <div class="toggle-sub">Must be filled by seller</div>
-                                    </div>
-                                    <select name="is_required" class="field-select-sm">
-                                        <option value="1" {{ $categoryAttribute->is_required  ? 'selected' : '' }}>Yes</option>
-                                        <option value="0" {{ !$categoryAttribute->is_required ? 'selected' : '' }}>No</option>
-                                    </select>
-                                </div>
-
-                                <div class="toggle-row" style="border-bottom:none">
-                                    <div>
-                                        <div class="toggle-label">Selectable</div>
-                                        <div class="toggle-sub">Customer picks a value (e.g. Color, Size)</div>
-                                    </div>
-                                    <select name="is_selectable" id="isSelectable" class="field-select-sm">
-                                        <option value="1" {{ $categoryAttribute->is_selectable  ? 'selected' : '' }}>Yes</option>
-                                        <option value="0" {{ !$categoryAttribute->is_selectable ? 'selected' : '' }}>No</option>
-                                    </select>
-                                </div>
-
                                 
                                 <div class="toggle-row" style="border-bottom:none">
                                     <div>

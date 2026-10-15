@@ -20,17 +20,7 @@ use App\Http\Controllers\Admin\{
     DashboardController,
     DynamicPageController,
     FaqController,
-    GalleryImageController,
-    HomeBrandSectionController,
-    HomeBrandSectionImageController,
-    HomeDealBannerController,
-    HomeFeatureCardController,
-    HomeHeroBannerController,
-    HomeHeroSlideController,
     HomePageController,
-    HomeSliderController,
-    HomeTextSliderController,
-    HomeWhyController,
     LogoutController,
     OrderController,
     OtherEnquiryController,
@@ -79,7 +69,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\TrackOrderController;
-
+use App\Http\Controllers\PincodeController;
 
 
 Route::middleware('maintenance.mode')->group(function () {
@@ -118,6 +108,8 @@ Route::middleware('maintenance.mode')->group(function () {
     Route::post('/cart/apply-coupon', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
     Route::post('/cart/remove-coupon', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
 
+    Route::get('/pincode/check', [PincodeController::class, 'check'])->middleware('throttle:30,1')->name('pincode.check');
+
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist');
     Route::delete('/wishlist/clear', [WishlistController::class, 'clear'])->name('wishlist.clear');
     Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
@@ -148,11 +140,15 @@ Route::middleware('maintenance.mode')->group(function () {
         Route::prefix('user')->name('user.')->group(function () {
             Route::get('/account', [AccountController::class, 'index'])->name('account');
             Route::get('/track-order', [TrackOrderController::class, 'index'])->name('track-order');
+
             Route::get('/account/cities/{state}', [AccountController::class, 'cities'])->name('account.cities');
             Route::post('/account/addresses', [AccountController::class, 'storeAddress'])->name('account.addresses.store');
             Route::put('/account/addresses/{id}', [AccountController::class, 'updateAddress'])->name('account.addresses.update');
             Route::post('/account/addresses/{id}/default', [AccountController::class, 'setDefaultAddress'])->name('account.addresses.default');
             Route::delete('/account/addresses/{id}', [AccountController::class, 'destroyAddress'])->name('account.addresses.destroy');
+            Route::get('/account/orders/{order}', [AccountController::class, 'orderShow'])->name('account.orders.show');
+            Route::get('/account/orders/{order}/invoice', [AccountController::class, 'orderInvoice'])->name('account.orders.invoice');
+            Route::get('/account/orders/{order}/invoice/download', [AccountController::class, 'orderInvoiceDownload'])->name('account.orders.invoice.download');
             Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
         });
     });
@@ -187,15 +183,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::view('/products/media-library', 'admin.products.media-library')->name('products.media-library');
         Route::get('products/subcategories/{category}', [ProductController::class, 'subcategories'])->name('products.subcategories');
         Route::get('products/category-attributes/{category}', [ProductController::class, 'categoryAttributes'])->name('products.category-attributes');
-        Route::post('/products/upload-images-zip', [ProductController::class, 'uploadImagesZip'])->name('products.images.upload');
-        Route::get('/products/import', [ProductController::class, 'import'])->name('products.import');
-        Route::post('/products/import', [ProductController::class, 'importStore'])->name('products.import.store');
-        Route::get('products/import/sample', [ProductController::class, 'downloadSample'])->name('products.import.sample');
-        Route::get('products/reference/categories', [ProductController::class, 'downloadCategoryReference'])->name('products.reference.categories');
-        Route::get('products/reference/subcategories', [ProductController::class, 'downloadSubCategoryReference'])->name('products.reference.subcategories');
-        Route::get('products/reference/brands', [ProductController::class, 'downloadBrandReference'])->name('products.reference.brands');
-        Route::get('products/reference/occasions', [ProductController::class, 'downloadOccasionReference'])->name('products.reference.occasions');
-        Route::get('products/reference/customizations', [ProductController::class, 'downloadCustomizationReference'])->name('products.reference.customizations');
+        Route::post('products/attribute-values', [ProductController::class, 'storeAttributeValue'])->name('products.attribute-values.store');
         Route::resource('products', ProductController::class)->names('products');
 
         Route::resource('brands', BrandController::class)->names('brands');
@@ -306,6 +294,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/settings/courier/store', [AdminSettingController::class, 'courierStore'])->name('couriers.store');
         Route::delete('/settings/courier/{courier}', [AdminSettingController::class, 'courierDelete'])->name('couriers.delete');
         Route::post('admin-setting/google-setting', [AdminSettingController::class, 'googleSettingStore'])->name('admin-setting.google-setting');
+        Route::post('/admin-setting/shipping', [AdminSettingController::class, 'shippingSettingStore'])->name('admin-setting.shipping.store');
 
         Route::get('/security/system-logs', [SystemLogController::class, 'index'])->name('security.system-logs');
 

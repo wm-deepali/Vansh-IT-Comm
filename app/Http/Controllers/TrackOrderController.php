@@ -23,7 +23,7 @@ class TrackOrderController extends Controller
 
         if ($searched) {
             // Only the logged-in customer's own orders
-            $order = Order::with(['courier', 'statusHistory', 'items:id,order_id,product_name,quantity'])
+            $order = Order::with(['courier', 'invoice', 'statusHistory', 'items:id,order_id,product_name,quantity'])
                 ->where('customer_id', auth('customer')->id())
                 ->where(function ($q) use ($query) {
                     $q->where('order_number', $query)
@@ -34,6 +34,11 @@ class TrackOrderController extends Controller
 
         if ($order) {
             $status = strtolower((string) $order->status);
+
+            // Admin "pending" and "new" are the same first stage
+            if ($status === 'pending') {
+                $status = 'new';
+            }
 
             $offTrackMessages = [
                 'cancelled' => 'This order was cancelled.',
@@ -46,10 +51,10 @@ class TrackOrderController extends Controller
 
             // Matches the statuses the admin panel can set
             $defs = [
-                ['icon' => 'fa-check', 'title' => 'Order Placed', 'sub' => 'Order received', 'status' => 'pending'],
-                ['icon' => 'fa-clipboard-check', 'title' => 'Processing', 'sub' => 'Quality checked & packed', 'status' => 'processing'],
-                ['icon' => 'fa-truck', 'title' => 'Shipped', 'sub' => 'Handed to courier', 'status' => 'shipped'],
-                ['icon' => 'fa-house-chimney', 'title' => 'Delivered', 'sub' => 'Delivered to doorstep', 'status' => 'delivered'],
+                ['icon' => 'fa-check', 'title' => 'Order Placed', 'sub' => 'Order received', 'status' => 'new', 'match' => ['new', 'pending']],
+                ['icon' => 'fa-clipboard-check', 'title' => 'Processing', 'sub' => 'Quality checked & packed', 'status' => 'processing', 'match' => ['processing']],
+                ['icon' => 'fa-truck', 'title' => 'Shipped', 'sub' => 'Handed to courier', 'status' => 'shipped', 'match' => ['shipped']],
+                ['icon' => 'fa-house-chimney', 'title' => 'Delivered', 'sub' => 'Delivered to doorstep', 'status' => 'delivered', 'match' => ['delivered']],
             ];
 
             $current = 0;
@@ -63,12 +68,15 @@ class TrackOrderController extends Controller
             $last = count($defs) - 1;
 
             foreach ($defs as $i => $d) {
-                $entry = $historyAsc->first(fn($h) => strtolower((string) $h->status) === $d['status']);
+                $entry = $historyAsc->first(
+                    fn ($h) => in_array(strtolower((string) $h->status), $d['match'], true)
+                );
 
                 $stages[] = $d + [
                     'state' => ($i < $current || ($i === $current && $current === $last)) ? 'done'
                         : ($i === $current ? 'current' : 'pending'),
-                    'date' => $entry?->created_at,
+                    // first stage falls back to the order's created date
+                    'date' => $entry?->created_at ?? ($i === 0 ? $order->created_at : null),
                 ];
             }
         }

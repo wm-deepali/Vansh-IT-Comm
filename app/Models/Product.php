@@ -22,6 +22,7 @@ class Product extends Model
 
         'short_description',
         'description',
+        'weight',
 
         // electronics fields
         'condition',

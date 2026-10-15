@@ -697,7 +697,7 @@
                         <div class="ss-grid-2">
                             <div class="ss-field">
                                 <label class="ss-label">Backup Folder Name</label>
-                                <input type="text" class="ss-input" value="Oudhyana_Admin_Backups" placeholder="Folder in Google Drive root">
+                                <input type="text" class="ss-input" value="vanshit_Admin_Backups" placeholder="Folder in Google Drive root">
                                 <span class="ss-hint">This folder will be created in your Google Drive</span>
                             </div>
                             <div class="ss-field">
@@ -997,7 +997,7 @@ function testCaptcha() {
 function connectDrive() {
     Swal.fire({ title:'Connecting to Google Drive…', text:'You will be redirected to Google OAuth.', timer:1800, showConfirmButton:false, didOpen:() => Swal.showLoading() })
     .then(() => {
-        document.getElementById('driveStatus').innerHTML = '<span style="color:#007a5e"><i class="fa fa-check-circle" style="margin-right:5px"></i>Connected as <strong>admin@oudhyana.com</strong> &nbsp;·&nbsp; 12.4 GB free</span>';
+        document.getElementById('driveStatus').innerHTML = '<span style="color:#007a5e"><i class="fa fa-check-circle" style="margin-right:5px"></i>Connected as <strong>admin@vanshit.com</strong> &nbsp;·&nbsp; 12.4 GB free</span>';
         document.querySelector('.ss-backup-icon').className = 'ss-backup-icon connected';
         document.querySelector('.ss-backup-icon i').className = 'fa fa-google';
         document.getElementById('driveConnectBtn').style.display = 'none';

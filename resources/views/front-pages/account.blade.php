@@ -1,7 +1,5 @@
 @extends('layouts.app')
 
-@section('title', 'My Account | ' . config('app.name'))
-@section('meta_description', 'View past orders, track deliveries and manage your saved addresses.')
 @section('active_page', 'account')
 
 @section('content')
@@ -151,6 +149,19 @@
                     @endif
                   </span>
                   <strong class="text-sm text-slate-900">{{ $currency }}{{ number_format($order->grand_total) }}</strong>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200 flex items-center gap-2 flex-wrap">
+                  <a href="{{ route('user.account.orders.show', $order->id) }}"
+                    class="btn-base btn-primary btn-sm text-[11px] py-1.5 px-3">
+                    <i class="fa-solid fa-receipt mr-1"></i> View Details
+                  </a>
+                  @if($order->invoice)
+                    <a href="{{ route('user.account.orders.invoice', $order->id) }}" target="_blank"
+                      class="btn-base btn-secondary btn-sm text-[11px] py-1.5 px-3">
+                      <i class="fa-solid fa-file-invoice mr-1"></i> Invoice
+                    </a>
+                  @endif
                 </div>
               </div>
             @empty

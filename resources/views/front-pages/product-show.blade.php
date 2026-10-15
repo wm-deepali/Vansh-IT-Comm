@@ -1,120 +1,183 @@
 @extends('layouts.app')
 
-@section('title', ($product->meta_title ?: $product->name) . ' | ' . config('app.name'))
-@section('meta_description', $product->meta_description ?: \Illuminate\Support\Str::limit(strip_tags($product->short_description ?? ''), 155))
+@section('title', $product->name . ' | VANSH IT & COMM')
+@section('meta_description', \Illuminate\Support\Str::limit(trim(strip_tags($product->short_description ?: $product->description)), 155))
+@section('og_type', 'product')
 
 @section('content')
 
-  @php
-    /*
-     | Expects from the controller:
-     |   $product, $related
-     |   $productAttributes — all active CategoryAttribute rows (ordered, ->attribute loaded)
-     |   $listingAttributes — the subset flagged show_on_listing (passed on to related cards)
-     | Nothing here is hardcoded: empty data hides its block. Settings live in config/shop.php.
-     */
-    $fallback = asset('assets/img/product-1588872657578-7efd1f1555ed.jpg'); // placeholder only
-    $currency = config('shop.currency', '₹');
-    $phoneCode = config('shop.phone_code', '+91');
-    $defaultIcon = config('shop.default_spec_icon', 'fa-solid fa-circle-check');
-    $qcLabel = config('shop.qc_label', 'QC Verified');
-    $palette = config('shop.tile_palette', ['bg-blue-50 text-blue-600']);
+@php
+  /*
+   | Expects from the controller:
+   |   $product, $related
+   |   $productAttributes — all active CategoryAttribute rows (ordered, ->attribute loaded)
+   |   $listingAttributes — the subset flagged show_on_listing (passed on to related cards)
+   |   $variantAttributes — selectable attributes (used_for_variant with 2+ values on this product)
+   | Nothing here is hardcoded: empty data hides its block. Settings live in config/shop.php.
+   */
+  $fallback = asset('assets/img/product-1588872657578-7efd1f1555ed.jpg'); // placeholder only
+  $currency = config('shop.currency', '₹');
+  $phoneCode = config('shop.phone_code', '+91');
+  $defaultIcon = config('shop.default_spec_icon', 'fa-solid fa-circle-check');
+  $qcLabel = config('shop.qc_label', 'QC Verified');
+  $palette = config('shop.tile_palette', ['bg-blue-50 text-blue-600']);
 
-    $category = $product->category;
-    $brandName = $product->brand->name ?? null;
-    $sku = $product->sku ?: null;
+  // NEW: names of attributes shown as selectors — hidden from tiles and specs table
+  $variantNames = collect($variantAttributes ?? [])
+    ->map(fn($r) => strtolower($r['attribute']->name))
+    ->all();
 
-    // ── Price ──
-    $price = $product->price;
-    $mrp = $product->mrp;
-    $discountPct = ($mrp && $mrp > $price) ? round((($mrp - $price) / $mrp) * 100) : null;
-    $taxNote = config('shop.tax_note');
+  $category = $product->category;
+  $brandName = $product->brand->name ?? null;
+  $sku = $product->sku ?: null;
 
-    // ── Rating (only when there are approved reviews) ──
-    $reviewsCount = (int) $product->approved_reviews_count;
-    $hasRating = $reviewsCount > 0 && $product->approved_reviews_avg_rating !== null;
-    $rating = round((float) $product->approved_reviews_avg_rating, 1);
-    $full = (int) floor($rating);
-    $half = ($rating - $full) >= 0.5;
+  // ── Price ──
+  $price = $product->price;
+  $mrp = $product->mrp;
+  $discountPct = ($mrp && $mrp > $price) ? round((($mrp - $price) / $mrp) * 100) : null;
+  $taxNote = config('shop.tax_note');
 
-    // ── Badge: first active collection (by sort_order) ──
-    $badgeCollection = $product->collections->where('status', 1)->sortBy('sort_order')->first();
-    $badgeText = $badgeCollection ? \Illuminate\Support\Str::upper($badgeCollection->name) : null;
-    $badgeColor = $badgeCollection->badge_color ?? null;
-    $badgeClass = $badgeColor ? '' : 'badge-tested';
+  // ── Rating (only when there are approved reviews) ──
+  $reviewsCount = (int) $product->approved_reviews_count;
+  $hasRating = $reviewsCount > 0 && $product->approved_reviews_avg_rating !== null;
+  $rating = round((float) $product->approved_reviews_avg_rating, 1);
+  $full = (int) floor($rating);
+  $half = ($rating - $full) >= 0.5;
 
-    // ── Gallery (default image first) ──
-    $gallery = $product->images->sortByDesc('is_default')->values()->map(fn($i) => [
-      'full' => asset('storage/' . $i->image),
-      'thumb' => asset('storage/' . ($i->thumb ?? $i->image)),
-    ]);
-    $mainImg = $gallery->first()['full'] ?? $fallback;
+  // ── Badge: first active collection (by sort_order) ──
+  $badgeCollection = $product->collections->where('status', 1)->sortBy('sort_order')->first();
+  $badgeText = $badgeCollection ? \Illuminate\Support\Str::upper($badgeCollection->name) : null;
+  $badgeColor = $badgeCollection->badge_color ?? null;
+  $badgeClass = $badgeColor ? '' : 'badge-tested';
 
-    // ── Key spec tiles: category attributes first, then remaining key specs (max 6) ──
-    $tiles = [];
-    $seen = [];
+  // ── Gallery (default image first) ──
+  $gallery = $product->images->sortByDesc('is_default')->values()->map(fn($i) => [
+    'full' => asset('storage/' . $i->image),
+    'thumb' => asset('storage/' . ($i->thumb ?? $i->image)),
+  ]);
+  $mainImg = $gallery->first()['full'] ?? $fallback;
 
-    foreach ($productAttributes ?? [] as $ca) {
-      $name = $ca->attribute->name ?? null;
-      if (!$name)
-        continue;
-      $value = $product->keySpec($name) ?: $product->attr($name);
-      if (!filled($value))
-        continue;
-      $tiles[] = ['label' => $name, 'icon' => $ca->attribute->icon ?: $defaultIcon, 'value' => $value];
-      $seen[] = strtolower($name);
+  // ── Key spec tiles: category attributes first, then remaining key specs (max 6) ──
+  $tiles = [];
+  $seen = [];
+
+  foreach ($productAttributes ?? [] as $ca) {
+    $name = $ca->attribute->name ?? null;
+    if (!$name)
+      continue;
+    if (in_array(strtolower($name), $variantNames, true))   // CHANGED: skip selectable attributes
+      continue;
+    $value = $product->keySpec($name) ?: $product->attr($name);
+    if (!filled($value))
+      continue;
+    $tiles[] = ['label' => $name, 'icon' => $ca->attribute->icon ?: $defaultIcon, 'value' => $value];
+    $seen[] = strtolower($name);
+  }
+
+  foreach ($product->key_specs ?? [] as $s) {
+    $label = trim($s['label'] ?? '');
+    $value = trim($s['value'] ?? '');
+    if ($label === '' || $value === '' || in_array(strtolower($label), $seen, true))
+      continue;
+    if (in_array(strtolower($label), $variantNames, true))  // CHANGED: skip selectable attributes
+      continue;
+    $tiles[] = ['label' => $label, 'icon' => $defaultIcon, 'value' => $value];
+    $seen[] = strtolower($label);
+  }
+
+  $tiles = array_slice($tiles, 0, 6);
+
+  // ── Full specifications table: base rows → attributes → remaining key specs ──
+  $attrSummary = $product->attributeSummary();
+
+  $specRows = collect([
+    ['Product Name', $product->name],
+    ['Brand', $brandName],
+    ['Category', $category->name ?? null],
+    ['Condition', $product->condition ? $product->condition . ($product->quality ? ' — ' . $qcLabel : '') : null],
+    ['Warranty', $product->warranty],
+  ])->filter(fn($r) => filled($r[1]))->values()->all();
+
+  foreach ($attrSummary as $label => $value) {
+    if (in_array(strtolower($label), $variantNames, true))  // CHANGED: skip selectable attributes
+      continue;
+    $specRows[] = [$label, $product->keySpec($label) ?: $value];
+  }
+
+  foreach ($product->key_specs ?? [] as $s) {
+    $label = $s['label'] ?? '';
+    if (in_array(strtolower($label), $variantNames, true))  // CHANGED: skip selectable attributes
+      continue;
+    $alreadyShown = collect($attrSummary)->keys()->contains(fn($k) => strcasecmp($k, $label) === 0);
+    if ($label !== '' && !$alreadyShown) {
+      $specRows[] = [$label, $s['value'] ?? ''];
     }
+  }
 
-    foreach ($product->key_specs ?? [] as $s) {
-      $label = trim($s['label'] ?? '');
-      $value = trim($s['value'] ?? '');
-      if ($label === '' || $value === '' || in_array(strtolower($label), $seen, true))
-        continue;
-      $tiles[] = ['label' => $label, 'icon' => $defaultIcon, 'value' => $value];
-      $seen[] = strtolower($label);
-    }
+  // ── Tabs: only the ones that have real content ──
+  $hasConditionNotes = trim(strip_tags($product->condition_details ?? '')) !== '';
+  $hasWarrantyText = trim(strip_tags($product->warranty_coverage ?? '')) !== '';
+  $hasShippingText = trim(strip_tags($product->shipping_delivery ?? '')) !== '';
 
-    $tiles = array_slice($tiles, 0, 6);
+  $tabs = collect([
+    ['id' => 'specs', 'label' => 'Technical Specifications', 'show' => count($specRows) > 0],
+    ['id' => 'condition', 'label' => 'Condition & Quality Check', 'show' => $hasConditionNotes],
+    ['id' => 'warranty', 'label' => 'Warranty & Coverage', 'show' => $hasWarrantyText || filled($product->warranty)],
+    ['id' => 'shipping', 'label' => 'Shipping & Delivery', 'show' => $hasShippingText],
+  ])->where('show', true)->values();
 
-    // ── Full specifications table: base rows → attributes → remaining key specs ──
-    $attrSummary = $product->attributeSummary();
+  $vc = config('shop.video_call', []);
 
-    $specRows = collect([
-      ['Product Name', $product->name],
-      ['Brand', $brandName],
-      ['Category', $category->name ?? null],
-      ['Condition', $product->condition ? $product->condition . ($product->quality ? ' — ' . $qcLabel : '') : null],
-      ['Warranty', $product->warranty],
-    ])->filter(fn($r) => filled($r[1]))->values()->all();
+  $isWishlisted = in_array($product->id, \App\Models\Wishlist::currentProductIds());
+@endphp
 
-    foreach ($attrSummary as $label => $value) {
-      $specRows[] = [$label, $product->keySpec($label) ?: $value];
-    }
+@php
+  $conditionMap = ['New' => 'NewCondition', 'Refurbished' => 'RefurbishedCondition', 'Open Box' => 'UsedCondition'];
+  $productUrl = route('product.show', $product->slug);
 
-    foreach ($product->key_specs ?? [] as $s) {
-      $label = $s['label'] ?? '';
-      $alreadyShown = collect($attrSummary)->keys()->contains(fn($k) => strcasecmp($k, $label) === 0);
-      if ($label !== '' && !$alreadyShown) {
-        $specRows[] = [$label, $s['value'] ?? ''];
-      }
-    }
+  $productSchema = [
+    '@context' => 'https://schema.org',
+    '@type' => 'Product',
+    'name' => $product->name,
+    'description' => \Illuminate\Support\Str::limit(trim(strip_tags($product->short_description ?: $product->description)), 300),
+    'image' => $gallery->pluck('full')->all() ?: [$fallback],
+    'sku' => $sku,
+    'brand' => $brandName ? ['@type' => 'Brand', 'name' => $brandName] : null,
+    'category' => $category->name ?? null,
+    'url' => $productUrl,
+    'offers' => [
+      '@type' => 'Offer',
+      'url' => $productUrl,
+      'priceCurrency' => 'INR',
+      'price' => number_format((float) $price, 2, '.', ''),
+      'itemCondition' => isset($conditionMap[$product->condition]) ? 'https://schema.org/' . $conditionMap[$product->condition] : null,
+      // Stock logic variants par depend karta hai, isliye abhi InStock; apna accessor ho to yahan lagayen
+      'availability' => 'https://schema.org/InStock',
+    ],
+    'aggregateRating' => $hasRating
+      ? ['@type' => 'AggregateRating', 'ratingValue' => $rating, 'reviewCount' => $reviewsCount]
+      : null,
+  ];
 
-    // ── Tabs: only the ones that have real content ──
-    $hasConditionNotes = trim(strip_tags($product->condition_details ?? '')) !== '';
-    $hasWarrantyText = trim(strip_tags($product->warranty_coverage ?? '')) !== '';
-    $hasShippingText = trim(strip_tags($product->shipping_delivery ?? '')) !== '';
+  $productCrumbs = [
+    ['name' => 'Home', 'url' => route('home')],
+    ['name' => $category->name ?? 'Categories', 'url' => $category ? route('category.show', $category->slug) : route('categories')],
+    ['name' => $product->name, 'url' => $productUrl],
+  ];
+@endphp
 
-    $tabs = collect([
-      ['id' => 'specs', 'label' => 'Technical Specifications', 'show' => count($specRows) > 0],
-      ['id' => 'condition', 'label' => 'Condition & Quality Check', 'show' => $hasConditionNotes],
-      ['id' => 'warranty', 'label' => 'Warranty & Coverage', 'show' => $hasWarrantyText || filled($product->warranty)],
-      ['id' => 'shipping', 'label' => 'Shipping & Delivery', 'show' => $hasShippingText],
-    ])->where('show', true)->values();
+@section('og_image', $mainImg)
 
-    $vc = config('shop.video_call', []);
+  @push('meta')
+    <meta property="product:price:amount" content="{{ number_format((float) $price, 2, '.', '') }}" />
+    <meta property="product:price:currency" content="INR" />
+  @endpush
 
-    $isWishlisted = in_array($product->id, \App\Models\Wishlist::currentProductIds());
-  @endphp
+  @push('schema')
+    @include('partials.json-ld', ['data' => $productSchema])
+  @endpush
+
+  @include('partials.breadcrumbs', ['visible' => false, 'crumbs' => $productCrumbs])
 
   <style>
     .rich-content p {
@@ -193,16 +256,16 @@
           </div>
 
           <!-- Thumbnails -->
-          @if($gallery->count() > 1)
-            <div class="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pb-1" id="prod-thumbnails-container">
-              @foreach($gallery as $idx => $g)
-                <button type="button" onclick="setMainImage('{{ $g['full'] }}', this)"
-                  class="prod-thumb w-14 h-14 rounded-xl overflow-hidden border-2 {{ $idx === 0 ? 'border-blue-600' : 'border-slate-200' }} bg-white p-1 flex-shrink-0 transition-all hover:border-blue-400">
-                  <img src="{{ $g['thumb'] }}" alt="{{ $product->name }}" class="w-full h-full object-contain" />
-                </button>
-              @endforeach
-            </div>
-          @endif
+          <div
+            class="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pb-1 {{ $gallery->count() > 1 ? '' : 'hidden' }}"
+            id="prod-thumbnails-container">
+            @foreach($gallery as $idx => $g)
+              <button type="button" onclick="setMainImage('{{ $g['full'] }}', this)"
+                class="prod-thumb w-14 h-14 rounded-xl overflow-hidden border-2 {{ $idx === 0 ? 'border-blue-600' : 'border-slate-200' }} bg-white p-1 flex-shrink-0 transition-all hover:border-blue-400">
+                <img src="{{ $g['thumb'] }}" alt="{{ $product->name }}" class="w-full h-full object-contain" />
+              </button>
+            @endforeach
+          </div>
 
           <!-- Video demo request -->
           @if($product->video_call_demo)
@@ -230,10 +293,11 @@
           <div class="space-y-3.5 sm:space-y-4">
 
             <!-- Brand & SKU -->
-            @if($brandName || $sku)
+            @if($brandName || $sku || collect($variantData)->contains('type', 'sku'))
               <div class="flex items-center justify-between text-xs text-slate-500">
                 <span class="font-bold text-blue-600 uppercase tracking-wider" id="prod-brand">{{ $brandName }}</span>
-                @if($sku)<span id="prod-sku">SKU: {{ $sku }}</span>@endif
+                <span id="prod-sku" class="{{ $sku ? '' : 'hidden' }}">SKU: <span
+                    id="prod-sku-value">{{ $sku }}</span></span>
               </div>
             @endif
 
@@ -277,16 +341,17 @@
               <div class="flex items-baseline gap-2.5 sm:gap-3 flex-wrap">
                 <span class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 font-body"
                   id="prod-price">{{ $currency }}{{ number_format($price) }}</span>
-                @if($discountPct)
-                  <span class="text-sm sm:text-base text-slate-400 line-through font-medium"
-                    id="prod-mrp">{{ $currency }}{{ number_format($mrp) }}</span>
-                  <span class="text-[10px] sm:text-xs font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md"
-                    id="prod-discount">{{ $discountPct }}% OFF</span>
-                @endif
+                <span
+                  class="text-sm sm:text-base text-slate-400 line-through font-medium {{ $discountPct ? '' : 'hidden' }}"
+                  id="prod-mrp">{{ $discountPct ? $currency . number_format($mrp) : '' }}</span>
+                <span
+                  class="text-[10px] sm:text-xs font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md {{ $discountPct ? '' : 'hidden' }}"
+                  id="prod-discount">{{ $discountPct ? $discountPct . '% OFF' : '' }}</span>
               </div>
               @if($taxNote)
                 <p class="text-[11px] sm:text-xs text-slate-500 mt-1">{{ $taxNote }}</p>
               @endif
+              <p id="prod-stock" class="text-[11px] sm:text-xs font-semibold mt-1.5 hidden"></p>
 
               @if($product->delivery_time)
                 <div
@@ -315,6 +380,34 @@
                         class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{{ $tile['label'] }}</span>
                       <strong class="text-xs font-bold text-slate-800 leading-tight block truncate"
                         title="{{ $tile['value'] }}">{{ $tile['value'] }}</strong>
+                    </div>
+                  </div>
+                @endforeach
+              </div>
+            @endif
+
+
+            <!-- Variant Options (attributes with used_for_variant; first value preselected) -->
+            @if($variantAttributes->isNotEmpty())
+              <div id="variant-options" class="space-y-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm">
+                @foreach($variantAttributes as $row)
+                  @php $attr = $row['attribute']; @endphp
+                  <div data-variant-group="{{ $attr->id }}">
+                    <div class="text-xs font-bold text-slate-700 mb-1.5">
+                      {{ $attr->name }}:
+                      <span data-variant-label class="text-slate-900">{{ $row['values']->first()->value }}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      @foreach($row['values'] as $v)
+                        <label class="cursor-pointer">
+                          <input type="radio" class="peer sr-only" name="variant[{{ $attr->id }}]" value="{{ $v->id }}"
+                            data-label="{{ $v->value }}" @checked($loop->first) />
+                          <span
+                            class="block px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 transition-all hover:border-blue-400 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-300">
+                            {{ $v->value }}
+                          </span>
+                        </label>
+                      @endforeach
                     </div>
                   </div>
                 @endforeach
@@ -625,7 +718,181 @@
       deliveryTime: @json($product->delivery_time),
       phoneCode: @json($phoneCode),
       checkoutUrl: @json(route('checkout')),
+      pincodeUrl: @json(route('pincode.check')),
     };
+
+    // ==========================================
+    // VARIANT SELECTION + RESOLUTION
+    // ==========================================
+    const VARIANTS = @json($variantData);
+    const FIXED_VALUE_IDS = @json($fixedValueIds);
+    const BASE = {
+      price: @json((float) $product->price),
+      mrp: @json((float) $product->mrp),
+      sku: @json($product->sku),
+      stock: @json((int) $product->stock),
+      currency: @json($currency),
+      lowStock: @json((int) config('shop.low_stock', 5)),
+    };
+    const byId = id => document.getElementById(id);
+    const fmt = n => BASE.currency + Math.round(n).toLocaleString('en-US');
+    const ORIG = { ready: false, imageVariantId: undefined };
+
+    // { attributeId: attributeValueId } for the selectors on the page
+    window.getSelectedVariant = function () {
+      const selected = {};
+      document.querySelectorAll('#variant-options input[type=radio]:checked').forEach(r => {
+        selected[r.name.match(/\[(\d+)\]/)[1]] = parseInt(r.value, 10);
+      });
+      return selected;
+    };
+
+    function selectedValueIds() {
+      const ids = new Set(FIXED_VALUE_IDS);
+      Object.values(window.getSelectedVariant()).forEach(v => ids.add(v));
+      return ids;
+    }
+
+    // A variant matches if ALL its values are selected; most specific match wins
+    function resolveVariant(type, ids) {
+      let best = null;
+      VARIANTS.forEach(v => {
+        if (v.type !== type || !v.value_ids.length) return;
+        if (!v.value_ids.every(id => ids.has(id))) return;
+        if (!best || v.value_ids.length > best.value_ids.length) best = v;
+      });
+      return best;
+    }
+
+    // For the cart: matches cart_items.price_variant_id / image_variant_id / stock_variant_id / sku_variant_id
+    window.getResolvedVariants = function () {
+      const ids = selectedValueIds();
+      const get = t => (resolveVariant(t, ids) || {}).id ?? null;
+      return {
+        price_variant_id: get('price'),
+        image_variant_id: get('image'),
+        stock_variant_id: get('stock'),
+        sku_variant_id: get('sku'),
+      };
+    };
+
+    // Read by partials.cart-js on every Add to Cart / Buy Now from this page
+    window.getCartExtraPayload = function () {
+      return {
+        ...window.getResolvedVariants(),   // price_variant_id, image_variant_id, stock_variant_id, sku_variant_id
+        selected_values: Object.values(window.getSelectedVariant()),   // value ids the customer picked
+      };
+    };
+
+    function applyVariant() {
+      if (!VARIANTS.length) return;   // product has no variants: leave the page untouched
+
+      const ids = selectedValueIds();
+      const pv = resolveVariant('price', ids);
+      const iv = resolveVariant('image', ids);
+      const sv = resolveVariant('stock', ids);
+      const kv = resolveVariant('sku', ids);
+
+      // ── Price ──
+      const usePrice = pv && pv.price > 0;
+      const price = usePrice ? pv.price : BASE.price;
+      const mrp = usePrice ? pv.mrp : BASE.mrp;
+      const pct = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+
+      byId('prod-price').textContent = fmt(price);
+      const mrpEl = byId('prod-mrp'), pctEl = byId('prod-discount');
+      if (mrpEl && pctEl) {
+        mrpEl.textContent = pct ? fmt(mrp) : '';
+        pctEl.textContent = pct ? pct + '% OFF' : '';
+        mrpEl.classList.toggle('hidden', !pct);
+        pctEl.classList.toggle('hidden', !pct);
+      }
+      const drawerPrice = byId('drawer-prod-price');
+      if (drawerPrice) drawerPrice.textContent = fmt(price);
+
+      // ── SKU ──
+      const skuEl = byId('prod-sku');
+      if (skuEl) {
+        const sku = kv && kv.sku ? kv.sku : BASE.sku;
+        byId('prod-sku-value').textContent = sku || '';
+        skuEl.classList.toggle('hidden', !sku);
+      }
+
+      // ── Stock ──
+      const stock = sv ? sv.stock : BASE.stock;
+      const stockEl = byId('prod-stock');
+      if (stockEl) {
+        stockEl.className = 'text-[11px] sm:text-xs font-semibold mt-1.5 ' +
+          (stock <= 0 ? 'text-red-600' : stock <= BASE.lowStock ? 'text-amber-600' : 'text-emerald-600');
+        stockEl.textContent = stock <= 0 ? 'Out of stock'
+          : stock <= BASE.lowStock ? `Only ${stock} left in stock` : 'In stock';
+      }
+      ['prod-add-cart-btn', 'prod-buy-now-btn'].forEach(id => {
+        const b = byId(id);
+        if (!b) return;
+        if (!b.dataset.label) b.dataset.label = b.innerHTML;
+        const out = stock <= 0;
+        b.disabled = out;
+        b.classList.toggle('opacity-50', out);
+        b.classList.toggle('cursor-not-allowed', out);
+        b.innerHTML = out ? '<i class="fa-solid fa-ban"></i> Out of Stock' : b.dataset.label;
+      });
+
+      // ── Images (only re-render when the matched image variant changes) ──
+      const mainEl = byId('main-product-image');
+      const thumbs = byId('prod-thumbnails-container');
+      if (!ORIG.ready) {
+        ORIG.main = mainEl.getAttribute('src');
+        ORIG.thumbs = thumbs ? thumbs.innerHTML : '';
+        ORIG.thumbsHidden = thumbs ? thumbs.classList.contains('hidden') : true;
+        ORIG.ready = true;
+      }
+      const imageId = iv && iv.images.length ? iv.id : null;
+      if (imageId !== ORIG.imageVariantId) {
+        ORIG.imageVariantId = imageId;
+        const drawerImg = byId('drawer-prod-img');
+
+        if (imageId) {
+          mainEl.src = iv.images[0].full;
+          if (drawerImg) drawerImg.src = iv.images[0].full;
+          if (thumbs) {
+            thumbs.innerHTML = '';
+            iv.images.forEach((g, i) => {
+              const b = document.createElement('button');
+              b.type = 'button';
+              b.className = 'prod-thumb w-14 h-14 rounded-xl overflow-hidden border-2 bg-white p-1 flex-shrink-0 transition-all ' +
+                (i === 0 ? 'border-blue-600' : 'border-slate-200 hover:border-blue-400');
+              b.onclick = () => setMainImage(g.full, b);
+              const im = document.createElement('img');
+              im.src = g.thumb || g.full;
+              im.className = 'w-full h-full object-contain';
+              b.appendChild(im);
+              thumbs.appendChild(b);
+            });
+            thumbs.classList.toggle('hidden', iv.images.length < 2);
+          }
+        } else {
+          mainEl.setAttribute('src', ORIG.main);
+          if (drawerImg) drawerImg.setAttribute('src', ORIG.main);
+          if (thumbs) {
+            thumbs.innerHTML = ORIG.thumbs;
+            thumbs.classList.toggle('hidden', ORIG.thumbsHidden);
+          }
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('#variant-options input[type=radio]').forEach(r => {
+        r.addEventListener('change', () => {
+          const label = r.closest('[data-variant-group]').querySelector('[data-variant-label]');
+          if (label) label.textContent = r.dataset.label;
+          document.dispatchEvent(new CustomEvent('variant:changed', { detail: window.getSelectedVariant() }));
+        });
+      });
+      document.addEventListener('variant:changed', applyVariant);
+      applyVariant();   // resolve the preselected values on load
+    });
 
     // ==========================================
     // BUY NOW (Add to Cart is handled by partials.cart-js)
@@ -646,6 +913,13 @@
     document.addEventListener('DOMContentLoaded', () => {
       const buyBtn = document.getElementById('prod-buy-now-btn');
       if (buyBtn) buyBtn.addEventListener('click', e => { e.stopPropagation(); buyNow(buyBtn); });
+
+      const pinInput = document.getElementById('pincode-input');
+      if (pinInput) {
+        pinInput.addEventListener('input', () => { pinInput.value = pinInput.value.replace(/\D/g, ''); });
+        pinInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkPincode(); } });
+      }
+
     });
 
     // ==========================================
@@ -667,17 +941,43 @@
         b.className = b.dataset.tabBtn === tabId ? on : off);
     }
 
-    // Static check (no courier API wired yet)
-    function checkPincode() {
-      const pin = (document.getElementById('pincode-input').value || '').trim();
+    async function checkPincode() {
+      const input = document.getElementById('pincode-input');
       const status = document.getElementById('pincode-status');
-      status.classList.remove('hidden');
+      const btn = input.closest('div').querySelector('button');
+      const pin = (input.value || '').trim();
 
-      if (pin.length === 6 && /^\d+$/.test(pin)) {
+      const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const show = (html) => { status.classList.remove('hidden'); status.innerHTML = html; };
+      const fail = (msg) => show(`<span class="text-red-500 font-semibold"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(msg)}</span>`);
+
+      if (!/^\d{6}$/.test(pin)) { fail('Please enter a valid 6-digit PIN code.'); return; }
+
+      btn.disabled = true;
+      show('<span class="text-slate-500"><i class="fa-solid fa-spinner fa-spin"></i> Checking...</span>');
+
+      try {
+        const res = await fetch(`${PAGE.pincodeUrl}?pincode=${encodeURIComponent(pin)}`, {
+          headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.status === 429) { fail('Too many attempts. Please wait a minute and try again.'); return; }
+        if (res.status === 422) { fail(data.errors?.pincode?.[0] || 'Please enter a valid 6-digit PIN code.'); return; }
+        if (!res.ok) { fail('Could not check this PIN code right now. Please try again.'); return; }
+
+        if (!data.status) { fail(data.message || 'Delivery is not available for this PIN code.'); return; }
+
+        const place = [data.district, data.state].filter(Boolean).join(', ');
         const eta = PAGE.deliveryTime ? `Estimated delivery in ${PAGE.deliveryTime}` : 'Delivery is available';
-        status.innerHTML = `<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> ${eta}</span> to <strong>${pin}</strong>.`;
-      } else {
-        status.innerHTML = `<span class="text-red-500 font-semibold"><i class="fa-solid fa-triangle-exclamation"></i> Please enter a valid 6-digit PIN code.</span>`;
+
+        show(`<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> ${esc(eta)}</span>
+              to <strong>${esc(data.pincode)}</strong>${place ? ` (${esc(place)})` : ''}.`);
+      } catch (e) {
+        fail('Network error. Please check your connection and try again.');
+      } finally {
+        btn.disabled = false;
       }
     }
 

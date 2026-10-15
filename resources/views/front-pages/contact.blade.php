@@ -7,9 +7,6 @@
   $iconColors = ['text-blue-600', 'text-emerald-600', 'text-purple-600', 'text-amber-600'];
 @endphp
 
-@section('title', 'Contact Us & Store Locations' . ($siteName ? ' | ' . $siteName : ''))
-@section('meta_description', 'Get in touch with ' . ($siteName ?: 'us') . ' for product inquiries, repair bookings, trade-ins, or customer support.')
-
 @section('content')
 
   <main class="flex-grow py-6 sm:py-10">

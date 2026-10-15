@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ShippingCalculator;
 use Illuminate\Database\Eloquent\Model;
 
 class Cart extends Model
@@ -18,6 +19,7 @@ class Cart extends Model
 
         'subtotal',
         'discount',
+        'shipping_charge',
         'tax_amount',
 
         'gst_type',
@@ -69,7 +71,7 @@ class Cart extends Model
 
         $taxAmount = 0;
         $grandTotal = $taxableAmount;
-        $displaySubtotal = $subtotal; // 👈 default — raw items sum, discount subtracted separately in blade
+        $displaySubtotal = $subtotal; // default — raw items sum, discount subtracted separately in blade
 
         $gstType = null;
 
@@ -138,7 +140,7 @@ class Cart extends Model
                 $grandTotal =
                     $taxableAmount + $taxAmount;
 
-                $displaySubtotal = $subtotal; // 👈 raw, as-is (GST added on top)
+                $displaySubtotal = $subtotal; // raw, as-is (GST added on top)
 
             } else {
 
@@ -149,7 +151,7 @@ class Cart extends Model
 
                 $grandTotal = $taxableAmount;
 
-                $displaySubtotal = $subtotal - $taxAmount; // 👈 sirf tax hataya, discount nahi
+                $displaySubtotal = $subtotal - $taxAmount; // only tax removed, not discount
             }
 
             if ($gstType === 'cgst_sgst') {
@@ -167,10 +169,28 @@ class Cart extends Model
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Shipping — based on items total minus coupon ($taxableAmount), added on
+        | top of the GST-inclusive/exclusive total (no GST is charged on shipping).
+        | Unknown zone (guest / no default address) => 0 here, shown as
+        | "Calculated at checkout" until an address exists.
+        |--------------------------------------------------------------------------
+        */
+        $shippingCharge = 0;
+
+        if ($taxableAmount > 0) {
+            $shipping = ShippingCalculator::forCart($this, (float) $taxableAmount);
+            $shippingCharge = $shipping['known'] ? (float) $shipping['charge'] : 0;
+        }
+
+        $grandTotal += $shippingCharge;
+
         $this->update([
 
             'subtotal' => round($displaySubtotal, 2),
             'discount' => round($discount, 2),
+            'shipping_charge' => round($shippingCharge, 2),
 
             'gst_type' => $gstType,
 

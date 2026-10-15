@@ -1,8 +1,5 @@
 @extends('layouts.app')
 
-@section('title', $page->meta_title ?: 'Device Exchange & Upgrade Program | VANSH IT & COMM')
-@section('meta_description', $page->meta_description)
-
 @section('content')
 
   <main class="flex-grow py-6 sm:py-10">

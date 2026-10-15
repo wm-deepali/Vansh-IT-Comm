@@ -1,8 +1,6 @@
 @extends('layouts.app')
 
 @php
-  $siteName = $setting?->site_name;
-
   // Full class strings so Tailwind can detect them
   $palette = [
     'blue'    => ['box' => 'bg-blue-50 text-blue-600 border-blue-100 group-hover:bg-blue-600 group-hover:text-white',          'card' => 'hover:border-blue-300',    'row' => 'hover:bg-blue-50/60',    'text' => 'text-blue-600'],
@@ -15,7 +13,6 @@
   $pick = fn ($key) => $palette[$key] ?? $palette['blue'];
 @endphp
 
-@section('title', 'About Us' . ($siteName ? ' | ' . $siteName : ''))
 
 @section('content')
 

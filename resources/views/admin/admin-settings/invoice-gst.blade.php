@@ -31,7 +31,7 @@
                         <label class="field-label">Company Name <span class="req">*</span></label>
                         <input type="text" name="company_name"
                             value="{{ old('company_name', $invoice_setting->company_name ?? '') }}" class="field-input"
-                            placeholder="e.g. Oudhyana Chikankari Pvt. Ltd." required>
+                            placeholder="e.g. Vansh IT" required>
                     </div>
                     <div class="field-group col-full">
                         <label class="field-label">Company Logo</label>
@@ -160,13 +160,13 @@
                     </div>
                     <div class="field-group">
                         <label class="field-label">Contact Email</label>
-                        <input type="email" name="company_email" class="field-input" placeholder="billing@oudhyana.com"
+                        <input type="email" name="company_email" class="field-input" placeholder="billing@vanshit.com"
                             value="{{ old('company_email', $invoice_setting->company_email ?? '') }}">
                     </div>
                     <div class="field-group col-full">
                         <label class="field-label">Invoice Footer Note</label>
                         <textarea class="field-textarea" rows="2" name="terms_conditions"
-                            placeholder="e.g. Thank you for shopping with us! For queries contact support@oudhyana.com">{{ old('terms_conditions', $invoice_setting->terms_conditions ?? '') }}</textarea>
+                            placeholder="e.g. Thank you for shopping with us! For queries contact support@vanshit.com">{{ old('terms_conditions', $invoice_setting->terms_conditions ?? '') }}</textarea>
                         <span class="field-hint">Appears at the bottom of every invoice.</span>
                     </div>
                 </div>

@@ -11,6 +11,9 @@ use App\Models\Coupon;
 use App\Models\AttributeValue;
 use App\Models\ProductAddon;
 use App\Services\Tracking\PixelTracker;
+use App\Models\CategoryAttribute;
+use App\Models\ShippingSetting;
+use App\Services\ShippingCalculator;
 
 class CartController extends Controller
 {
@@ -20,11 +23,7 @@ class CartController extends Controller
         $request->validate([
             'product_id' => 'required|exists:products,id',
 
-            'price_variant_id' => 'nullable|exists:product_variants,id',
-            'image_variant_id' => 'nullable|exists:product_variants,id',
-            'stock_variant_id' => 'nullable|exists:product_variants,id',
-            'sku_variant_id' => 'nullable|exists:product_variants,id',
-
+            // value ids the customer picked on the product page (variant ids are resolved on the server)
             'selected_values' => 'nullable|array',
             'selected_values.*' => 'integer|exists:attribute_values,id',
 
@@ -34,63 +33,48 @@ class CartController extends Controller
             'quantity' => 'nullable|integer|min:1',
         ]);
 
-        $product = Product::with('variants.values')->findOrFail($request->product_id);
+        $product = Product::with([
+            'variants' => fn($q) => $q->where('status', 1)->with('values'),
+            'attributeValues.value',
+        ])->findOrFail($request->product_id);
+
         $quantity = $request->quantity ?? $product->min_qty;
 
         /*
         |--------------------------------------------------------------------------
-        | Default-variant resolution — jab koi variant id bheja hi nahi gaya
-        | (listing page ka "Add to Cart"), lekin product ke variants hain, to
-        | khud-ba-khud ek in-stock combination pick karo.
+        | Resolve the selection on the server (picked + single-value + defaults)
         |--------------------------------------------------------------------------
         */
-        if (!$request->filled('stock_variant_id') && $product->variants->isNotEmpty()) {
+        [$selection, $snapshotIds] = $this->resolveSelection($product, (array) $request->selected_values);
 
-            $stockVariants = $product->variants->where('type', 'stock');
+        $resolve = function (string $type) use ($product, $selection) {
+            $best = null;
 
-            $defaultStockVariant = $stockVariants->firstWhere('stock', '>', 0)
-                ?? $stockVariants->first();
+            foreach ($product->variants->where('type', $type) as $variant) {
+                $ids = $variant->values->pluck('attribute_value_id')->map(fn($i) => (int) $i);
 
-            if ($defaultStockVariant) {
+                if ($ids->isEmpty() || $ids->diff($selection)->isNotEmpty()) {
+                    continue;
+                }
 
-                $defaultValueIds = $defaultStockVariant->values
-                    ->pluck('attribute_value_id')
-                    ->sort()
-                    ->values()
-                    ->toArray();
-
-                $request->merge([
-                    'stock_variant_id' => $defaultStockVariant->id,
-                    'selected_values' => $defaultValueIds,
-                ]);
-
-                foreach (['price', 'image', 'sku'] as $type) {
-
-                    $match = $product->variants
-                        ->where('type', $type)
-                        ->first(function ($variant) use ($defaultValueIds) {
-                            $ids = $variant->values
-                                ->pluck('attribute_value_id')
-                                ->sort()
-                                ->values()
-                                ->toArray();
-                            return $ids === $defaultValueIds;
-                        });
-
-                    if ($match) {
-                        $request->merge([$type . '_variant_id' => $match->id]);
-                    }
+                if (!$best || $ids->count() > $best->values->count()) {
+                    $best = $variant;
                 }
             }
-        }
 
-        $priceVariant = $request->price_variant_id ? ProductVariant::find($request->price_variant_id) : null;
-        $imageVariant = $request->image_variant_id ? ProductVariant::find($request->image_variant_id) : null;
-        $stockVariant = $request->stock_variant_id ? ProductVariant::find($request->stock_variant_id) : null;
-        $skuVariant = $request->sku_variant_id ? ProductVariant::find($request->sku_variant_id) : null;
+            return $best;
+        };
 
-        $price = $priceVariant->price ?? $product->price;
-        $stock = $stockVariant->stock ?? $product->stock;
+        $priceVariant = $resolve('price');
+        $imageVariant = $resolve('image');
+        $stockVariant = $resolve('stock');
+        $skuVariant = $resolve('sku');
+
+        $price = ($priceVariant && $priceVariant->price > 0) ? $priceVariant->price : $product->price;
+
+        $stock = $stockVariant
+            ? ($stockVariant->is_available ? (int) $stockVariant->stock : 0)
+            : (int) $product->stock;
 
         if ($stock < $product->min_qty) {
             return response()->json([
@@ -108,16 +92,15 @@ class CartController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Selected attribute values — snapshot for display (Size: L, Color: Red)
-        | Independent of the 4 variant ids above, since a selectable attribute
-        | may not be price/image/stock/sku-dependent at all.
+        | Snapshot of the chosen variant attributes (Size: L, Color: Red) — also
+        | includes attributes that have only one value and no selector.
         |--------------------------------------------------------------------------
         */
         $selectedAttributes = [];
 
-        if ($request->filled('selected_values')) {
+        if (!empty($snapshotIds)) {
             $selectedAttributes = AttributeValue::with('attribute')
-                ->whereIn('id', $request->selected_values)
+                ->whereIn('id', $snapshotIds)
                 ->get()
                 ->map(fn($av) => [
                     'attribute_id' => $av->attribute_id,
@@ -149,7 +132,6 @@ class CartController extends Controller
         | Get Cart
         |--------------------------------------------------------------------------
         */
-
         if (auth('customer')->check()) {
 
             $customer = auth('customer')->user();
@@ -182,15 +164,16 @@ class CartController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Existing Item — customized lines (with addons) always create a new
-        | line rather than merging, so each customization stays distinct.
-        | Plain lines (no addons) still merge on identical variant selection,
-        | same as before.
+        | Existing Item — merge only when the product, the 4 variant ids AND the
+        | chosen attribute values are identical (and no addons).
         |--------------------------------------------------------------------------
         */
         $item = null;
 
         if ($selectedAddons->isEmpty()) {
+
+            $signature = collect($snapshotIds)->map(fn($i) => (int) $i)->sort()->values()->all();
+
             $item = CartItem::where('cart_id', $cart->id)
                 ->where('product_id', $product->id)
                 ->where('price_variant_id', $priceVariant->id ?? null)
@@ -198,7 +181,17 @@ class CartController extends Controller
                 ->where('stock_variant_id', $stockVariant->id ?? null)
                 ->where('sku_variant_id', $skuVariant->id ?? null)
                 ->doesntHave('addons')
-                ->first();
+                ->get()
+                ->first(function ($line) use ($signature) {
+                    $ids = collect($line->selected_attributes ?? [])
+                        ->pluck('value_id')
+                        ->map(fn($i) => (int) $i)
+                        ->sort()
+                        ->values()
+                        ->all();
+
+                    return $ids === $signature;
+                });
         }
 
         if ($item) {
@@ -248,12 +241,9 @@ class CartController extends Controller
         | Recalculate Cart
         |--------------------------------------------------------------------------
         */
-
         $cart->recalculateTotals();
         $cart->refresh();
 
-        // Adding items can only make a coupon's conditions easier to satisfy,
-        // but a percentage discount amount still needs to track the new subtotal.
         $couponResult = $this->revalidateCoupon($cart);
 
         if ($couponResult && $couponResult['removed']) {
@@ -261,20 +251,8 @@ class CartController extends Controller
             $cart->refresh();
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Pixel/GA tracking — add-to-cart event. Price used is the resolved
-        | variant price (or base price), same value the cart line was priced at.
-        |--------------------------------------------------------------------------
-        */
         $trackingEvents = PixelTracker::addToCart($product, $quantity, $price);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Render mini cart partial — lets the frontend swap the sidebar in
-        | without a full page reload.
-        |--------------------------------------------------------------------------
-        */
         $cart->load([
             'items.product',
             'items.imageVariant',
@@ -287,6 +265,75 @@ class CartController extends Controller
             'cart_count' => (int) $cart->items()->sum('quantity'),
             'tracking_events' => $trackingEvents,
         ]);
+    }
+
+    /**
+     * Build the full selection for a product.
+     *
+     * Returns [ $selection, $snapshotIds ]
+     *  - $selection   : every attribute_value id used to match variants
+     *                   (customer's pick or default for selectable attributes,
+     *                   all values for the others) — same rule as the product page JS.
+     *  - $snapshotIds : the used_for_variant values to store on the cart line,
+     *                   including attributes that have only one value.
+     */
+    private function resolveSelection(Product $product, array $requested): array
+    {
+        $variantAttrIds = CategoryAttribute::whereIn(
+            'category_id',
+            array_filter([$product->category_id, $product->subcategory_id])
+        )
+            ->where('status', 1)
+            ->where('used_for_variant', true)
+            ->pluck('attribute_id')
+            ->unique()
+            ->all();
+
+        // No pick sent (e.g. listing page): seed from an in-stock stock variant
+        $seed = array_map('intval', $requested);
+
+        if (empty($seed)) {
+            $stockVariants = $product->variants->where('type', 'stock');
+            $default = $stockVariants->first(fn($v) => $v->is_available && $v->stock > 0)
+                ?? $stockVariants->first();
+
+            $seed = $default
+                ? $default->values->pluck('attribute_value_id')->map(fn($i) => (int) $i)->all()
+                : [];
+        }
+
+        $byAttribute = $product->attributeValues
+            ->sortBy(fn($av) => $av->value->sort_order ?? 0)
+            ->groupBy('attribute_id');
+
+        $selection = [];
+        $snapshotIds = [];
+
+        foreach ($byAttribute as $attributeId => $rows) {
+            $valueIds = $rows->pluck('attribute_value_id')->map(fn($i) => (int) $i)->unique()->values();
+            $isVariantAttr = in_array($attributeId, $variantAttrIds);
+
+            if ($isVariantAttr && $valueIds->count() > 1) {
+                // selectable: customer's pick if valid for this product, else the first value
+                $chosen = $valueIds->first(fn($id) => in_array($id, $seed, true)) ?? $valueIds->first();
+
+                $selection[] = $chosen;
+                $snapshotIds[] = $chosen;
+                continue;
+            }
+
+            // not selectable: all of its values take part in matching
+            foreach ($valueIds as $id) {
+                $selection[] = $id;
+            }
+
+            // single-value variant attribute: store it too
+            if ($isVariantAttr) {
+                $snapshotIds[] = $valueIds->first();
+            }
+        }
+
+        return [array_values(array_unique($selection)), array_values(array_unique($snapshotIds))];
     }
 
     public function cart()
@@ -327,9 +374,12 @@ class CartController extends Controller
 
         $summary = $cart ? $this->summaryPayload($cart) : null;
 
+        // Free-delivery threshold comes from Shipping Settings (0 = disabled)
+        $freeShipAt = (float) (ShippingSetting::first()->free_delivery_threshold ?? 0);
+        
         return view(
             'front-pages.cart',
-            compact('cart', 'summary')
+            compact('cart', 'summary', 'freeShipAt')
         );
     }
 
@@ -654,6 +704,11 @@ class CartController extends Controller
         $cart->load(['items.product', 'items.priceVariant', 'items.addons']);
 
         $mrpTotal = $cart->items->sum(fn($i) => $this->itemMrp($i) * $i->quantity);
+
+        // Same basis the shipping calculator and free-delivery bar use:
+        // items total minus coupon discount (NOT $cart->subtotal, which has GST stripped in inclusive mode)
+        $payable = max(0, (float) $cart->items->sum('total') - (float) $cart->discount);
+        $ship = ShippingCalculator::forCart($cart, $payable);
         $subtotal = (float) $cart->subtotal;
 
         return [
@@ -665,6 +720,12 @@ class CartController extends Controller
             'tax' => (float) $cart->tax_amount,
             'grand_total' => (float) $cart->grand_total,
             'coupon_code' => $cart->coupon_code,
+
+            'payable' => $payable,
+            'shipping' => (float) $cart->shipping_charge,
+            'shipping_known' => $ship['known'],
+            'shipping_free' => $ship['free'],
+            'shipping_zone' => $ship['zone'],
         ];
     }
 

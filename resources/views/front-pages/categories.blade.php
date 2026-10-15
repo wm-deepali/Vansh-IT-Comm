@@ -1,8 +1,5 @@
 @extends('layouts.app')
 
-@section('title', 'All Categories — Laptops, Mobiles, Accessories & Repair | VANSH IT & COMM')
-@section('meta_description', 'Browse all electronics categories at VANSH IT & COMM: Refurbished & new laptops, certified smartphones, computer accessories, repairs, and trade-ins.')
-
 @section('content')
 
   @php

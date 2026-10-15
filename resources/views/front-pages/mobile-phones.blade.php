@@ -1,8 +1,5 @@
 @extends('layouts.app')
 
-@section('title', 'Refurbished & New Smartphones — iPhone, Samsung, OnePlus | VANSH IT & COMM')
-@section('meta_description', 'Certified pre-owned and new smartphones with 85%+ verified battery health, original OEM parts, and warranty.')
-
 @section('content')
 
   <main class="flex-grow py-6 sm:py-8">

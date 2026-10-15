@@ -6,7 +6,7 @@
     @php
         // Checkbox helper: on first load use the saved value, after a validation error use what was submitted
         $hasOld = !empty(old());
-        $chk = fn ($key, $current) => $hasOld ? (bool) old($key) : (bool) $current;
+        $chk = fn($key, $current) => $hasOld ? (bool) old($key) : (bool) $current;
     @endphp
 
     <style>
@@ -971,6 +971,62 @@
         .variant-row-excluded select {
             background: #f1f2f4;
         }
+
+        .attr-add-new {
+            margin-top: 10px;
+        }
+
+        .attr-add-toggle {
+            background: none;
+            border: none;
+            padding: 0;
+            color: var(--accent);
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: var(--font);
+        }
+
+        .attr-add-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .attr-add-form {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .attr-add-form .field-input {
+            width: 220px;
+            height: 34px;
+        }
+
+        .attr-add-form input[type="color"] {
+            width: 38px;
+            height: 34px;
+            padding: 2px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            cursor: pointer;
+        }
+
+        .attr-add-form .btn-primary-dash,
+        .attr-add-form .btn-secondary-dash {
+            padding: 6px 14px;
+            font-size: 12px;
+        }
+
+        .attr-add-msg.err {
+            color: var(--red);
+        }
+
+        .attr-add-msg.ok {
+            color: var(--green);
+        }
     </style>
 
     <div class="app-content content container-fluid">
@@ -1074,7 +1130,8 @@
                                     <select name="brand_id" id="brand_id" class="field-select">
                                         <option value="">— Select Brand —</option>
                                         @foreach($brands as $brand)
-                                            <option value="{{ $brand->id }}" {{ old('brand_id', $product->brand_id) == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
+                                            <option value="{{ $brand->id }}" {{ old('brand_id', $product->brand_id) == $brand->id ? 'selected' : '' }}>{{ $brand->name }}
+                                            </option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -1426,6 +1483,11 @@
                                         <input type="number" name="min_qty" class="field-input"
                                             value="{{ old('min_qty', $product->min_qty) }}">
                                     </div>
+                                      <div class="field-group">
+                                        <label class="field-label">Weight (grams)</label>
+                                        <input type="number" min="0" step="1" name="weight" class="field-input"
+                                            value="{{ old('weight', $product->weight) }}" placeholder="e.g. 450">
+                                    </div>
                                 </div>
 
                                 <div class="field-group">
@@ -1471,7 +1533,8 @@
                                     <input type="checkbox" name="video_call_demo" value="1" {{ $chk('video_call_demo', $product->video_call_demo) ? 'checked' : '' }}>
                                     <span>Video Call Demo</span>
                                 </label>
-                                <div class="field-hint" style="margin-top:10px">Controls the trust bar and the Video Call
+                                <div class="field-hint" style="margin-top:10px">Controls the trust bar and the Video
+                                    Call
                                     button on the product page.</div>
                             </div>
                         </div>
@@ -1649,6 +1712,125 @@
     function comboKey(ids) {
         return ids.map(String).slice().sort(function (a, b) { return Number(a) - Number(b); }).join(',');
     }
+
+    /* ── Quick add attribute value ───────────────────────────────── */
+    const attrMeta = {}; // attribute_id → dependency flags + type, "+ Add New" ke liye
+    const addAttrValueUrl = "{{ route('admin.products.attribute-values.store') }}";
+
+    function escHtml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function attrAddNewHtml(m) {
+        return `
+    <div class="attr-add-new" data-attribute-id="${m.id}">
+        <button type="button" class="attr-add-toggle"><i class="fa fa-plus"></i> Add New ${escHtml(m.name)}</button>
+        <div class="attr-add-form">
+            <input type="text" class="field-input attr-add-input" placeholder="New ${escHtml(m.name)} value" maxlength="255">
+            ${m.type === 'color_swatch' ? '<input type="color" class="attr-add-hex" value="#000000" title="Pick color">' : ''}
+            <button type="button" class="btn-primary-dash attr-add-save">Add</button>
+            <button type="button" class="btn-secondary-dash attr-add-cancel">Cancel</button>
+        </div>
+        <div class="field-hint attr-add-msg"></div>
+    </div>`;
+    }
+
+    function fitAccordion($acc) {
+        let $body = $acc.find('.attr-accordion-body');
+        if ($acc.hasClass('open')) $body.css('max-height', $body[0].scrollHeight + 'px');
+    }
+
+    function attrAddMsg($box, text, cls) {
+        $box.find('.attr-add-msg').text(text).removeClass('ok err').addClass(cls || '');
+    }
+
+    $(document).on('click', '.attr-add-toggle', function () {
+        let $box = $(this).closest('.attr-add-new');
+        $box.find('.attr-add-form').css('display', 'flex');
+        $(this).hide();
+        $box.find('.attr-add-input').focus();
+        fitAccordion($box.closest('.attr-accordion'));
+    });
+
+    $(document).on('click', '.attr-add-cancel', function () {
+        let $box = $(this).closest('.attr-add-new');
+        $box.find('.attr-add-form').hide();
+        $box.find('.attr-add-toggle').show();
+        $box.find('.attr-add-input').val('');
+        attrAddMsg($box, '');
+    });
+
+    // Enter dabane par poora product form submit na ho
+    $(document).on('keydown', '.attr-add-input', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            $(this).closest('.attr-add-new').find('.attr-add-save').trigger('click');
+        }
+    });
+
+    function attrValueHtml(m, value, checked) {
+        return `
+    <label class="attr-check-item">
+        <input type="checkbox"
+            class="attribute-value"
+            data-attribute-id="${m.id}"
+            data-attribute-name="${escHtml(m.name)}"
+            data-value-name="${escHtml(value.value)}"
+            data-variant="${m.isVariant}"
+            data-price-dependent="${m.price}"
+            data-image-dependent="${m.image}"
+            data-stock-dependent="${m.stock}"
+            data-sku-dependent="${m.sku}"
+            name="attribute_values[${m.id}][]"
+            value="${value.id}" ${checked ? 'checked' : ''}>
+        ${escHtml(value.value)}
+    </label>`;
+    }
+
+    $(document).on('click', '.attr-add-save', function () {
+        let $btn = $(this);
+        let $box = $btn.closest('.attr-add-new');
+        let $acc = $box.closest('.attr-accordion');
+        let attrId = $box.data('attribute-id');
+        let meta = attrMeta[attrId];
+        let val = $.trim($box.find('.attr-add-input').val());
+
+        if (!val) { attrAddMsg($box, 'Please enter a value.', 'err'); return; }
+
+        let payload = { _token: "{{ csrf_token() }}", attribute_id: attrId, value: val };
+        if (meta.type === 'color_swatch') payload.hex_code = $box.find('.attr-add-hex').val();
+
+        $btn.prop('disabled', true);
+
+        $.post(addAttrValueUrl, payload)
+            .done(function (res) {
+                let $list = $acc.find('.attr-values-list');
+                let $existing = $list.find('.attribute-value[value="' + res.id + '"]');
+
+                if ($existing.length) {
+                    $existing.prop('checked', true);   // duplicate: bas select kar do
+                } else {
+                    $list.append(attrValueHtml(meta, res, true));
+                }
+
+                $acc.find('.attr-no-values').remove();
+                $box.find('.attr-add-input').val('').focus();
+                refreshAttrSelectedCount($acc);
+                fitAccordion($acc);
+                attrAddMsg($box, res.existing ? '"' + res.value + '" already exists — selected it.' : '"' + res.value + '" added and selected.', 'ok');
+            })
+            .fail(function (xhr) {
+                let msg = 'Could not add value. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    msg = Object.values(xhr.responseJSON.errors)[0][0];
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                attrAddMsg($box, msg, 'err');
+            })
+            .always(function () { $btn.prop('disabled', false); });
+    });
+
 
     $(document).ready(function () {
         let categoryId = $('#category_id').val();
@@ -1897,6 +2079,18 @@
                     let isVariant = item.used_for_variant ? 1 : 0;
                     let valueCount = (item.attribute.has_values && item.attribute.values) ? item.attribute.values.length : 0;
 
+                    attrMeta[item.attribute.id] = {
+                        id: item.attribute.id,
+                        name: item.attribute.name,
+                        type: item.attribute.type,
+                        isVariant: isVariant,
+                        price: item.price_dependent ? 1 : 0,
+                        image: item.image_dependent ? 1 : 0,
+                        stock: item.stock_dependent ? 1 : 0,
+                        sku: item.sku_dependent ? 1 : 0
+                    };
+                    let m = attrMeta[item.attribute.id];
+
                     // Auto-open an attribute that already has a selected value, so the
                     // admin immediately sees what's driving the existing variants.
                     let hasSelection = item.attribute.has_values && item.attribute.values.some(v => selectedAttributeValues.includes(v.id));
@@ -1914,59 +2108,45 @@
                         </div>
                         <div class="attr-accordion-body">`;
 
-                    if (valueCount > 0) {
-                        html += `<div class="attr-check-wrap">`;
-                        item.attribute.values.forEach(function (value) {
-                            let checked = selectedAttributeValues.includes(value.id) ? 'checked' : '';
-                            html += `
-                            <label class="attr-check-item">
-                                <input type="checkbox"
-                                    class="attribute-value"
-                                    data-attribute-id="${item.attribute.id}"
-                                    data-attribute-name="${item.attribute.name}"
-                                    data-value-name="${value.value}"
-                                    data-variant="${isVariant}"
-                                    data-price-dependent="${item.price_dependent ? 1 : 0}"
-                                    data-image-dependent="${item.image_dependent ? 1 : 0}"
-                                    data-stock-dependent="${item.stock_dependent ? 1 : 0}"
-                                    data-sku-dependent="${item.sku_dependent ? 1 : 0}"
-                                    name="attribute_values[${item.attribute.id}][]"
-                                    value="${value.id}" ${checked}>
-                                ${value.value}
-                            </label>`;
+                    if (item.attribute.has_values) {
+                        html += `<div class="attr-check-wrap attr-values-list">`;
+                        (item.attribute.values || []).forEach(function (value) {
+                            html += attrValueHtml(m, value, selectedAttributeValues.includes(value.id));
                         });
                         html += `</div>`;
+                        if (!valueCount) html += `<div class="field-hint attr-no-values">No values yet — add one below.</div>`;
+                        html += attrAddNewHtml(m);
                     } else {
-                        html += `<div class="field-hint">No values configured for this attribute.</div>`;
+                        html += `<div class="field-hint">This attribute has no selectable values.</div>`;
                     }
 
                     html += `</div></div>`;
                 });
 
-                html += `</div></div>`;
-                $('#attribute-container').html(html);
-                $('#variant-btn-wrapper').show();
+        html += `</div></div>`;
+        $('#attribute-container').html(html);
+        $('#variant-btn-wrapper').show();
 
-                // Expand accordions that were flagged open, and set their max-height.
-                $('.attr-accordion.open').each(function () {
-                    let $body = $(this).find('.attr-accordion-body');
-                    $body.css('max-height', $body[0].scrollHeight + 'px');
-                });
+        // Expand accordions that were flagged open, and set their max-height.
+        $('.attr-accordion.open').each(function () {
+            let $body = $(this).find('.attr-accordion-body');
+            $body.css('max-height', $body[0].scrollHeight + 'px');
+        });
 
-                // Initialize the "N selected" badges.
-                $('.attr-accordion').each(function () { refreshAttrSelectedCount($(this)); });
+        // Initialize the "N selected" badges.
+        $('.attr-accordion').each(function () { refreshAttrSelectedCount($(this)); });
 
-                // On the very first page load, rebuild the saved variant tables from
-                // whatever is already checked (i.e. the product's existing attribute
-                // values), so existing variants show up immediately without needing
-                // to click Generate.
-                if (isInitialLoad) {
-                    renderAllVariantTypes();
-                }
-            } else {
-                $('#attribute-container').html('');
-                $('#variant-btn-wrapper').hide();
-            }
+        // On the very first page load, rebuild the saved variant tables from
+        // whatever is already checked (i.e. the product's existing attribute
+        // values), so existing variants show up immediately without needing
+        // to click Generate.
+        if (isInitialLoad) {
+            renderAllVariantTypes();
+        }
+    } else {
+        $('#attribute-container').html('');
+        $('#variant-btn-wrapper').hide();
+    }
         });
     }
 

@@ -85,7 +85,7 @@ class HomePageController extends Controller
             $this->saveStores($request);
         });
 
-        return redirect()->route('admin.home-page.edit')->with('success', 'Home page updated successfully.');
+        return redirect()->route('admin.home-page.index')->with('success', 'Home page updated successfully.');
     }
 
     /* ───────────────────────── savers ───────────────────────── */

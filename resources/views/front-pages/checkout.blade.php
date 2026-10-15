@@ -1,13 +1,9 @@
 @extends('layouts.app')
 
-@section('title', 'Checkout & Order Confirmation | VANSH IT & COMM')
-@section('meta_description', 'Complete your purchase with secure address entry and online payment or Cash on Delivery.')
-
 @section('content')
 
   @php
     $currency = config('shop.currency', '₹');
-    $freeShipAt = (int) config('shop.free_shipping_threshold', 999);
     $fallback = asset('assets/img/product-1588872657578-7efd1f1555ed.jpg'); // placeholder only
     $money = fn($n) => $currency . number_format((float) $n);
     $items = $cart?->items ?? collect();
@@ -22,12 +18,20 @@
     $lockContact = (bool) $selectedAddress;
 
     // Contact prefill: selected address > logged-in customer
-    $contactName  = old('name',  $selectedAddress->name  ?? $customer->name  ?? '');
+    $contactName = old('name', $selectedAddress->name ?? $customer->name ?? '');
     $contactPhone = old('phone', $selectedAddress->phone ?? $customer->mobile ?? '');
     $contactEmail = old('email', $selectedAddress->email ?? $customer->email ?? '');
 
     $inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white';
     $lockCls = $lockContact ? ' opacity-70 cursor-not-allowed' : '';
+
+    $ship = $cart
+      ? \App\Services\ShippingCalculator::forCart(
+        $cart,
+        max(0, (float) $cart->items->sum('total') - (float) $cart->discount)
+      )
+      : ['known' => false, 'free' => false];
+
   @endphp
 
   <main class="flex-grow py-6 sm:py-10">
@@ -74,9 +78,11 @@
           <form id="checkout-form" class="space-y-4 sm:space-y-6" onsubmit="handlePlaceOrder(event)">
 
             <!-- Contact Section — DYNAMIC -->
-            <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-3 sm:space-y-4">
+            <div
+              class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-3 sm:space-y-4">
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <h3 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider font-heading flex items-center gap-2">
+                <h3
+                  class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider font-heading flex items-center gap-2">
                   <i class="fa-regular fa-user text-blue-600"></i> 1. Contact Information
                 </h3>
                 @if($customer->email)
@@ -99,13 +105,15 @@
                     class="{{ $inputCls }}{{ $lockCls }}" />
                 </div>
                 <div>
-                  <label for="chk-phone" class="block text-xs font-bold text-slate-700 mb-1">Mobile Number (For Courier Updates) *</label>
+                  <label for="chk-phone" class="block text-xs font-bold text-slate-700 mb-1">Mobile Number (For Courier
+                    Updates) *</label>
                   <input type="tel" id="chk-phone" name="phone" required value="{{ $contactPhone }}"
                     placeholder="10-digit mobile" @if($lockContact) readonly @endif
                     class="{{ $inputCls }}{{ $lockCls }}" />
                 </div>
                 <div class="sm:col-span-2">
-                  <label for="chk-email" class="block text-xs font-bold text-slate-700 mb-1">Email Address (For GST Invoice) *</label>
+                  <label for="chk-email" class="block text-xs font-bold text-slate-700 mb-1">Email Address (For GST
+                    Invoice) *</label>
                   <input type="email" id="chk-email" name="email" required value="{{ $contactEmail }}"
                     placeholder="name@example.com" @if($lockContact) readonly @endif
                     class="{{ $inputCls }}{{ $lockCls }}" />
@@ -114,8 +122,10 @@
             </div>
 
             <!-- Delivery Address Section — DYNAMIC (saved addresses + add new) -->
-            <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-3 sm:space-y-4">
-              <h3 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider font-heading flex items-center gap-2">
+            <div
+              class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-3 sm:space-y-4">
+              <h3
+                class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider font-heading flex items-center gap-2">
                 <i class="fa-solid fa-location-dot text-blue-600"></i> 2. Delivery Address
               </h3>
 
@@ -132,18 +142,22 @@
                         <div class="flex items-center gap-1.5 flex-wrap">
                           <span class="font-bold text-slate-900">{{ $addr->name }}</span>
                           @if($addr->address_type)
-                            <span class="text-[10px] uppercase font-bold tracking-wide px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{{ $addr->address_type }}</span>
+                            <span
+                              class="text-[10px] uppercase font-bold tracking-wide px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{{ $addr->address_type }}</span>
                           @endif
                           @if($addr->is_default)
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Default</span>
+                            <span
+                              class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Default</span>
                           @endif
                         </div>
                         <div class="text-slate-600 mt-1 leading-relaxed">
                           {{ $addr->address_line_1 }}@if($addr->address_line_2), {{ $addr->address_line_2 }}@endif<br>
-                          {{ collect([$addr->city?->name, $addr->state?->name])->filter()->implode(', ') }} - {{ $addr->pincode }}
+                          {{ collect([$addr->city?->name, $addr->state?->name])->filter()->implode(', ') }} -
+                          {{ $addr->pincode }}
                         </div>
                         @if($addr->phone)
-                          <div class="text-[11px] text-slate-500 mt-1"><i class="fa-solid fa-phone mr-1"></i>{{ $addr->phone }}</div>
+                          <div class="text-[11px] text-slate-500 mt-1"><i class="fa-solid fa-phone mr-1"></i>{{ $addr->phone }}
+                          </div>
                         @endif
                       </div>
                     </label>
@@ -152,7 +166,8 @@
                   <!-- Add new address card -->
                   <label
                     class="js-address-card p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-400 flex items-center gap-2.5 sm:gap-3 cursor-pointer">
-                    <input type="radio" name="address_id" value="new" onchange="onAddressChange(this)" class="text-blue-600" />
+                    <input type="radio" name="address_id" value="new" onchange="onAddressChange(this)"
+                      class="text-blue-600" />
                     <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                       <i class="fa-solid fa-plus text-blue-600"></i> Add new address
                     </div>
@@ -163,11 +178,14 @@
               <!-- New address form (always visible when the customer has no saved address) -->
               <div id="new-address-form" class="space-y-3 sm:space-y-4 {{ $hasAddresses ? 'hidden' : '' }}">
                 <div>
-                  <label for="new-address-line-1" class="block text-xs font-bold text-slate-700 mb-1">Flat / House No. / Building / Street *</label>
-                  <input type="text" id="new-address-line-1" placeholder="House / Flat / Street address" class="{{ $inputCls }}" />
+                  <label for="new-address-line-1" class="block text-xs font-bold text-slate-700 mb-1">Flat / House No. /
+                    Building / Street *</label>
+                  <input type="text" id="new-address-line-1" placeholder="House / Flat / Street address"
+                    class="{{ $inputCls }}" />
                 </div>
                 <div>
-                  <label for="new-address-line-2" class="block text-xs font-bold text-slate-700 mb-1">Landmark / Area (optional)</label>
+                  <label for="new-address-line-2" class="block text-xs font-bold text-slate-700 mb-1">Landmark / Area
+                    (optional)</label>
                   <input type="text" id="new-address-line-2" placeholder="Near, area, locality" class="{{ $inputCls }}" />
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -188,7 +206,8 @@
                   </div>
                   <div>
                     <label for="new-pincode" class="block text-xs font-bold text-slate-700 mb-1">PIN Code *</label>
-                    <input type="text" id="new-pincode" maxlength="6" inputmode="numeric" placeholder="6-digit PIN" class="{{ $inputCls }}" />
+                    <input type="text" id="new-pincode" maxlength="6" inputmode="numeric" placeholder="6-digit PIN"
+                      class="{{ $inputCls }}" />
                   </div>
                   <div>
                     <label for="new-address-type" class="block text-xs font-bold text-slate-700 mb-1">Address Type</label>
@@ -214,13 +233,16 @@
             </div>
 
             <!-- Payment Method Section -->
-            <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-3 sm:space-y-4">
-              <h3 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider font-heading flex items-center gap-2">
+            <div
+              class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-3 sm:space-y-4">
+              <h3
+                class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider font-heading flex items-center gap-2">
                 <i class="fa-regular fa-credit-card text-blue-600"></i> 3. Payment Method
               </h3>
 
               <div id="payment-methods" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-                <label class="js-pay-card p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-blue-600 bg-blue-50/40 flex items-start gap-2.5 sm:gap-3 cursor-pointer">
+                <label
+                  class="js-pay-card p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-blue-600 bg-blue-50/40 flex items-start gap-2.5 sm:gap-3 cursor-pointer">
                   <input type="radio" name="payment_method" value="razorpay" checked class="mt-1 text-blue-600" />
                   <div>
                     <div class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
@@ -231,7 +253,8 @@
                 </label>
 
                 @if($codEnabled)
-                  <label class="js-pay-card p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-slate-200 hover:border-slate-300 flex items-start gap-2.5 sm:gap-3 cursor-pointer">
+                  <label
+                    class="js-pay-card p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-slate-200 hover:border-slate-300 flex items-start gap-2.5 sm:gap-3 cursor-pointer">
                     <input type="radio" name="payment_method" value="cod" class="mt-1 text-blue-600" />
                     <div>
                       <div class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
@@ -245,7 +268,8 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" class="btn-base btn-primary w-full py-3.5 sm:py-4 text-xs sm:text-sm font-bold justify-center shadow-lg shadow-blue-600/30">
+            <button type="submit"
+              class="btn-base btn-primary w-full py-3.5 sm:py-4 text-xs sm:text-sm font-bold justify-center shadow-lg shadow-blue-600/30">
               <i class="fa-solid fa-lock mr-2"></i> Place Order
             </button>
           </form>
@@ -253,8 +277,10 @@
         </section>
 
         <!-- Right: Order Review (4 Columns) — DYNAMIC -->
-        <aside class="lg:col-span-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-4 sticky top-28">
-          <h3 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider font-heading pb-3 border-b border-slate-100 flex items-center justify-between">
+        <aside
+          class="lg:col-span-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-4 sticky top-28">
+          <h3
+            class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider font-heading pb-3 border-b border-slate-100 flex items-center justify-between">
             <span>Order Review</span>
             <span class="text-[11px] font-normal text-slate-500 lowercase">insured dispatch</span>
           </h3>
@@ -294,7 +320,8 @@
                   @endif
 
                   @foreach($item->addons as $addon)
-                    <div class="text-[11px] text-slate-500 truncate">+ {{ $addon->detail }} ({{ $money($addon->price) }})</div>
+                    <div class="text-[11px] text-slate-500 truncate">+ {{ $addon->detail }} ({{ $money($addon->price) }})
+                    </div>
                   @endforeach
 
                   <div class="text-[11px] text-slate-500">Qty: {{ $item->quantity }} × {{ $money($item->price) }}</div>
@@ -345,16 +372,25 @@
                 @endif
               @endif
 
-              @if($freeShipAt > 0 && $cart->subtotal >= $freeShipAt)
-                <div class="flex items-center justify-between">
-                  <span>Insured Shipping</span>
-                  <span class="font-semibold text-emerald-600" id="chk-shipping">FREE</span>
-                </div>
-              @endif
+              <div class="flex items-center justify-between">
+                <span>Shipping</span>
+                <span id="chk-shipping" class="font-semibold {{ $ship['free'] ? 'text-emerald-600' : 'text-slate-800' }}">
+                  @if(!$ship['known'])
+                    Select an address
+                  @elseif($cart->shipping_charge > 0)
+                    {{ $money($cart->shipping_charge) }}
+                  @elseif($ship['free'])
+                    FREE
+                  @else
+                    {{ $money(0) }}
+                  @endif
+                </span>
+              </div>
 
               <div class="pt-3 border-t border-slate-200 flex items-baseline justify-between text-sm">
                 <span class="font-bold text-slate-900">Grand Total</span>
-                <span class="text-xl sm:text-2xl font-extrabold text-slate-900 font-body" id="chk-total">{{ $money($cart->grand_total) }}</span>
+                <span class="text-xl sm:text-2xl font-extrabold text-slate-900 font-body"
+                  id="chk-total">{{ $money($cart->grand_total) }}</span>
               </div>
             </div>
           @endif

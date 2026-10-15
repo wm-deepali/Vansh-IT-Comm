@@ -548,7 +548,75 @@ class FrontController extends Controller
         $productAttributes = $this->categoryAttributes([$product->category_id, $product->subcategory_id]);
         $listingAttributes = $productAttributes->where('show_on_listing', true)->values();
 
-        return view('front-pages.product-show', compact('product', 'related', 'productAttributes', 'listingAttributes'));
+        // Selectable attributes: used_for_variant AND 2+ values on this product
+        $variantAttributes = $productAttributes
+            ->where('used_for_variant', true)
+            ->map(function ($ca) use ($product) {
+                $values = $product->attributeValues
+                    ->where('attribute_id', $ca->attribute_id)
+                    ->pluck('value')
+                    ->filter()
+                    ->unique('id')
+                    ->sortBy('sort_order')
+                    ->values();
+
+                return ['attribute' => $ca->attribute, 'values' => $values];
+            })
+            ->filter(fn($row) => $row['attribute'] && $row['values']->count() > 1)
+            ->values();
+
+        // Value ids of attributes that are NOT selectors (always part of the selection)
+        $variantAttrIds = $variantAttributes->pluck('attribute.id')->all();
+        $fixedValueIds = $product->attributeValues
+            ->reject(fn($av) => in_array($av->attribute_id, $variantAttrIds))
+            ->pluck('attribute_value_id')
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        // All active variants of this product, flattened for JS
+        $img = fn($path) => $path ? asset('storage/' . $path) : null;
+
+        $variantData = \App\Models\ProductVariant::with(['values', 'images'])
+            ->where('product_id', $product->id)
+            ->where('status', 1)
+            ->get()
+            ->map(function ($v) use ($img) {
+                $images = $v->images
+                    ->sortByDesc('is_default')
+                    ->map(fn($i) => ['full' => $img($i->image), 'thumb' => $img($i->thumb ?? $i->image)])
+                    ->filter(fn($i) => $i['full'])
+                    ->values();
+
+                // fallback: the single "pointer" image column on the variant
+                if ($images->isEmpty() && $v->image) {
+                    $images = collect([['full' => $img($v->image), 'thumb' => $img($v->image)]]);
+                }
+
+                return [
+                    'id' => $v->id,
+                    'type' => $v->type,
+                    'value_ids' => $v->values->pluck('attribute_value_id')->map(fn($i) => (int) $i)->values()->all(),
+                    'price' => (float) $v->price,
+                    'mrp' => (float) $v->mrp,
+                    'stock' => $v->is_available ? (int) $v->stock : 0,
+                    'sku' => $v->sku,
+                    'images' => $images->all(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return view('front-pages.product-show', compact(
+            'product',
+            'related',
+            'productAttributes',
+            'listingAttributes',
+            'variantAttributes',
+            'fixedValueIds',
+            'variantData'
+        ));
     }
 
     public function blogs(Request $request)

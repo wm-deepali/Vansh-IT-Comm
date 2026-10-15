@@ -121,29 +121,29 @@ class EmailTemplateController extends Controller
             '{email}' => $email,
 
             // Store (global)
-            '{store_name}' => 'Oudhyana Chikankaari Store',
-            '{brand_name}' => 'Oudhyana Chikankaari',
-            '{logo_url}' => $appUrl .'/assets/img/logo.png',
-            '{tagline}' => 'Handcrafted, with heart.',
-            '{shop_url}' => $appUrl, 
+            '{store_name}' => 'VANSH IT & COMM',
+            '{brand_name}' => 'VANSH IT & COMM',
+            '{logo_url}' => asset('assets/img/vanshitcomm-logo.png'),
+            '{tagline}' => 'Buy Smart. Upgrade Better.',
+            '{shop_url}' => $appUrl,
             '{login_url}' => $appUrl . '/user/login',
 
             // Support (global)
-            '{support_email}' => 'support@oudhyana.com',
-            '{support_number}' => '+91 0000000000',
+            '{support_email}' => 'support@vanshitcomm.com',   // ← use your real address
+            '{support_number}' => '+91 0000000000',           // ← and your real number
 
             // Order
             '{order_number}' => 'ORD-1089',
             '{order_date}' => '24 Jun 2026',
             '{shipped_date}' => '26 Jun 2026',
             '{delivered_date}' => '28 Jun 2026',
-            '{grand_total}' => '₹3,450',
-            '{item_count}' => '3',
+            '{grand_total}' => '₹5,350',
+            '{item_count}' => '3',,
 
             // Payment
             '{payment_method}' => 'UPI',
             '{payment_status}' => 'Paid',
-            '{payment_amount}' => '₹3,450',
+            '{payment_amount}' => '₹5,350',
             '{transaction_id}' => 'TXN8472910',
 
             // Shipment
@@ -154,7 +154,7 @@ class EmailTemplateController extends Controller
 
             // Cancellation / Refund
             '{cancel_reason}' => 'Out of stock',
-            '{refund_amount}' => '₹3,450',
+            '{refund_amount}' => '₹5,350',
             '{refund_days}' => '5-7',
 
             // Smart HTML blocks

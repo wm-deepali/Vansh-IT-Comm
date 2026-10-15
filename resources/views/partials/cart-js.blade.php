@@ -5,7 +5,14 @@
       url: @json(route('cart.add')),
     };
 
+    // A page (e.g. the product detail page) can define window.getCartExtraPayload()
+    // to send extra fields such as the selected variant. Pages that don't define it
+    // (listing, home) keep sending only product_id.
     async function postAddToCart(productId) {
+      const extra = typeof window.getCartExtraPayload === 'function'
+        ? (window.getCartExtraPayload() || {})
+        : {};
+
       const res = await fetch(CART.url, {
         method: 'POST',
         headers: {
@@ -14,7 +21,7 @@
           'X-CSRF-TOKEN': CART.csrf,
           'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ product_id: productId }),
+        body: JSON.stringify({ ...extra, product_id: productId }),
       });
 
       const data = await res.json().catch(() => ({}));

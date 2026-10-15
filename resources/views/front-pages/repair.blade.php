@@ -21,10 +21,6 @@
   $pick = fn ($key) => $palette[$key] ?? $palette['blue'];
 @endphp
 
-@section('title', $page->meta_title ?: 'Repair Services' . ($siteName ? ' | ' . $siteName : ''))
-@if($page->meta_description)
-  @section('meta_description', $page->meta_description)
-@endif
 
 @section('content')
 

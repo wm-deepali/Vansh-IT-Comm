@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', ($activePage->meta_title ?: $activePage->heading) . ' | VANSH IT & COMM')
-@section('meta_description', $activePage->meta_description ?: 'Read our Terms of Service, Privacy Policy, Refunds & Cancellation Policy, Cookies Policy, and Warranty Guidelines.')
+@section('title', $activePage->heading . ' | VANSH IT & COMM')
+@section('meta_description', $activePage->summary)
 
 @push('styles')
   <style>
@@ -52,6 +52,29 @@
       'bg-rose-50 text-rose-700 border-rose-200',
     ];
   @endphp
+
+    @php
+    $policyUrl = route('policies') . '?tab=' . urlencode($activePage->page_name);
+
+    $policySchema = [
+      '@context' => 'https://schema.org',
+      '@type' => 'WebPage',
+      'name' => $activePage->meta_title ?: $activePage->heading,
+      'description' => $activePage->meta_description ?: $activePage->summary,
+      'url' => $policyUrl,
+      'dateModified' => optional($activePage->updated_at)->toIso8601String(),
+      'isPartOf' => ['@type' => 'WebSite', 'name' => 'VANSH IT & COMM', 'url' => url('/')],
+    ];
+  @endphp
+
+  @push('schema')
+    @include('partials.json-ld', ['data' => $policySchema])
+  @endpush
+
+  @include('partials.breadcrumbs', ['visible' => false, 'crumbs' => [
+    ['name' => 'Home', 'url' => route('home')],
+    ['name' => $activePage->heading, 'url' => $policyUrl],
+  ]])
 
   <main class="flex-grow py-6 sm:py-10">
     <div class="container-custom">

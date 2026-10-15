@@ -138,7 +138,6 @@
                                 <th>ID</th>
                                 <th>Logo</th>
                                 <th>Brand Name</th>
-                                <th>Categories</th>
                                 <th>Status</th>
                                 <th style="width:90px">Actions</th>
                             </tr>
@@ -162,17 +161,7 @@
                                     <td>
                                         <span class="brand-name">{{ $brand->name }}</span>
                                     </td>
-
-                                    <td>
-                                        <div class="cat-tags">
-                                            @forelse($brand->categories as $category)
-                                                <span class="cat-tag">{{ $category->name }}</span>
-                                            @empty
-                                                <span class="cat-tag-empty">No categories</span>
-                                            @endforelse
-                                        </div>
-                                    </td>
-
+                                    
                                     <td>
                                         @if($brand->status)
                                             <span class="pill pill-active">Active</span>

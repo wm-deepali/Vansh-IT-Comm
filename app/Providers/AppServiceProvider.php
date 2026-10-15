@@ -18,9 +18,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        require_once app_path('Helpers/seo.php');
     }
-
     /**
      * Bootstrap any application services.
      */
@@ -48,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
                 : Cart::where('session_id', session()->getId())->first();
 
             $view->with([
-                'cartCount'     => $cart ? (int) $cart->items()->sum('quantity') : 0,
+                'cartCount' => $cart ? (int) $cart->items()->sum('quantity') : 0,
                 'announcements' => Announcement::where('status', 1)
                     ->orderBy('id')
                     ->limit(4)

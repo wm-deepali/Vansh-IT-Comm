@@ -1,8 +1,5 @@
 @extends('layouts.app')
 
-@section('title', 'Tech Insights & Buying Guides | VANSH IT & COMM Blog')
-@section('meta_description', 'Expert advice on refurbished laptops, second-hand phone inspection, RAM vs SSD upgrades, and hardware repair tips.')
-
 @section('content')
 
   <main class="flex-grow py-6 sm:py-10">

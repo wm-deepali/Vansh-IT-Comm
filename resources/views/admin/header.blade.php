@@ -60,7 +60,6 @@
                 <li><a href="{{ route('admin.attribute-values.index') }}">Attribute Values</a></li>
                 <li><a href="{{ route('admin.category-attributes.index') }}">Attribute Mapping</a></li>
                 <li><a href="{{ route('admin.brands.index') }}">Brands</a></li>
-                <li><a href="#">Manage Special</a></li>
                 <li><a href="{{ route('admin.collections.index') }}">Manage Selections</a></li>
             </ul>
         </li>
@@ -194,6 +193,11 @@
 
                 <li><a href="{{ route('admin.admin-setting.index', ['tab' => 'general']) }}">General Setting</a></li>
                 <li><a href="{{ route('admin.admin-setting.index', ['tab' => 'payment']) }}">Payment Gateway</a></li>
+                <li>
+                    <a href="{{ route('admin.admin-setting.index', ['tab' => 'shipping']) }}">
+                        Shipping Charges
+                    </a>
+                </li>
                 <li><a href="{{ route('admin.admin-setting.index', ['tab' => 'smtp']) }}">SMTP</a></li>
                 <li>
                     <a href="{{ route('admin.settings.email-templates.index') }}">
