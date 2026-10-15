@@ -115,7 +115,6 @@
         border-color: var(--accent); box-shadow: 0 0 0 3px rgba(48,61,137,.12);
     }
     .field-hint { font-size: 11.5px; color: var(--text-hint); margin-top: 4px; }
-    .field-error { font-size: 11.5px; color: var(--red); margin-top: 4px; }
 
     /* ── Slug prefix ── */
     .slug-wrap { display: flex; }
@@ -129,15 +128,13 @@
 
     /* ── Image card ── */
     .current-image-label { font-size: 11px; font-weight: 600; color: var(--text-hint); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
-    .current-image-thumb { width: 100%; max-height: 180px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); display: block; transition: opacity .15s; }
-    .current-author-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 50%; border: 1px solid var(--border); display: block; transition: opacity .15s; }
+    .current-image-thumb { width: 100%; max-height: 180px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); display: block; }
 
     .upload-area {
         border: 2px dashed var(--border); border-radius: var(--radius-sm);
         padding: 20px; text-align: center; cursor: pointer;
         transition: border-color .15s, background .15s; position: relative;
     }
-    .upload-area.sm { padding: 14px 12px; }
     .upload-area:hover { border-color: var(--accent); background: var(--accent-light); }
     .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
     .upload-icon  { font-size: 20px; color: var(--text-hint); margin-bottom: 6px; }
@@ -145,7 +142,6 @@
     .upload-sub   { font-size: 11.5px; color: var(--text-hint); }
     .new-preview  { display: none; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
     .new-preview img { width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-    .new-preview.round img { border-radius: 50%; }
     .new-preview span { font-size: 11.5px; color: var(--text-hint); }
 
     /* ── Toggle rows ── */
@@ -229,8 +225,7 @@
                                 <div class="field-group">
                                     <label class="field-label">Title <span class="req">*</span></label>
                                     <input type="text" name="title" id="title" class="field-input"
-                                           value="{{ old('title', $blog->title) }}" required>
-                                    @error('title') <div class="field-error">{{ $message }}</div> @enderror
+                                           value="{{ $blog->title }}" required>
                                 </div>
 
                                 <div class="field-group">
@@ -238,33 +233,14 @@
                                     <div class="slug-wrap">
                                         <span class="slug-prefix">blog/</span>
                                         <input type="text" name="slug" id="slug" class="field-input"
-                                               value="{{ old('slug', $blog->slug) }}">
+                                               value="{{ $blog->slug }}">
                                     </div>
-                                    <div class="field-hint">Changing the slug changes this blog's URL. Leave it as is to keep existing links working.</div>
-                                    @error('slug') <div class="field-error">{{ $message }}</div> @enderror
+                                    <div class="field-hint">Auto-generated from title. You can edit manually.</div>
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Short Description</label>
-                                    <textarea name="short_description" class="field-textarea" rows="3">{{ old('short_description', $blog->short_description) }}</textarea>
-                                </div>
-
-                                <div class="field-group">
-                                    <label class="field-label">Tags</label>
-                                    <input type="text" name="tags" class="field-input"
-                                           value="{{ old('tags', implode(', ', $blog->tags ?? [])) }}"
-                                           placeholder="e.g. Refurbished Laptops, Buying Guide, Warranty">
-                                    <div class="field-hint">Separate multiple tags with commas. The first tag shows as the badge on blog cards.</div>
-                                    @error('tags') <div class="field-error">{{ $message }}</div> @enderror
-                                </div>
-
-                                <div class="field-group">
-                                    <label class="field-label">Read Time (minutes)</label>
-                                    <input type="number" name="read_time" class="field-input" min="1" max="120"
-                                           value="{{ old('read_time', $blog->read_time) }}"
-                                           placeholder="Leave empty to auto-calculate">
-                                    <div class="field-hint">Optional. If empty, it's calculated from the content length.</div>
-                                    @error('read_time') <div class="field-error">{{ $message }}</div> @enderror
+                                    <textarea name="short_description" class="field-textarea" rows="3">{{ $blog->short_description }}</textarea>
                                 </div>
 
                             </div>
@@ -275,9 +251,8 @@
                             <div class="section-card-header"><h5>Content <span style="color:var(--red);font-size:12px">*</span></h5></div>
                             <div class="section-card-body">
                                 <div class="field-group">
-                                    <textarea name="content" id="content" class="field-textarea" rows="12"
-                                              style="min-height:280px" required>{{ old('content', $blog->content) }}</textarea>
-                                    @error('content') <div class="field-error">{{ $message }}</div> @enderror
+                                    <textarea name="content" class="field-textarea" rows="12"
+                                              style="min-height:280px" required>{{ $blog->content }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -287,7 +262,7 @@
                     <!-- ── RIGHT column ── -->
                     <div>
 
-                        <!-- Featured image -->
+                        <!-- Image card -->
                         <div class="section-card">
                             <div class="section-card-header"><h5>Featured Image</h5></div>
                             <div class="section-card-body">
@@ -315,78 +290,33 @@
                                     <img id="newPreviewImg" src="" alt="New image">
                                     <span id="newPreviewName"></span>
                                 </div>
-                                @error('image') <div class="field-error">{{ $message }}</div> @enderror
 
                             </div>
                         </div>
 
-                        <!-- Author -->
                         <div class="section-card">
-                            <div class="section-card-header"><h5>Author</h5></div>
-                            <div class="section-card-body">
+    <div class="section-card-header">
+        <h5>SEO Settings</h5>
+    </div>
+    <div class="section-card-body">
 
-                                <div class="field-group">
-                                    <label class="field-label">Author Name</label>
-                                    <input type="text" name="author_name" class="field-input"
-                                           value="{{ old('author_name', $blog->author_name) }}"
-                                           placeholder="e.g. Vansh Sharma">
-                                </div>
+        <div class="field-group">
+            <label class="field-label">Meta Title</label>
+            <input type="text"
+                   name="meta_title"
+                   class="field-input"
+                   value="{{ old('meta_title', $blog->meta_title) }}">
+        </div>
 
-                                <div class="field-group">
-                                    <label class="field-label">Author Role</label>
-                                    <input type="text" name="author_role" class="field-input"
-                                           value="{{ old('author_role', $blog->author_role) }}"
-                                           placeholder="e.g. Hardware Diagnostic Lead">
-                                </div>
+        <div class="field-group">
+            <label class="field-label">Meta Description</label>
+            <textarea name="meta_description"
+                      class="field-textarea"
+                      rows="4">{{ old('meta_description', $blog->meta_description) }}</textarea>
+        </div>
 
-                                <div class="field-group">
-                                    <label class="field-label">Author Photo</label>
-
-                                    @if($blog->author_image)
-                                        <div style="margin-bottom:10px">
-                                            <div class="current-image-label">Current Photo</div>
-                                            <img src="{{ asset('uploads/blog-authors/' . $blog->author_image) }}"
-                                                 class="current-author-thumb"
-                                                 id="currentAuthorThumb"
-                                                 alt="{{ $blog->author_name }}">
-                                        </div>
-                                    @endif
-
-                                    <div class="upload-area sm">
-                                        <input type="file" name="author_image" id="authorImageInput" accept="image/*">
-                                        <div class="upload-sub">{{ $blog->author_image ? 'Replace photo' : 'Click to upload · square image works best' }}</div>
-                                    </div>
-
-                                    <div class="new-preview round" id="authorNewPreview">
-                                        <img id="authorNewPreviewImg" src="" alt="New author photo">
-                                        <span id="authorNewPreviewName"></span>
-                                    </div>
-                                    @error('author_image') <div class="field-error">{{ $message }}</div> @enderror
-                                    <div class="field-hint">Optional. If empty, the default author details are used on the site.</div>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <!-- SEO -->
-                        <div class="section-card">
-                            <div class="section-card-header"><h5>SEO Settings</h5></div>
-                            <div class="section-card-body">
-
-                                <div class="field-group">
-                                    <label class="field-label">Meta Title</label>
-                                    <input type="text" name="meta_title" class="field-input"
-                                           value="{{ old('meta_title', $blog->meta_title) }}">
-                                </div>
-
-                                <div class="field-group">
-                                    <label class="field-label">Meta Description</label>
-                                    <textarea name="meta_description" class="field-textarea"
-                                              rows="4">{{ old('meta_description', $blog->meta_description) }}</textarea>
-                                </div>
-
-                            </div>
-                        </div>
+    </div>
+</div>
 
                         <!-- Settings -->
                         <div class="section-card">
@@ -400,7 +330,7 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" name="status" id="status"
-                                               {{ old('_token') ? (old('status') ? 'checked' : '') : ($blog->status ? 'checked' : '') }}>
+                                               {{ $blog->status ? 'checked' : '' }}>
                                         <span class="toggle-track"></span>
                                     </label>
                                 </div>
@@ -412,7 +342,7 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" name="show_home" id="show_home"
-                                               {{ old('_token') ? (old('show_home') ? 'checked' : '') : ($blog->show_home ? 'checked' : '') }}>
+                                               {{ $blog->show_home ? 'checked' : '' }}>
                                         <span class="toggle-track"></span>
                                     </label>
                                 </div>
@@ -422,6 +352,8 @@
 
                     </div>
                 </div>
+
+
 
                 <!-- Action bar -->
                 <div class="action-bar">
@@ -440,28 +372,30 @@
 @include('admin.footer')
 
 <script>
-// Note: slug is NOT auto-synced from the title on edit, so existing blog URLs don't change by accident.
+// Slug auto-generate from title
+document.getElementById('title').addEventListener('keyup', function () {
+    document.getElementById('slug').value = this.value
+        .toLowerCase()
+        .replace(/ /g, '-')
+        .replace(/[^\w-]+/g, '');
+});
 
-// Reusable "new image" preview
-function bindPreview(inputId, imgId, nameId, previewId, currentThumbId) {
-    document.getElementById(inputId).addEventListener('change', function () {
-        const file = this.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            document.getElementById(imgId).src = e.target.result;
-            document.getElementById(nameId).textContent = file.name;
-            // Fade current thumb to show it will be replaced
-            const cur = document.getElementById(currentThumbId);
-            if (cur) cur.style.opacity = '.4';
-            document.getElementById(previewId).style.display = 'flex';
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-bindPreview('imageInput', 'newPreviewImg', 'newPreviewName', 'newPreview', 'currentThumb');
-bindPreview('authorImageInput', 'authorNewPreviewImg', 'authorNewPreviewName', 'authorNewPreview', 'currentAuthorThumb');
+// New image preview
+document.getElementById('imageInput').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('newPreviewImg').src = e.target.result;
+        document.getElementById('newPreviewName').textContent = file.name;
+        // Fade current thumb to show it will be replaced
+        const cur = document.getElementById('currentThumb');
+        if (cur) cur.style.opacity = '.4';
+        const prev = document.getElementById('newPreview');
+        prev.style.display = 'flex';
+    };
+    reader.readAsDataURL(file);
+});
 
 // Submit spinner
 document.getElementById('blogForm').addEventListener('submit', function () {
