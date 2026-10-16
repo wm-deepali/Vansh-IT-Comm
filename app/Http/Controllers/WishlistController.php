@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Wishlist;
 use Illuminate\Http\Request;
 use App\Models\CategoryAttribute;
+use App\Services\Tracking\PixelTracker;
 
 class WishlistController extends Controller
 {
@@ -71,6 +72,7 @@ class WishlistController extends Controller
             'message' => $message,
             'wishlisted' => $wishlisted,
             'wishlist_count' => Wishlist::current()->count(),
+            'tracking_events' => $wishlisted ? PixelTracker::addToWishlist($product) : null,
         ]);
     }
 }

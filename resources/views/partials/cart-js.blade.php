@@ -28,6 +28,10 @@
       if (!res.ok || data.status === false) {
         throw new Error(data.message || 'Could not add this product to the cart.');
       }
+
+      // fire here so both "Add to cart" and "Buy now" are tracked
+      if (window.fireTrackingEvents) fireTrackingEvents(data.tracking_events);
+
       return data;
     }
 
@@ -36,7 +40,7 @@
       try {
         const data = await postAddToCart(productId);
         syncHeaderCart(data);
-        if (window.fireTrackingEvents) fireTrackingEvents(data.tracking_events);
+        // no fireTrackingEvents here anymore, otherwise it fires twice
         toast(data.message, 'success');
         if (data.coupon_removed && data.coupon_message) toast(data.coupon_message, 'info');
       } catch (err) {

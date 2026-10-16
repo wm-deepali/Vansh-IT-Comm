@@ -608,6 +608,8 @@ class FrontController extends Controller
             ->values()
             ->all();
 
+        $viewItemScript = \App\Services\Tracking\PixelTracker::viewItemScript($product);
+
         return view('front-pages.product-show', compact(
             'product',
             'related',
@@ -615,7 +617,8 @@ class FrontController extends Controller
             'listingAttributes',
             'variantAttributes',
             'fixedValueIds',
-            'variantData'
+            'variantData',
+            'viewItemScript'
         ));
     }
 

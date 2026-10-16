@@ -37,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $view->with('general', $general);
+            $view->with('googleSetting', \App\Models\GoogleSetting::first());
         });
 
 

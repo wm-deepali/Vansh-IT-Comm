@@ -59,6 +59,7 @@
         ];
     }
 @endphp
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -107,10 +108,16 @@
     </script>
 
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" />
+
     @stack('styles')
+
+    @include('layouts.tracking-head')
+
 </head>
 
 <body class="bg-[#F8FAFC] text-[#0F172A] flex flex-col min-h-screen">
+
+    @include('layouts.tracking-body-top')
 
     <div id="site-header">
         @include('partials.header', ['activePage' => $activePage])
@@ -125,13 +132,34 @@
     <script>
         window.ASSET_BASE = "{{ asset('assets') }}";
         window.SITE_URL = "{{ url('/') }}";
+        function fireTrackingEvents(events) {
+            if (!events) return;
+
+            if (events.ga4 && typeof gtag === 'function') {
+                gtag('event', events.ga4.name, events.ga4.params);
+            }
+
+            if (events.meta && typeof fbq === 'function') {
+                fbq('track', events.meta.name, events.meta.params);
+            }
+        }
     </script>
+    @if (session('fire_login_event'))
+        <script>fireTrackingEvents(@json(\App\Services\Tracking\PixelTracker::loginEvent()));</script>
+    @endif
+
+    @if (session('fire_signup_event'))
+        <script>fireTrackingEvents(@json(\App\Services\Tracking\PixelTracker::signUpEvent(session('fire_signup_event'))));</script>
+    @endif
     <script src="{{ asset('assets/js/data.js') }}"></script>
     <script src="{{ asset('assets/js/wishlist.js') }}"></script>
     <script src="{{ asset('assets/js/products.js') }}"></script>
     <script src="{{ asset('assets/js/app.js') }}"></script>
 
     @stack('scripts')
+
+    @include('layouts.tracking-body-bottom')
+
 </body>
 
 </html>

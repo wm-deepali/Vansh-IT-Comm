@@ -78,7 +78,8 @@
                     {{ $money($freeShipAt) }}.
                   </p>
                   <div style="margin-top:8px;height:6px;background:#dbeafe;border-radius:9999px;overflow:hidden">
-                    <div id="shipping-progress-bar" style="height:100%;width:0%;background:#2563eb;border-radius:9999px;transition:width .3s"></div>
+                    <div id="shipping-progress-bar"
+                      style="height:100%;width:0%;background:#2563eb;border-radius:9999px;transition:width .3s"></div>
                   </div>
                 </div>
               </div>
@@ -330,7 +331,7 @@
           $('summary-coupon-discount').textContent = '- ' + money(s.discount);
           tag.className = 'mt-2 text-xs flex items-center justify-between p-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200 font-bold';
           tag.innerHTML = `<span><i class="fa-solid fa-tag mr-1"></i> ${s.coupon_code} Applied</span>
-                      <button type="button" onclick="handleRemoveCoupon()" class="text-red-500 hover:underline font-normal text-[11px]">&times; Remove</button>`;
+                          <button type="button" onclick="handleRemoveCoupon()" class="text-red-500 hover:underline font-normal text-[11px]">&times; Remove</button>`;
         } else {
           row.classList.add('hidden');
           tag.className = 'hidden';
@@ -401,9 +402,17 @@
         try {
           const data = await api(CART.routes.remove, {}, itemId);
           syncHeader(data);
+
+          // fire remove_from_cart (GA4 / Meta) before anything can reload the page
+          if (window.fireTrackingEvents) fireTrackingEvents(data.tracking_events);
+
           if (data.coupon_removed && data.coupon_message) toast(data.coupon_message, 'info');
 
-          if (data.summary.count === 0) { location.reload(); return; }
+          if (data.summary.count === 0) {
+            // small delay so the beacon request gets out before the reload
+            setTimeout(() => location.reload(), 300);
+            return;
+          }
 
           const row = document.querySelector(`.cart-row[data-item-id="${itemId}"]`);
           if (row) row.remove();

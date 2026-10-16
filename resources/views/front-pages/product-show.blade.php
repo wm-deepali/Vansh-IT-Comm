@@ -713,320 +713,301 @@
   @include('partials.cart-js')
   @include('partials.wishlist-js')
   <script>
-    const PAGE = {
-      productId: @json($product->id),
-      deliveryTime: @json($product->delivery_time),
-      phoneCode: @json($phoneCode),
-      checkoutUrl: @json(route('checkout')),
-      pincodeUrl: @json(route('pincode.check')),
-    };
 
-    // ==========================================
-    // VARIANT SELECTION + RESOLUTION
-    // ==========================================
-    const VARIANTS = @json($variantData);
-    const FIXED_VALUE_IDS = @json($fixedValueIds);
-    const BASE = {
-      price: @json((float) $product->price),
-      mrp: @json((float) $product->mrp),
-      sku: @json($product->sku),
-      stock: @json((int) $product->stock),
-      currency: @json($currency),
-      lowStock: @json((int) config('shop.low_stock', 5)),
-    };
-    const byId = id => document.getElementById(id);
-    const fmt = n => BASE.currency + Math.round(n).toLocaleString('en-US');
-    const ORIG = { ready: false, imageVariantId: undefined };
+    @if(!empty($viewItemScript))
+          < script >
+          {!! $viewItemScript !!}
+      </script>
+    @endif
 
-    // { attributeId: attributeValueId } for the selectors on the page
-    window.getSelectedVariant = function () {
-      const selected = {};
-      document.querySelectorAll('#variant-options input[type=radio]:checked').forEach(r => {
-        selected[r.name.match(/\[(\d+)\]/)[1]] = parseInt(r.value, 10);
+  const PAGE = {
+  productId: @json($product->id),
+  deliveryTime: @json($product->delivery_time),
+  phoneCode: @json($phoneCode),
+  checkoutUrl: @json(route('checkout')),
+  pincodeUrl: @json(route('pincode.check')),
+  };
+
+  // ==========================================
+  // VARIANT SELECTION + RESOLUTION
+  // ==========================================
+  const VARIANTS = @json($variantData);
+  const FIXED_VALUE_IDS = @json($fixedValueIds);
+  const BASE = {
+  price: @json((float) $product->price),
+  mrp: @json((float) $product->mrp),
+  sku: @json($product->sku),
+  stock: @json((int) $product->stock),
+  currency: @json($currency),
+  lowStock: @json((int) config('shop.low_stock', 5)),
+  };
+  const byId = id => document.getElementById(id);
+  const fmt = n => BASE.currency + Math.round(n).toLocaleString('en-US');
+  const ORIG = { ready: false, imageVariantId: undefined };
+
+  // { attributeId: attributeValueId } for the selectors on the page
+  window.getSelectedVariant = function () {
+  const selected = {};
+  document.querySelectorAll('#variant-options input[type=radio]:checked').forEach(r => {
+  selected[r.name.match(/\[(\d+)\]/)[1]] = parseInt(r.value, 10);
+  });
+  return selected;
+  };
+
+  function selectedValueIds() {
+  const ids = new Set(FIXED_VALUE_IDS);
+  Object.values(window.getSelectedVariant()).forEach(v => ids.add(v));
+  return ids;
+  }
+
+  // A variant matches if ALL its values are selected; most specific match wins
+  function resolveVariant(type, ids) {
+  let best = null;
+  VARIANTS.forEach(v => {
+  if (v.type !== type || !v.value_ids.length) return;
+  if (!v.value_ids.every(id => ids.has(id))) return;
+  if (!best || v.value_ids.length > best.value_ids.length) best = v;
+  });
+  return best;
+  }
+
+  // For the cart: matches cart_items.price_variant_id / image_variant_id / stock_variant_id / sku_variant_id
+  window.getResolvedVariants = function () {
+  const ids = selectedValueIds();
+  const get = t => (resolveVariant(t, ids) || {}).id ?? null;
+  return {
+  price_variant_id: get('price'),
+  image_variant_id: get('image'),
+  stock_variant_id: get('stock'),
+  sku_variant_id: get('sku'),
+  };
+  };
+
+  // Read by partials.cart-js on every Add to Cart / Buy Now from this page
+  window.getCartExtraPayload = function () {
+  return {
+  ...window.getResolvedVariants(), // price_variant_id, image_variant_id, stock_variant_id, sku_variant_id
+  selected_values: Object.values(window.getSelectedVariant()), // value ids the customer picked
+  };
+  };
+
+  function applyVariant() {
+  if (!VARIANTS.length) return; // product has no variants: leave the page untouched
+
+  const ids = selectedValueIds();
+  const pv = resolveVariant('price', ids);
+  const iv = resolveVariant('image', ids);
+  const sv = resolveVariant('stock', ids);
+  const kv = resolveVariant('sku', ids);
+
+  // ── Price ──
+  const usePrice = pv && pv.price > 0;
+  const price = usePrice ? pv.price : BASE.price;
+  const mrp = usePrice ? pv.mrp : BASE.mrp;
+  const pct = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+
+  byId('prod-price').textContent = fmt(price);
+  const mrpEl = byId('prod-mrp'), pctEl = byId('prod-discount');
+  if (mrpEl && pctEl) {
+  mrpEl.textContent = pct ? fmt(mrp) : '';
+  pctEl.textContent = pct ? pct + '% OFF' : '';
+  mrpEl.classList.toggle('hidden', !pct);
+  pctEl.classList.toggle('hidden', !pct);
+  }
+  const drawerPrice = byId('drawer-prod-price');
+  if (drawerPrice) drawerPrice.textContent = fmt(price);
+
+  // ── SKU ──
+  const skuEl = byId('prod-sku');
+  if (skuEl) {
+  const sku = kv && kv.sku ? kv.sku : BASE.sku;
+  byId('prod-sku-value').textContent = sku || '';
+  skuEl.classList.toggle('hidden', !sku);
+  }
+
+  // ── Stock ──
+  const stock = sv ? sv.stock : BASE.stock;
+  const stockEl = byId('prod-stock');
+  if (stockEl) {
+  stockEl.className = 'text-[11px] sm:text-xs font-semibold mt-1.5 ' +
+  (stock <= 0 ? 'text-red-600' : stock <=BASE.lowStock ? 'text-amber-600' : 'text-emerald-600' );
+    stockEl.textContent=stock <=0 ? 'Out of stock' : stock <=BASE.lowStock ? `Only ${stock} left in stock` : 'In stock' ;
+    } ['prod-add-cart-btn', 'prod-buy-now-btn' ].forEach(id=> {
+    const b = byId(id);
+    if (!b) return;
+    if (!b.dataset.label) b.dataset.label = b.innerHTML;
+    const out = stock <= 0; b.disabled=out; b.classList.toggle('opacity-50', out);
+      b.classList.toggle('cursor-not-allowed', out); b.innerHTML=out ? '<i class="fa-solid fa-ban"></i> Out of Stock' :
+      b.dataset.label; }); // ── Images (only re-render when the matched image variant changes) ── const
+      mainEl=byId('main-product-image'); const thumbs=byId('prod-thumbnails-container'); if (!ORIG.ready) {
+      ORIG.main=mainEl.getAttribute('src'); ORIG.thumbs=thumbs ? thumbs.innerHTML : '' ; ORIG.thumbsHidden=thumbs ?
+      thumbs.classList.contains('hidden') : true; ORIG.ready=true; } const imageId=iv && iv.images.length ? iv.id : null;
+      if (imageId !==ORIG.imageVariantId) { ORIG.imageVariantId=imageId; const drawerImg=byId('drawer-prod-img'); if
+      (imageId) { mainEl.src=iv.images[0].full; if (drawerImg) drawerImg.src=iv.images[0].full; if (thumbs) {
+      thumbs.innerHTML='' ; iv.images.forEach((g, i)=> {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'prod-thumb w-14 h-14 rounded-xl overflow-hidden border-2 bg-white p-1 flex-shrink-0 transition-all '
+      +
+      (i === 0 ? 'border-blue-600' : 'border-slate-200 hover:border-blue-400');
+      b.onclick = () => setMainImage(g.full, b);
+      const im = document.createElement('img');
+      im.src = g.thumb || g.full;
+      im.className = 'w-full h-full object-contain';
+      b.appendChild(im);
+      thumbs.appendChild(b);
       });
-      return selected;
-    };
-
-    function selectedValueIds() {
-      const ids = new Set(FIXED_VALUE_IDS);
-      Object.values(window.getSelectedVariant()).forEach(v => ids.add(v));
-      return ids;
-    }
-
-    // A variant matches if ALL its values are selected; most specific match wins
-    function resolveVariant(type, ids) {
-      let best = null;
-      VARIANTS.forEach(v => {
-        if (v.type !== type || !v.value_ids.length) return;
-        if (!v.value_ids.every(id => ids.has(id))) return;
-        if (!best || v.value_ids.length > best.value_ids.length) best = v;
-      });
-      return best;
-    }
-
-    // For the cart: matches cart_items.price_variant_id / image_variant_id / stock_variant_id / sku_variant_id
-    window.getResolvedVariants = function () {
-      const ids = selectedValueIds();
-      const get = t => (resolveVariant(t, ids) || {}).id ?? null;
-      return {
-        price_variant_id: get('price'),
-        image_variant_id: get('image'),
-        stock_variant_id: get('stock'),
-        sku_variant_id: get('sku'),
-      };
-    };
-
-    // Read by partials.cart-js on every Add to Cart / Buy Now from this page
-    window.getCartExtraPayload = function () {
-      return {
-        ...window.getResolvedVariants(),   // price_variant_id, image_variant_id, stock_variant_id, sku_variant_id
-        selected_values: Object.values(window.getSelectedVariant()),   // value ids the customer picked
-      };
-    };
-
-    function applyVariant() {
-      if (!VARIANTS.length) return;   // product has no variants: leave the page untouched
-
-      const ids = selectedValueIds();
-      const pv = resolveVariant('price', ids);
-      const iv = resolveVariant('image', ids);
-      const sv = resolveVariant('stock', ids);
-      const kv = resolveVariant('sku', ids);
-
-      // ── Price ──
-      const usePrice = pv && pv.price > 0;
-      const price = usePrice ? pv.price : BASE.price;
-      const mrp = usePrice ? pv.mrp : BASE.mrp;
-      const pct = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
-
-      byId('prod-price').textContent = fmt(price);
-      const mrpEl = byId('prod-mrp'), pctEl = byId('prod-discount');
-      if (mrpEl && pctEl) {
-        mrpEl.textContent = pct ? fmt(mrp) : '';
-        pctEl.textContent = pct ? pct + '% OFF' : '';
-        mrpEl.classList.toggle('hidden', !pct);
-        pctEl.classList.toggle('hidden', !pct);
-      }
-      const drawerPrice = byId('drawer-prod-price');
-      if (drawerPrice) drawerPrice.textContent = fmt(price);
-
-      // ── SKU ──
-      const skuEl = byId('prod-sku');
-      if (skuEl) {
-        const sku = kv && kv.sku ? kv.sku : BASE.sku;
-        byId('prod-sku-value').textContent = sku || '';
-        skuEl.classList.toggle('hidden', !sku);
-      }
-
-      // ── Stock ──
-      const stock = sv ? sv.stock : BASE.stock;
-      const stockEl = byId('prod-stock');
-      if (stockEl) {
-        stockEl.className = 'text-[11px] sm:text-xs font-semibold mt-1.5 ' +
-          (stock <= 0 ? 'text-red-600' : stock <= BASE.lowStock ? 'text-amber-600' : 'text-emerald-600');
-        stockEl.textContent = stock <= 0 ? 'Out of stock'
-          : stock <= BASE.lowStock ? `Only ${stock} left in stock` : 'In stock';
-      }
-      ['prod-add-cart-btn', 'prod-buy-now-btn'].forEach(id => {
-        const b = byId(id);
-        if (!b) return;
-        if (!b.dataset.label) b.dataset.label = b.innerHTML;
-        const out = stock <= 0;
-        b.disabled = out;
-        b.classList.toggle('opacity-50', out);
-        b.classList.toggle('cursor-not-allowed', out);
-        b.innerHTML = out ? '<i class="fa-solid fa-ban"></i> Out of Stock' : b.dataset.label;
-      });
-
-      // ── Images (only re-render when the matched image variant changes) ──
-      const mainEl = byId('main-product-image');
-      const thumbs = byId('prod-thumbnails-container');
-      if (!ORIG.ready) {
-        ORIG.main = mainEl.getAttribute('src');
-        ORIG.thumbs = thumbs ? thumbs.innerHTML : '';
-        ORIG.thumbsHidden = thumbs ? thumbs.classList.contains('hidden') : true;
-        ORIG.ready = true;
-      }
-      const imageId = iv && iv.images.length ? iv.id : null;
-      if (imageId !== ORIG.imageVariantId) {
-        ORIG.imageVariantId = imageId;
-        const drawerImg = byId('drawer-prod-img');
-
-        if (imageId) {
-          mainEl.src = iv.images[0].full;
-          if (drawerImg) drawerImg.src = iv.images[0].full;
-          if (thumbs) {
-            thumbs.innerHTML = '';
-            iv.images.forEach((g, i) => {
-              const b = document.createElement('button');
-              b.type = 'button';
-              b.className = 'prod-thumb w-14 h-14 rounded-xl overflow-hidden border-2 bg-white p-1 flex-shrink-0 transition-all ' +
-                (i === 0 ? 'border-blue-600' : 'border-slate-200 hover:border-blue-400');
-              b.onclick = () => setMainImage(g.full, b);
-              const im = document.createElement('img');
-              im.src = g.thumb || g.full;
-              im.className = 'w-full h-full object-contain';
-              b.appendChild(im);
-              thumbs.appendChild(b);
-            });
-            thumbs.classList.toggle('hidden', iv.images.length < 2);
-          }
-        } else {
-          mainEl.setAttribute('src', ORIG.main);
-          if (drawerImg) drawerImg.setAttribute('src', ORIG.main);
-          if (thumbs) {
-            thumbs.innerHTML = ORIG.thumbs;
-            thumbs.classList.toggle('hidden', ORIG.thumbsHidden);
-          }
-        }
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('#variant-options input[type=radio]').forEach(r => {
+      thumbs.classList.toggle('hidden', iv.images.length < 2); } } else { mainEl.setAttribute('src', ORIG.main); if
+        (drawerImg) drawerImg.setAttribute('src', ORIG.main); if (thumbs) { thumbs.innerHTML=ORIG.thumbs;
+        thumbs.classList.toggle('hidden', ORIG.thumbsHidden); } } } } document.addEventListener('DOMContentLoaded', ()=> {
+        document.querySelectorAll('#variant-options input[type=radio]').forEach(r => {
         r.addEventListener('change', () => {
-          const label = r.closest('[data-variant-group]').querySelector('[data-variant-label]');
-          if (label) label.textContent = r.dataset.label;
-          document.dispatchEvent(new CustomEvent('variant:changed', { detail: window.getSelectedVariant() }));
+        const label = r.closest('[data-variant-group]').querySelector('[data-variant-label]');
+        if (label) label.textContent = r.dataset.label;
+        document.dispatchEvent(new CustomEvent('variant:changed', { detail: window.getSelectedVariant() }));
         });
-      });
-      document.addEventListener('variant:changed', applyVariant);
-      applyVariant();   // resolve the preselected values on load
-    });
+        });
+        document.addEventListener('variant:changed', applyVariant);
+        applyVariant(); // resolve the preselected values on load
+        });
 
-    // ==========================================
-    // BUY NOW (Add to Cart is handled by partials.cart-js)
-    // ==========================================
-    async function buyNow(btn) {
-      setBtnLoading(btn, true, 'Please wait...');
-      try {
+        // ==========================================
+        // BUY NOW (Add to Cart is handled by partials.cart-js)
+        // ==========================================
+        async function buyNow(btn) {
+        setBtnLoading(btn, true, 'Please wait...');
+        try {
         const data = await window.postAddToCart(PAGE.productId);
         syncHeaderCart(data);
         if (window.fireTrackingEvents) fireTrackingEvents(data.tracking_events);
         window.location.href = PAGE.checkoutUrl;
-      } catch (e) {
+        } catch (e) {
         toast(e.message, 'error');
         setBtnLoading(btn, false);
-      }
-    }
+        }
+        }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const buyBtn = document.getElementById('prod-buy-now-btn');
-      if (buyBtn) buyBtn.addEventListener('click', e => { e.stopPropagation(); buyNow(buyBtn); });
+        document.addEventListener('DOMContentLoaded', () => {
+        const buyBtn = document.getElementById('prod-buy-now-btn');
+        if (buyBtn) buyBtn.addEventListener('click', e => { e.stopPropagation(); buyNow(buyBtn); });
 
-      const pinInput = document.getElementById('pincode-input');
-      if (pinInput) {
+        const pinInput = document.getElementById('pincode-input');
+        if (pinInput) {
         pinInput.addEventListener('input', () => { pinInput.value = pinInput.value.replace(/\D/g, ''); });
         pinInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkPincode(); } });
-      }
+        }
 
-    });
-
-    // ==========================================
-    // GALLERY / TABS / PINCODE
-    // ==========================================
-    function setMainImage(src, btn) {
-      document.getElementById('main-product-image').src = src;
-      document.querySelectorAll('.prod-thumb').forEach(t => t.className = 'prod-thumb w-14 h-14 rounded-xl overflow-hidden border-2 border-slate-200 bg-white p-1 flex-shrink-0 transition-all hover:border-blue-400');
-      btn.className = 'prod-thumb w-14 h-14 rounded-xl overflow-hidden border-2 border-blue-600 bg-white p-1 flex-shrink-0 transition-all';
-    }
-
-    function switchTab(tabId) {
-      const on = 'px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex-shrink-0 bg-blue-600 text-white';
-      const off = 'px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex-shrink-0 text-slate-600 hover:bg-slate-100';
-
-      document.querySelectorAll('[data-tab-content]').forEach(c =>
-        c.classList.toggle('hidden', c.dataset.tabContent !== tabId));
-      document.querySelectorAll('[data-tab-btn]').forEach(b =>
-        b.className = b.dataset.tabBtn === tabId ? on : off);
-    }
-
-    async function checkPincode() {
-      const input = document.getElementById('pincode-input');
-      const status = document.getElementById('pincode-status');
-      const btn = input.closest('div').querySelector('button');
-      const pin = (input.value || '').trim();
-
-      const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
-        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-      const show = (html) => { status.classList.remove('hidden'); status.innerHTML = html; };
-      const fail = (msg) => show(`<span class="text-red-500 font-semibold"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(msg)}</span>`);
-
-      if (!/^\d{6}$/.test(pin)) { fail('Please enter a valid 6-digit PIN code.'); return; }
-
-      btn.disabled = true;
-      show('<span class="text-slate-500"><i class="fa-solid fa-spinner fa-spin"></i> Checking...</span>');
-
-      try {
-        const res = await fetch(`${PAGE.pincodeUrl}?pincode=${encodeURIComponent(pin)}`, {
-          headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         });
-        const data = await res.json().catch(() => ({}));
 
-        if (res.status === 429) { fail('Too many attempts. Please wait a minute and try again.'); return; }
-        if (res.status === 422) { fail(data.errors?.pincode?.[0] || 'Please enter a valid 6-digit PIN code.'); return; }
-        if (!res.ok) { fail('Could not check this PIN code right now. Please try again.'); return; }
+        // ==========================================
+        // GALLERY / TABS / PINCODE
+        // ==========================================
+        function setMainImage(src, btn) {
+        document.getElementById('main-product-image').src = src;
+        document.querySelectorAll('.prod-thumb').forEach(t => t.className = 'prod-thumb w-14 h-14 rounded-xl
+        overflow-hidden border-2 border-slate-200 bg-white p-1 flex-shrink-0 transition-all hover:border-blue-400');
+        btn.className = 'prod-thumb w-14 h-14 rounded-xl overflow-hidden border-2 border-blue-600 bg-white p-1
+        flex-shrink-0 transition-all';
+        }
 
-        if (!data.status) { fail(data.message || 'Delivery is not available for this PIN code.'); return; }
+        function switchTab(tabId) {
+        const on = 'px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex-shrink-0 bg-blue-600 text-white';
+        const off = 'px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex-shrink-0 text-slate-600 hover:bg-slate-100';
 
-        const place = [data.district, data.state].filter(Boolean).join(', ');
-        const eta = PAGE.deliveryTime ? `Estimated delivery in ${PAGE.deliveryTime}` : 'Delivery is available';
+        document.querySelectorAll('[data-tab-content]').forEach(c =>
+        c.classList.toggle('hidden', c.dataset.tabContent !== tabId));
+        document.querySelectorAll('[data-tab-btn]').forEach(b =>
+        b.className = b.dataset.tabBtn === tabId ? on : off);
+        }
 
-        show(`<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> ${esc(eta)}</span>
-              to <strong>${esc(data.pincode)}</strong>${place ? ` (${esc(place)})` : ''}.`);
-      } catch (e) {
-        fail('Network error. Please check your connection and try again.');
-      } finally {
-        btn.disabled = false;
-      }
-    }
+        async function checkPincode() {
+        const input = document.getElementById('pincode-input');
+        const status = document.getElementById('pincode-status');
+        const btn = input.closest('div').querySelector('button');
+        const pin = (input.value || '').trim();
 
-    // ==========================================
-    // SLIDE-IN RIGHT DRAWER (Live Video Call)
-    // ==========================================
-    function openVideoCallDrawer() {
-      const drawer = document.getElementById('video-call-drawer');
-      const drawerBox = document.getElementById('video-call-drawer-box');
-      if (!drawer || !drawerBox) return;
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+          ({ '&': '&amp;', '<': '&lt;' , '>' : '&gt;' , '"' : '&quot;' , "'" : '&#39;' }[c])); const show=(html)=> {
+            status.classList.remove('hidden'); status.innerHTML = html; };
+            const fail = (msg) => show(`<span class="text-red-500 font-semibold"><i
+                class="fa-solid fa-triangle-exclamation"></i> ${esc(msg)}</span>`);
 
-      drawer.classList.remove('pointer-events-none', 'opacity-0');
-      drawer.classList.add('opacity-100');
-      drawerBox.classList.remove('translate-x-full');
-      drawerBox.classList.add('translate-x-0');
-      document.body.style.overflow = 'hidden';
-    }
+            if (!/^\d{6}$/.test(pin)) { fail('Please enter a valid 6-digit PIN code.'); return; }
 
-    function closeVideoCallDrawer() {
-      const drawer = document.getElementById('video-call-drawer');
-      const drawerBox = document.getElementById('video-call-drawer-box');
-      if (!drawer || !drawerBox) return;
+            btn.disabled = true;
+            show('<span class="text-slate-500"><i class="fa-solid fa-spinner fa-spin"></i> Checking...</span>');
 
-      drawerBox.classList.remove('translate-x-0');
-      drawerBox.classList.add('translate-x-full');
-      drawer.classList.remove('opacity-100');
-      drawer.classList.add('opacity-0', 'pointer-events-none');
-      document.body.style.overflow = '';
+            try {
+            const res = await fetch(`${PAGE.pincodeUrl}?pincode=${encodeURIComponent(pin)}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await res.json().catch(() => ({}));
 
-      setTimeout(() => {
-        const form = document.getElementById('video-call-form');
-        const success = document.getElementById('video-call-success');
-        if (form) form.classList.remove('hidden');
-        if (success) success.classList.add('hidden');
-      }, 300);
-    }
+            if (res.status === 429) { fail('Too many attempts. Please wait a minute and try again.'); return; }
+            if (res.status === 422) { fail(data.errors?.pincode?.[0] || 'Please enter a valid 6-digit PIN code.'); return;
+            }
+            if (!res.ok) { fail('Could not check this PIN code right now. Please try again.'); return; }
 
-    // Static for now (no booking backend yet)
-    function handleVideoCallBooking(e) {
-      e.preventDefault();
-      const phone = document.getElementById('vcall-phone').value.trim();
-      const platform = document.getElementById('vcall-platform').value;
-      const slot = document.getElementById('vcall-slot').value;
+            if (!data.status) { fail(data.message || 'Delivery is not available for this PIN code.'); return; }
 
-      document.getElementById('video-call-form').classList.add('hidden');
-      document.getElementById('video-call-success').classList.remove('hidden');
-      document.getElementById('vcall-confirm-phone').textContent = `${PAGE.phoneCode} ${phone}`;
+            const place = [data.district, data.state].filter(Boolean).join(', ');
+            const eta = PAGE.deliveryTime ? `Estimated delivery in ${PAGE.deliveryTime}` : 'Delivery is available';
 
-      toast(`Video call request sent for ${platform} (${slot})!`, 'success');
-    }
-  </script>
+            show(`<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> ${esc(eta)}</span>
+            to <strong>${esc(data.pincode)}</strong>${place ? ` (${esc(place)})` : ''}.`);
+            } catch (e) {
+            fail('Network error. Please check your connection and try again.');
+            } finally {
+            btn.disabled = false;
+            }
+            }
+
+            // ==========================================
+            // SLIDE-IN RIGHT DRAWER (Live Video Call)
+            // ==========================================
+            function openVideoCallDrawer() {
+            const drawer = document.getElementById('video-call-drawer');
+            const drawerBox = document.getElementById('video-call-drawer-box');
+            if (!drawer || !drawerBox) return;
+
+            drawer.classList.remove('pointer-events-none', 'opacity-0');
+            drawer.classList.add('opacity-100');
+            drawerBox.classList.remove('translate-x-full');
+            drawerBox.classList.add('translate-x-0');
+            document.body.style.overflow = 'hidden';
+            }
+
+            function closeVideoCallDrawer() {
+            const drawer = document.getElementById('video-call-drawer');
+            const drawerBox = document.getElementById('video-call-drawer-box');
+            if (!drawer || !drawerBox) return;
+
+            drawerBox.classList.remove('translate-x-0');
+            drawerBox.classList.add('translate-x-full');
+            drawer.classList.remove('opacity-100');
+            drawer.classList.add('opacity-0', 'pointer-events-none');
+            document.body.style.overflow = '';
+
+            setTimeout(() => {
+            const form = document.getElementById('video-call-form');
+            const success = document.getElementById('video-call-success');
+            if (form) form.classList.remove('hidden');
+            if (success) success.classList.add('hidden');
+            }, 300);
+            }
+
+            // Static for now (no booking backend yet)
+            function handleVideoCallBooking(e) {
+            e.preventDefault();
+            const phone = document.getElementById('vcall-phone').value.trim();
+            const platform = document.getElementById('vcall-platform').value;
+            const slot = document.getElementById('vcall-slot').value;
+
+            document.getElementById('video-call-form').classList.add('hidden');
+            document.getElementById('video-call-success').classList.remove('hidden');
+            document.getElementById('vcall-confirm-phone').textContent = `${PAGE.phoneCode} ${phone}`;
+
+            toast(`Video call request sent for ${platform} (${slot})!`, 'success');
+            }
+            </script>
 @endpush

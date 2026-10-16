@@ -284,8 +284,9 @@
 @endsection
 
 @push('scripts')
-  {{-- Purchase tracking (GA4 / Meta pixel) — built in CheckoutController::orderSuccess --}}
   @if(!empty($purchaseScript))
-    {!! $purchaseScript !!}
+    <script>
+      {!! $purchaseScript !!}
+    </script>
   @endif
 @endpush

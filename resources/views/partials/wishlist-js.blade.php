@@ -58,6 +58,10 @@
 
         paint(productId, data.wishlisted);
         syncCount(data.wishlist_count);
+
+        // add_to_wishlist (Meta); the server sends null on removal, and fireTrackingEvents returns early for that
+        if (window.fireTrackingEvents) fireTrackingEvents(data.tracking_events);
+
         document.dispatchEvent(new CustomEvent('wishlist:changed', {
           detail: { productId: String(productId), wishlisted: data.wishlisted, count: data.wishlist_count }
         }));

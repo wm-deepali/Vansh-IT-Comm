@@ -405,7 +405,9 @@
 
 @push('scripts')
   @if(!empty($beginCheckoutScript))
-    {!! $beginCheckoutScript !!}
+    <script>
+      {!! $beginCheckoutScript !!}
+    </script>
   @endif
 
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
