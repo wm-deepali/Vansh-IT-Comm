@@ -88,18 +88,18 @@
 
         {{-- Newsletter --}}
         <div class="bg-gradient-to-r from-blue-950/60 via-slate-900/90 to-slate-950 rounded-3xl p-6 sm:p-8 border border-blue-500/20 mb-14 flex flex-col lg:flex-row items-center justify-between gap-6 shadow-xl">
-            <div class="flex items-center gap-4 text-center sm:text-left">
-                <div class="w-12 h-12 rounded-2xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xl flex-shrink-0">
-                    <i class="fa-solid fa-bolt"></i>
-                </div>
-                <div>
-                    <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 mb-1">
-                        WEEKLY DEALS & STOCK ALERTS
-                    </div>
-                    <h4 class="text-base font-extrabold text-white font-heading leading-tight">Join 15,000+ Smart Tech Buyers</h4>
-                    <p class="text-xs text-slate-400 mt-0.5">Get instant alerts on fresh laptop arrivals, mobile clearance sales & exclusive coupons.</p>
-                </div>
-            </div>
+           <div class="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+    <div class="w-12 h-12 rounded-2xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xl flex-shrink-0">
+        <i class="fa-solid fa-bolt"></i>
+    </div>
+    <div>
+        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 mb-1">
+            WEEKLY DEALS & STOCK ALERTS
+        </div>
+        <h4 class="text-base font-extrabold text-white font-heading leading-tight">Join 15,000+ Smart Tech Buyers</h4>
+        <p class="text-xs text-slate-400 mt-0.5">Get instant alerts on fresh laptop arrivals, mobile clearance sales & exclusive coupons.</p>
+    </div>
+</div>
 
             <form class="flex items-center gap-2 max-w-md w-full" onsubmit="App.handleNewsletter(event, this)">
                 <div class="relative flex-1">
