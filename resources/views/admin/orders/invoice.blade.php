@@ -571,7 +571,7 @@
                     <div class="meta-info-row">
                         <div class="meta-info-label" style="text-align:right;padding-right:10px">Order #</div>
                         <div class="meta-info-value"
-                            style="text-align:right;font-family:'Courier New',monospace;color:#303d89">
+                            style="text-align:right;font-family:'Courier New',monospace;color:#1B4B91">
                             {{ $order->order_number }}
                         </div>
                     </div>
@@ -582,10 +582,17 @@
                         </div>
                     </div>
                     @if($order->payment_method)
+                        @php
+                            // COD + admin ne payment update ki hai → chosen method (Cash / UPI / Net Banking / Payment Link)
+                            // Baaki sab (Razorpay, ya COD abhi pending) → pehle jaisa
+                            $paymentLabel = ($order->payment_method === 'cod' && $order->payment_status === 'paid' && $order->latestPayment)
+                                ? $order->latestPayment->method_label
+                                : ucfirst(str_replace('_', ' ', $order->payment_method));
+                        @endphp
                         <div class="meta-info-row">
                             <div class="meta-info-label" style="text-align:right;padding-right:10px">Payment</div>
                             <div class="meta-info-value" style="text-align:right">
-                                {{ ucfirst(str_replace('_', ' ', $order->payment_method)) }}
+                                {{ $paymentLabel }}
                             </div>
                         </div>
                     @endif
@@ -712,6 +719,13 @@
                             </tr>
                         @endif
 
+                        @if(($invoice->shipping_charge ?? 0) > 0)
+                            <tr>
+                                <td class="t-label">Shipping</td>
+                                <td class="t-value">&#8377;{{ number_format($invoice->shipping_charge, 2) }}</td>
+                            </tr>
+                        @endif
+
                         {{-- GST rows --}}
                         @if($setting?->show_gst_breakup)
 
@@ -770,14 +784,6 @@
                             @endif
 
                         @endif
-
-                        @if(($invoice->shipping_charge ?? 0) > 0)
-                            <tr>
-                                <td class="t-label">Shipping</td>
-                                <td class="t-value">&#8377;{{ number_format($invoice->shipping_charge, 2) }}</td>
-                            </tr>
-                        @endif
-
                         <tr class="t-total">
                             <td class="t-label">Grand Total</td>
                             <td class="t-value">&#8377;{{ number_format($invoice->grand_total, 2) }}</td>
