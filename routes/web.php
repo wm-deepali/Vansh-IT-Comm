@@ -56,7 +56,9 @@ use App\Http\Controllers\Admin\{
     RepairBookingController,
     RepairPageController,
     ExchangeAdminController,
-    BrandController
+    BrandController,
+    CancelledInvoiceController,
+    CancelledRefundController
 
 };
 
@@ -312,6 +314,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');
         Route::get('orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
         Route::get('orders/{order}/invoice/download', [OrderController::class, 'invoiceDownload'])->name('orders.invoice.download');
+        Route::post('orders/{order}/generate-invoice', [OrderController::class, 'generateInvoice'])->name('orders.generate-invoice');
 
         // Payments routes
         Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
@@ -344,6 +347,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::resource('return-reasons', ReturnReasonController::class)->names('return-reasons');
 
+        Route::get('cancelled-refunds', [CancelledRefundController::class, 'index'])->name('cancelled-refunds.index');
+        Route::post('cancelled-refunds/{order}/refund', [CancelledRefundController::class, 'refund'])->name('cancelled-refunds.refund');
+
+        Route::get('cancelled-invoices', [CancelledInvoiceController::class, 'index'])->name('cancelled-invoices.index');
 
         Route::get('order-returns', [OrderReturnController::class, 'index'])->name('order-returns.index');
         Route::get('order-returns/export', [OrderReturnController::class, 'export'])->name('order-returns.export');

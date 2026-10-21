@@ -85,16 +85,16 @@ class OrderReturnController extends Controller
             'message' => 'Your return request for Order #' . $orderReturn->order->order_number . ' has been approved.',
             'icon' => 'fa-solid fa-check-circle',
             'color' => 'success',
-            'url' => route('user.orders.show', $orderReturn->order_id),
+            'url' => route('user.account.orders.show', $orderReturn->order_id),
         ]);
 
         \App\Models\AdminNotification::notify([
-            'type'      => 'return',
-            'title'     => 'Return approved',
-            'message'   => 'Return RET-' . str_pad($orderReturn->id, 4, '0', STR_PAD_LEFT) . ' approved for order #' . $orderReturn->order->order_number . '.',
+            'type' => 'return',
+            'title' => 'Return approved',
+            'message' => 'Return RET-' . str_pad($orderReturn->id, 4, '0', STR_PAD_LEFT) . ' approved for order #' . $orderReturn->order->order_number . '.',
             'reference' => '#RET-' . str_pad($orderReturn->id, 4, '0', STR_PAD_LEFT),
-            'icon'      => 'fa-undo',
-            'url'       => route('admin.order-returns.show', $orderReturn->id),
+            'icon' => 'fa-undo',
+            'url' => route('admin.order-returns.show', $orderReturn->id),
             'link_text' => 'View Return',
         ]);
 
@@ -131,7 +131,7 @@ class OrderReturnController extends Controller
             'message' => 'Your return request for Order #' . $orderReturn->order->order_number . ' has been rejected.',
             'icon' => 'fa-solid fa-times-circle',
             'color' => 'danger',
-            'url' => route('user.orders.show', $orderReturn->order_id),
+            'url' => route('user.account.orders.show', $orderReturn->order_id),
         ]);
 
         return redirect()
@@ -157,7 +157,7 @@ class OrderReturnController extends Controller
         abort_if($orderReturn->status !== 'approved', 422, 'Return must be approved before processing refund.');
 
         $request->validate([
-            'refund_method' => 'required|in:neft_rtgs_imps,upi',
+            'refund_method' => 'required|in:neft_rtgs_imps,upi,payment_gateway',
             'utr_id' => 'required|string|max:100',
             'remarks' => 'nullable|string|max:500',
             'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
@@ -189,6 +189,7 @@ class OrderReturnController extends Controller
             ]);
 
             $isUpi = $request->refund_method === 'upi';
+            $isBank = $request->refund_method === 'neft_rtgs_imps';
 
             // The admin's actual transaction details live on RefundTransaction,
             // independently of the customer's originally requested details.
@@ -204,12 +205,12 @@ class OrderReturnController extends Controller
                 'payment_proof' => $proofPath,
 
                 'upi_id' => $isUpi ? $request->upi_id : null,
-                'bank_name' => $isUpi ? null : $request->bank_name,
-                'account_name' => $isUpi ? null : $request->account_name,
-                'account_number' => $isUpi ? null : $request->account_number,
-                'ifsc_code' => $isUpi ? null : $request->ifsc_code,
-                'bank_branch' => $isUpi ? null : $request->bank_branch,
-                'account_type' => $isUpi ? null : $request->account_type,
+                'bank_name' => $isBank ? $request->bank_name : null,
+                'account_name' => $isBank ? $request->account_name : null,
+                'account_number' => $isBank ? $request->account_number : null,
+                'ifsc_code' => $isBank ? $request->ifsc_code : null,
+                'bank_branch' => $isBank ? $request->bank_branch : null,
+                'account_type' => $isBank ? $request->account_type : null,
             ]);
 
             \App\Models\Notification::create([
@@ -221,16 +222,16 @@ class OrderReturnController extends Controller
                     $refund->utr_id,
                 'icon' => 'fa-solid fa-money-bill-transfer',
                 'color' => 'success',
-                'url' => route('user.orders.show', $orderReturn->order_id),
+                'url' => route('user.account.orders.show', $orderReturn->order_id),
             ]);
 
             \App\Models\AdminNotification::notify([
-                'type'      => 'return',
-                'title'     => 'Refund processed',
-                'message'   => 'Refund of ₹' . number_format($refund->amount, 2) . ' for return RET-' . str_pad($orderReturn->id, 4, '0', STR_PAD_LEFT) . ' has been successfully credited to the customer\'s account.',
+                'type' => 'return',
+                'title' => 'Refund processed',
+                'message' => 'Refund of ₹' . number_format($refund->amount, 2) . ' for return RET-' . str_pad($orderReturn->id, 4, '0', STR_PAD_LEFT) . ' has been successfully credited to the customer\'s account.',
                 'reference' => '#RET-' . str_pad($orderReturn->id, 4, '0', STR_PAD_LEFT),
-                'icon'      => 'fa-undo',
-                'url'       => route('admin.order-returns.show', $orderReturn->id),
+                'icon' => 'fa-undo',
+                'url' => route('admin.order-returns.show', $orderReturn->id),
                 'link_text' => 'View Return',
             ]);
         });
@@ -269,16 +270,16 @@ class OrderReturnController extends Controller
                 'message' => 'Your refund attempt could not be completed. Our team is retrying it and will update you shortly.',
                 'icon' => 'fa-solid fa-triangle-exclamation',
                 'color' => 'danger',
-                'url' => route('user.orders.show', $orderReturn->order_id),
+                'url' => route('user.account.orders.show', $orderReturn->order_id),
             ]);
 
             \App\Models\AdminNotification::notify([
-                'type'      => 'return',
-                'title'     => 'Refund failed',
-                'message'   => 'Refund for return RET-' . str_pad($orderReturn->id, 4, '0', STR_PAD_LEFT) . ' failed and needs retry.',
+                'type' => 'return',
+                'title' => 'Refund failed',
+                'message' => 'Refund for return RET-' . str_pad($orderReturn->id, 4, '0', STR_PAD_LEFT) . ' failed and needs retry.',
                 'reference' => '#RET-' . str_pad($orderReturn->id, 4, '0', STR_PAD_LEFT),
-                'icon'      => 'fa-triangle-exclamation',
-                'url'       => route('admin.order-returns.show', $orderReturn->id),
+                'icon' => 'fa-triangle-exclamation',
+                'url' => route('admin.order-returns.show', $orderReturn->id),
                 'link_text' => 'Retry Refund',
             ]);
         });

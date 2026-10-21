@@ -103,7 +103,7 @@ class NdrController extends Controller
             'message' => "We couldn't deliver order {$order->order_number}. Reason: {$ndr->reason_label}. We'll retry soon.",
             'icon' => 'fa-solid fa-truck-ramp-box',
             'color' => 'danger',
-            'url' => route('user.orders.show', $order->id),
+            'url' => route('user.account.orders.show', $order->id),
         ]);
 
         \App\Models\AdminNotification::notify([
@@ -155,7 +155,7 @@ class NdrController extends Controller
             'message' => "We'll attempt to deliver order {$ndr->order->order_number} again on " . \Carbon\Carbon::parse($request->next_attempt_date)->format('d M Y') . '.',
             'icon' => 'fa-solid fa-truck',
             'color' => 'success',
-            'url' => route('user.orders.show', $ndr->order_id),
+            'url' => route('user.account.orders.show', $ndr->order_id),
         ]);
 
         return redirect()
@@ -190,7 +190,7 @@ class NdrController extends Controller
             'message' => "Your order {$ndr->order->order_number} has been delivered.",
             'icon' => 'fa-solid fa-box-open',
             'color' => 'success',
-            'url' => route('user.orders.show', $ndr->order_id),
+            'url' => route('user.account.orders.show', $ndr->order_id),
         ]);
 
         return redirect()
@@ -216,7 +216,7 @@ class NdrController extends Controller
 
         if ($requiresRefund) {
             $rules = array_merge($rules, [
-                'refund_method' => 'required|in:neft_rtgs_imps,upi',
+                'refund_method' => 'required|in:neft_rtgs_imps,upi,payment_gateway',
                 'utr_id' => 'required|string|max:100',
                 'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
                 'bank_name' => 'required_if:refund_method,neft_rtgs_imps|nullable|string|max:100',
@@ -278,6 +278,7 @@ class NdrController extends Controller
 
             if ($requiresRefund) {
                 $isUpi = $request->refund_method === 'upi';
+                $isBank = $request->refund_method === 'neft_rtgs_imps';
 
                 RefundTransaction::create([
                     'ndr_id' => $ndr->id,
@@ -290,12 +291,12 @@ class NdrController extends Controller
                     'remarks' => $request->remarks,
                     'payment_proof' => $proofPath,
                     'upi_id' => $isUpi ? $request->upi_id : null,
-                    'bank_name' => $isUpi ? null : $request->bank_name,
-                    'account_name' => $isUpi ? null : $request->account_name,
-                    'account_number' => $isUpi ? null : $request->account_number,
-                    'ifsc_code' => $isUpi ? null : $request->ifsc_code,
-                    'bank_branch' => $isUpi ? null : $request->bank_branch,
-                    'account_type' => $isUpi ? null : $request->account_type,
+                    'bank_name' => $isBank ? $request->bank_name : null,
+                    'account_name' => $isBank ? $request->account_name : null,
+                    'account_number' => $isBank ? $request->account_number : null,
+                    'ifsc_code' => $isBank ? $request->ifsc_code : null,
+                    'bank_branch' => $isBank ? $request->bank_branch : null,
+                    'account_type' => $isBank ? $request->account_type : null,
                 ]);
             }
 
@@ -307,7 +308,7 @@ class NdrController extends Controller
                     : "Order {$order->order_number} could not be delivered and has been returned.",
                 'icon' => 'fa-solid fa-rotate-left',
                 'color' => 'danger',
-                'url' => route('user.orders.show', $order->id),
+                'url' => route('user.account.orders.show', $order->id),
             ]);
         });
 
@@ -399,7 +400,7 @@ class NdrController extends Controller
                     : "Order {$order->order_number} has been cancelled after a failed delivery attempt.",
                 'icon' => 'fa-solid fa-ban',
                 'color' => 'danger',
-                'url' => route('user.orders.show', $ndr->order_id),
+                'url' => route('user.account.orders.show', $ndr->order_id),
             ]);
         });
 

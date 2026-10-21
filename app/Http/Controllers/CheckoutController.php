@@ -8,7 +8,6 @@ use Razorpay\Api\Api;
 use App\Models\State;
 use App\Models\City;
 use App\Models\Setting;
-use App\Models\Invoice;
 use App\Models\OrderItem;
 use App\Traits\LogsApiCalls;
 use Illuminate\Http\Request;
@@ -17,7 +16,6 @@ use App\Models\CustomerAddress;
 use Illuminate\Support\Facades\DB;
 use App\Services\StockAlertService;
 use App\Http\Requests\AddressRequest;
-use App\Http\Controllers\Admin\AdminSettingController;
 
 class CheckoutController extends Controller
 {
@@ -187,11 +185,21 @@ class CheckoutController extends Controller
         */
 
         if ($request->filled('address_id')) {
+            $address = CustomerAddress::where('customer_id', $customer->id)
+                ->find($request->address_id);
 
-            $address = CustomerAddress::where(
-                'customer_id',
-                $customer->id
-            )->find($request->address_id);
+            if (!$address) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected address was not found. Please choose another address.',
+                ], 422);
+            }
+
+            // GST is calculated from the default address, so make the chosen one the default
+            if (!$address->is_default) {
+                CustomerAddress::where('customer_id', $customer->id)->update(['is_default' => 0]);
+                $address->update(['is_default' => 1]);
+            }
         }
 
         /*
@@ -266,10 +274,6 @@ class CheckoutController extends Controller
                 'message' => 'Cart is empty.'
             ]);
         }
-
-        $cart->recalculateTotals();
-        $cart->refresh();
-        $cart->load(['items.product', 'items.addons']);
 
         DB::beginTransaction();
 
@@ -396,43 +400,7 @@ class CheckoutController extends Controller
 
             if ($request->payment_method == 'cod') {
 
-                $invoiceNumber =
-                    AdminSettingController::generateInvoiceNumber();
-
-                Invoice::create([
-                    'order_id' => $order->id,
-                    'invoice_number' => $invoiceNumber,
-                    'invoice_date' => now()->toDateString(),
-
-                    'customer_name' => $order->customer_name,
-                    'customer_email' => $order->customer_email,
-                    'customer_phone' => $order->customer_phone,
-
-                    'billing_address' => collect([
-                        $order->address_line_1,
-                        $order->address_line_2,
-                        $order->city?->name ?? '',
-                        $order->state?->name ?? '',
-                        $order->pincode,
-                    ])->filter()->implode(', '),
-
-                    'subtotal' => $order->subtotal,
-                    'discount' => $order->discount,
-                    'tax_amount' => $order->tax_amount,
-                    'grand_total' => $order->grand_total,
-
-                    'gst_type' => $order->gst_type,
-
-                    'cgst_rate' => $order->cgst_rate,
-                    'sgst_rate' => $order->sgst_rate,
-                    'igst_rate' => $order->igst_rate,
-
-                    'cgst_amount' => $order->cgst_amount,
-                    'sgst_amount' => $order->sgst_amount,
-                    'igst_amount' => $order->igst_amount,
-
-                    'status' => 'generated',
-                ]);
+                app(\App\Services\InvoiceService::class)->createIfAuto($order);
 
                 $cart->items()->delete();
                 $cart->delete();
@@ -759,75 +727,8 @@ class CheckoutController extends Controller
             */
 
             if (!$order->invoice) {
-
-                $invoiceNumber =
-                    AdminSettingController::generateInvoiceNumber();
-
-                Invoice::create([
-
-                    'order_id' => $order->id,
-
-                    'invoice_number' =>
-                        $invoiceNumber,
-
-                    'invoice_date' =>
-                        now()->toDateString(),
-
-                    'customer_name' =>
-                        $order->customer_name,
-
-                    'customer_email' =>
-                        $order->customer_email,
-
-                    'customer_phone' =>
-                        $order->customer_phone,
-
-                    'billing_address' =>
-                        collect([
-                            $order->address_line_1,
-                            $order->address_line_2,
-                            $order->city?->name ?? '',
-                            $order->state?->name ?? '',
-                            $order->pincode,
-                        ])->filter()->implode(', '),
-
-                    'subtotal' =>
-                        $order->subtotal,
-
-                    'discount' =>
-                        $order->discount,
-
-                    'shipping_charge' => $order->shipping_charge,
-
-                    'tax_amount' =>
-                        $order->tax_amount,
-
-                    'grand_total' =>
-                        $order->grand_total,
-
-                    'gst_type' =>
-                        $order->gst_type,
-
-                    'cgst_rate' =>
-                        $order->cgst_rate,
-
-                    'sgst_rate' =>
-                        $order->sgst_rate,
-
-                    'igst_rate' =>
-                        $order->igst_rate,
-
-                    'cgst_amount' =>
-                        $order->cgst_amount,
-
-                    'sgst_amount' =>
-                        $order->sgst_amount,
-
-                    'igst_amount' =>
-                        $order->igst_amount,
-
-                    'status' => 'generated',
-                ]);
+                /* Generate Invoice (only if auto-generate is ON) */
+                app(\App\Services\InvoiceService::class)->createIfAuto($order);
             }
 
             /*
@@ -1042,6 +943,17 @@ class CheckoutController extends Controller
         ";
         }
 
+        if ($order->shipping_charge > 0) {
+            $orderSummary .= "
+        <div style='display:table;width:100%;padding:5px 0;'>
+            <span style='display:table-cell;font-size:13px;color:#666;'>Shipping</span>
+            <span style='display:table-cell;text-align:right;font-size:13px;color:#333;'>
+                ₹ " . number_format($order->shipping_charge, 2) . "
+            </span>
+        </div>
+    ";
+        }
+
         if ($order->tax_amount > 0) {
 
             if ($order->gst_type === 'igst' && $order->igst_amount > 0) {
@@ -1079,17 +991,6 @@ class CheckoutController extends Controller
                 ";
                 }
             }
-        }
-
-        if ($order->shipping_charge > 0) {
-            $orderSummary .= "
-    <div style='display:table;width:100%;padding:5px 0;'>
-        <span style='display:table-cell;font-size:13px;color:#666;'>Shipping</span>
-        <span style='display:table-cell;text-align:right;font-size:13px;color:#333;'>
-            ₹ " . number_format($order->shipping_charge, 2) . "
-        </span>
-    </div>
-    ";
         }
 
         $orderSummary .= "
