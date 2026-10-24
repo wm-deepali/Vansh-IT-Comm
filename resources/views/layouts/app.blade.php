@@ -68,6 +68,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ $metaTitle }}</title>
     <meta name="description" content="{{ $metaDescription }}" />
+    <meta name="author" content="Web Mingo" />
     <meta name="robots" content="{{ $robots }}" />
     <link rel="canonical" href="{{ $canonical }}" />
 
@@ -158,7 +159,7 @@
 
     @stack('scripts')
 
-    @include('layouts.tracking-body-bottom')
+    <!-- @include('layouts.tracking-body-bottom') -->
 
 </body>
 

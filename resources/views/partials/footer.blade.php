@@ -166,27 +166,36 @@
             @endforeach
         </div>
 
-        {{-- Bottom Row --}}
-        <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-5 text-xs text-slate-500 font-body">
-            <div class="space-y-1 text-center md:text-left">
-                @if($copyright)
-                    <p>{{ $copyright }}</p>
-                @else
-                    <p>&copy; {{ date('Y') }} <strong class="text-slate-300 font-bold">{{ $siteName }}</strong>. All rights reserved. 100% GST Tax Compliant.</p>
-                @endif
-                <p class="text-[11px] text-slate-500">All brand trademarks, logos, and model names belong to their respective manufacturers.</p>
-            </div>
+       {{-- Bottom Row --}}
+<div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-5 text-xs text-slate-500 font-body">
+    <div class="space-y-1 text-center md:text-left">
+        @if($copyright)
+            <p>{{ $copyright }}</p>
+        @else
+            <p>&copy; {{ date('Y') }} <strong class="text-slate-300 font-bold">{{ $siteName }}</strong>. All rights reserved. 100% GST Tax Compliant.</p>
+        @endif
+        <p class="text-[11px] text-slate-500">All brand trademarks, logos, and model names belong to their respective manufacturers.</p>
+    </div>
 
-            @if($socials->isNotEmpty())
-                <div class="flex items-center gap-3">
-                    @foreach ($socials as [$cls, $icon, $label, $href])
-                        <a href="{{ $href }}" target="_blank" rel="noopener noreferrer"
-                           class="footer-social-btn {{ $cls }}" aria-label="{{ $label }}" title="{{ $label }}">
-                            <i class="fa-brands {{ $icon }}"></i>
-                        </a>
-                    @endforeach
-                </div>
-            @endif
-        </div>
+    {{-- Right Side: Socials + Developer Credit --}}
+    <div class="flex flex-col items-center md:items-end gap-3">
+        @if($socials->isNotEmpty())
+            <div class="flex items-center gap-3">
+                @foreach ($socials as [$cls, $icon, $label, $href])
+                    <a href="{{ $href }}" target="_blank" rel="noopener noreferrer"
+                       class="footer-social-btn {{ $cls }}" aria-label="{{ $label }}" title="{{ $label }}">
+                        <i class="fa-brands {{ $icon }}"></i>
+                    </a>
+                @endforeach
+            </div>
+        @endif
+
+        <p class="text-[11px] text-slate-500 text-center md:text-right">
+            Design &amp; Developed by
+            <a href="https://www.webmingo.com/" target="_blank" rel="noopener"
+               class="text-slate-300 font-bold hover:text-white transition-colors">Web Mingo</a>
+        </p>
+    </div>
+</div>
     </div>
 </footer>
