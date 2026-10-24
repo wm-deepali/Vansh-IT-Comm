@@ -138,7 +138,7 @@ class EmailTemplateController extends Controller
             '{shipped_date}' => '26 Jun 2026',
             '{delivered_date}' => '28 Jun 2026',
             '{grand_total}' => '₹5,350',
-            '{item_count}' => '3',,
+            '{item_count}' => '3',
 
             // Payment
             '{payment_method}' => 'UPI',

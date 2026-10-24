@@ -2,21 +2,22 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\InvoiceSetting;
-use App\Models\State;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use App\Models\City;
-use App\Models\SmtpSetting;
-use App\Models\PaymentSetting;
+use App\Models\State;
 use App\Models\Setting;
 use App\Models\Courier;
-use App\Models\GoogleSetting;
-use App\Models\ShippingSetting;
-use App\Models\ShippingSlab;
 use App\Models\Invoice;
+use App\Models\SmtpSetting;
+use App\Models\ShippingSlab;
+use Illuminate\Http\Request;
+use App\Models\GoogleSetting;
+use App\Models\PaymentSetting;
+use App\Models\InvoiceSetting;
+use App\Models\ShippingSetting;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class AdminSettingController extends Controller
 {
@@ -29,99 +30,114 @@ class AdminSettingController extends Controller
         $general = Setting::first();
         $states = State::all();
         $couriers = Courier::latest()->get();
-        $activeTab = $request->tab ?? 'general';
-
-        $google_setting = GoogleSetting::current(); // 👈 new
-
+        $google_setting = GoogleSetting::current();
         $shipping = ShippingSetting::first();
         $slabs = ShippingSlab::orderBy('min_order_value')->get();
 
-        return view(
-            'admin.admin-settings.index',
-            compact(
-                'invoice_setting',
-                'smtp',
-                'payment',
-                'general',
-                'states',
-                'couriers',
-                'google_setting',
-                'activeTab',
-                'shipping',
-                'slabs',
-            )
-        );
+        $activeTab = $request->tab ?? 'general';
+
+        $selectedState = old('company_state', $invoice_setting->company_state ?? null);
+        $companyCities = $selectedState
+            ? City::where('state_id', $selectedState)->orderBy('name')->get(['id', 'name'])
+            : collect();
+
+        return view('admin.admin-settings.index', compact(
+            'invoice_setting',
+            'smtp',
+            'payment',
+            'general',
+            'states',
+            'couriers',
+            'google_setting',
+            'activeTab',
+            'shipping',
+            'slabs',
+            'companyCities',
+        ));
     }
 
-    // ðŸ”¹ Save settings
+
     public function invoiceSettingStore(Request $request)
     {
-        $rules = [
+        $validated = $request->validate([
             // Company
             'company_name' => 'required|string|max:255',
-            'company_address' => 'required|string',
-            'company_state' => 'required|exists:states,id',
-            'company_city' => 'required|exists:cities,id',
-            'company_pincode' => 'required|string|max:10',
+            'company_logo' => 'nullable|image|mimes:jpg,jpeg,png,webp,svg|max:2048',
+            'company_address' => 'nullable|string',
+            'company_state' => 'nullable|exists:states,id',
+            'company_city' => 'nullable|exists:cities,id',
+            'company_pincode' => 'nullable|string|max:10',
             'company_phone' => 'nullable|string|max:20',
             'company_email' => 'nullable|email|max:255',
+            'company_gstin' => 'nullable|string|max:15',
+            'company_pan' => 'nullable|string|max:10',
+            // Tax
+            'cgst' => 'nullable|numeric|min:0|max:100',
+            'sgst' => 'nullable|numeric|min:0|max:100',
+            'igst' => 'nullable|numeric|min:0|max:100',
+            'tax_type' => 'nullable|in:inclusive,exclusive',
+            'business_type' => 'nullable|in:registered,unregistered',
             // Invoice
-            'invoice_prefix' => 'required|string|max:20',
-            'invoice_serial' => 'required|integer|min:1',
+            'invoice_prefix' => 'nullable|string|max:20',
+            'invoice_serial' => 'nullable|integer|min:1',
             'invoice_year_format' => 'nullable|in:none,slash,year',
             'invoice_separator' => 'nullable|string|max:5',
             'invoice_date_format' => 'nullable|in:d/m/Y,d M Y,m-d-Y',
-            // Tax
-            'tax_type' => 'nullable|in:inclusive,exclusive',
-            'business_type' => 'nullable|in:registered,unregistered',
             // Footer
             'terms_conditions' => 'nullable|string',
-        ];
+        ]);
 
-        // GST Validation Only For Registered
-        if ($request->business_type == 'registered') {
-            $rules['company_gstin'] = 'required|string|max:15';
-            $rules['company_pan'] = 'required|string|max:10';
-            $rules['cgst'] = 'required|numeric|min:0|max:100';
-            $rules['sgst'] = 'required|numeric|min:0|max:100';
-            $rules['igst'] = 'required|numeric|min:0|max:100';
-        }
+        unset($validated['company_logo']); // file alag handle hoti hai
 
-        $validated = $request->validate($rules);
+        // Non-nullable DB columns ke liye defaults
+        $validated['cgst'] = $validated['cgst'] ?? 9;
+        $validated['sgst'] = $validated['sgst'] ?? 9;
+        $validated['igst'] = $validated['igst'] ?? 18;
+        $validated['tax_type'] = $validated['tax_type'] ?? 'inclusive';
+        $validated['business_type'] = $validated['business_type'] ?? 'registered';
+        $validated['invoice_prefix'] = $validated['invoice_prefix'] ?? 'INV';
+        $validated['invoice_serial'] = $validated['invoice_serial'] ?? 1;
+        $validated['invoice_year_format'] = $validated['invoice_year_format'] ?? 'slash';
+        $validated['invoice_separator'] = $validated['invoice_separator'] ?? '/';
+        $validated['invoice_date_format'] = $validated['invoice_date_format'] ?? 'd M Y';
 
         // Checkboxes
-        $validated['show_gst_breakup'] =
-            $request->has('show_gst_breakup');
-        $validated['auto_generate_invoice'] =
-            $request->has('auto_generate_invoice');
-        $validated['email_invoice_customer'] =
-            $request->has('email_invoice_customer');
+        $validated['show_gst_breakup'] = $request->has('show_gst_breakup');
+        $validated['auto_generate_invoice'] = $request->has('auto_generate_invoice');
+        $validated['email_invoice_customer'] = $request->has('email_invoice_customer');
 
-        // Unregistered Business
-        if ($request->business_type == 'unregistered') {
+        // Unregistered business
+        if ($validated['business_type'] === 'unregistered') {
             $validated['company_gstin'] = null;
             $validated['company_pan'] = null;
             $validated['cgst'] = 0;
             $validated['sgst'] = 0;
             $validated['igst'] = 0;
-            $validated['show_gst_breakup'] = 0;
+            $validated['show_gst_breakup'] = false;
         }
 
-        // Logo Upload
+        $setting = InvoiceSetting::first() ?? new InvoiceSetting();
+
+        // Logo upload (purana delete karke naya save)
         if ($request->hasFile('company_logo')) {
-            $validated['company_logo'] = $request
-                ->file('company_logo')
-                ->store('company', 'public');
+            if ($setting->company_logo && Storage::disk('public')->exists($setting->company_logo)) {
+                Storage::disk('public')->delete($setting->company_logo);
+            }
+            $validated['company_logo'] = $request->file('company_logo')->store('company', 'public');
         }
 
-        InvoiceSetting::updateOrCreate(
-            ['id' => 1],
-            $validated
-        );
+        // forceFill = $fillable ka issue bypass
+        $setting->forceFill($validated)->save();
 
         return redirect()
             ->route('admin.admin-setting.index', ['tab' => 'gst'])
             ->with('success', 'Invoice & GST settings updated successfully.');
+    }
+
+    private static function financialYearStart(?\Carbon\Carbon $date = null): int
+    {
+        $date = $date ?? now();
+        return $date->month >= 4 ? $date->year : $date->year - 1;
     }
 
     // ðŸ”¥ Generate Invoice Number (SAFE VERSION)
@@ -147,14 +163,22 @@ class AdminSettingController extends Controller
                 ])->save();
             }
 
-            $year = now()->year;
-            $nextYear = substr($year + 1, -2);
+            $fyStart = self::financialYearStart();
 
             $yearPart = match ($setting->invoice_year_format) {
-                'slash' => $year . '-' . $nextYear,
-                'year' => (string) $year,
+                'slash' => $fyStart . '-' . substr($fyStart + 1, -2),   // 2026-27
+                'year' => (string) $fyStart,                            // 2026
                 default => '',
             };
+
+            if ($setting->invoice_year_format !== 'none' && (int) $setting->invoice_fy_start !== $fyStart) {
+                // Reset only if a previous FY was already recorded; the first time, keep the admin's chosen start serial
+                if ($setting->invoice_fy_start) {
+                    $setting->invoice_serial = 1;
+                }
+                $setting->invoice_fy_start = $fyStart;
+                $setting->save();
+            }
 
             // Skip forward if a number is somehow already taken
             do {
@@ -226,6 +250,8 @@ class AdminSettingController extends Controller
             'test_key_secret' => 'nullable|string',
             'live_key_id' => 'nullable|string|max:255',
             'live_key_secret' => 'nullable|string',
+            'test_webhook_secret' => 'nullable|string|max:255',
+            'live_webhook_secret' => 'nullable|string|max:255',
         ]);
 
         $validated['live_mode'] = $request->has('live_mode');

@@ -133,7 +133,7 @@
           ['name' => $blog->title, 'url' => $blogUrl],
         ]
       ])
-      
+
       <!-- Main Layout (Article on Left, Sidebar on Right) -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-16">
 
@@ -304,7 +304,7 @@
               <a href="{{ route('about') }}#refurbish-process"
                 class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">20-Point
                 Testing</a>
-              <a href="{{ route('warranty') }}"
+              <a href="{{ route('policies', ['tab' => 'Warranty']) }}"
                 class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">Warranty
                 & Coverage</a>
               <a href="{{ route('repair') }}"

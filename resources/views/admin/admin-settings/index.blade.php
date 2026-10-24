@@ -960,31 +960,6 @@
         }
     });
 
-    // ── Invoice number preview ──
-    function updatePreview() {
-        const prefix = document.getElementById('invPrefix').value || 'INV';
-        const serial = document.getElementById('invSerial').value || '1001';
-        const yearMode = document.getElementById('invYear').value;
-        const sep = document.getElementById('invSep').value;
-
-        const now = new Date();
-        const y = now.getFullYear();
-        const nextY = (y + 1).toString().slice(-2);
-
-        let yearPart = '';
-        if (yearMode === 'slash') yearPart = `${y}-${nextY}`;
-        if (yearMode === 'year') yearPart = `${y}`;
-
-        const parts = [prefix];
-        if (yearPart) parts.push(yearPart);
-        parts.push(serial);
-
-        document.getElementById('serialPreview').textContent = parts.join(sep);
-    }
-
-    // Init preview on load
-    updatePreview();
-
     // ── Section sidenav smooth scroll ──
     document.querySelectorAll('.settings-sidenav a').forEach(link => {
         link.addEventListener('click', function (e) {

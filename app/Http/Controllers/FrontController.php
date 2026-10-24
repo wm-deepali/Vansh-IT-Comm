@@ -189,7 +189,7 @@ class FrontController extends Controller
                     'name' => $p->name,
                     'brand' => optional($p->brand)->name,
                     'url' => route('product.show', $p->slug),
-                    'image' => $img ? asset('storage/' . ($img->thumb ?? $img->image)) : null,
+                    'image' => $img ? asset('storage/' . ($img->thumb ?? $img->image)) : asset('assets/img/product-1588872657578-7efd1f1555ed.jpg'),
                     'price' => $cur . number_format($p->price),
                     'mrp' => $p->mrp > $p->price ? $cur . number_format($p->mrp) : null,
                     'badge' => $tag ? \Illuminate\Support\Str::upper($tag->name) : null,

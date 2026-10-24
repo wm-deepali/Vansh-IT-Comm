@@ -63,16 +63,19 @@ use App\Http\Controllers\Admin\{
 };
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\FrontController;
 use App\Http\Controllers\CartController;
-use App\Http\Controllers\Auth\CustomerAuthController;
+use App\Http\Controllers\FrontController;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\PincodeController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\AccountController;
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\TrackOrderController;
-use App\Http\Controllers\PincodeController;
+use App\Http\Controllers\RazorpayWebhookController;
+use App\Http\Controllers\Auth\CustomerAuthController;
 
+
+Route::post('/razorpay/webhook', [RazorpayWebhookController::class, 'handle'])->name('razorpay.webhook');
 
 Route::middleware('maintenance.mode')->group(function () {
 

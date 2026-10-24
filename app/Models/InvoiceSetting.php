@@ -31,6 +31,7 @@ class InvoiceSetting extends Model
 
         'invoice_prefix',
         'invoice_serial',
+        'invoice_fy_start',
         'invoice_year_format',
         'invoice_separator',
         'invoice_date_format',

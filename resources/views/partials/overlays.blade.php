@@ -316,6 +316,17 @@
             }
         });
     </script>
+
+    {{-- ADD HERE --}}
+    @if (session('open_auth_modal'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                Auth.redirect = @json(session('auth_redirect'));
+                App.openModal('auth-modal');
+                App.switchAuthTab(@json(session('open_auth_modal')) === 'register' ? 'signup' : 'login');
+            });
+        </script>
+    @endif
 @endunless
 
 <div id="toast-container" aria-live="polite"></div>

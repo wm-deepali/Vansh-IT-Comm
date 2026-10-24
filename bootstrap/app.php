@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 \App\Http\Middleware\AdminSessionTimeout::class,
         ]);
 
+        // Razorpay webhook has no session/CSRF token
+        $middleware->validateCsrfTokens(except: [
+            'razorpay/webhook',
+        ]);
+
         $middleware->web(append: [
             \App\Http\Middleware\NoCacheHeaders::class,
         ]);

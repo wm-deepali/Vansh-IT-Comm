@@ -17,26 +17,33 @@ use Jenssegers\Agent\Agent;
 
 class CustomerAuthController extends Controller
 {
-    public function registerForm(Request $request)
-    {
-        if (Auth::guard('customer')->check()) {
-            return redirect()->route('user.dashboard');
-        }
-
-        $this->rememberIntended($request);
-
-        return view('user.register');
-    }
-
     public function loginForm(Request $request)
     {
         if (Auth::guard('customer')->check()) {
-            return redirect()->route('user.dashboard');
+            return redirect()->route('user.account');
         }
 
-        $this->rememberIntended($request);
+        return $this->openAuthModal($request, 'login');
+    }
 
-        return view('user.login');
+    public function registerForm(Request $request)
+    {
+        if (Auth::guard('customer')->check()) {
+            return redirect()->route('user.account');
+        }
+
+        return $this->openAuthModal($request, 'register');
+    }
+
+    private function openAuthModal(Request $request, string $tab)
+    {
+        // ?redirect= first, then the URL the customer middleware stored (url.intended)
+        $target = $this->safeTarget($request->query('redirect'), $request)
+            ?? $this->safeTarget(session('url.intended'), $request);
+
+        return redirect()->route('home')
+            ->with('open_auth_modal', $tab)
+            ->with('auth_redirect', $target);
     }
 
     public function register(Request $request)
