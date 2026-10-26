@@ -166,27 +166,3 @@
     </div>
 
 </form>
-
-<style>
-    /* Mouse le jaate hi (ya click karte hi) placeholder text gayab */
-    .api-key-card input:hover::placeholder,
-    .api-key-card input:focus::placeholder {
-        color: transparent;
-    }
-
-    .api-key-card input::placeholder {
-        transition: color .15s ease;
-    }
-</style>
-
-<!-- NEW -->
-<script>
-    function copyWebhookUrl(btn) {
-        const input = document.getElementById('webhookUrl');
-        navigator.clipboard.writeText(input.value).then(() => {
-            const icon = btn.querySelector('i');
-            icon.className = 'fa fa-check';
-            setTimeout(() => icon.className = 'fa fa-copy', 1500);
-        });
-    }
-</script>

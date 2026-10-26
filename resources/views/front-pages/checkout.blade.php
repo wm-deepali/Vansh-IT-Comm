@@ -74,8 +74,8 @@
             </div>
           </div>
 
-          <!-- Checkout Form -->
-          <form id="checkout-form" class="space-y-4 sm:space-y-6" onsubmit="handlePlaceOrder(event)">
+          <!-- Checkout Form (autocomplete off: stops the browser restoring stale radio/field state after reload) -->
+          <form id="checkout-form" class="space-y-4 sm:space-y-6" autocomplete="off" onsubmit="handlePlaceOrder(event)">
 
             <!-- Contact Section — DYNAMIC -->
             <div
@@ -428,7 +428,15 @@
       },
     };
 
-    const $ = id => document.getElementById(id);
+    // Not "$" — that would shadow jQuery if the layout loads it.
+    const byId = id => document.getElementById(id);
+
+    // The address the server currently treats as selected/default.
+    let currentAddressId = CHECKOUT.selectedId !== null && CHECKOUT.selectedId !== undefined
+      ? String(CHECKOUT.selectedId) : null;
+
+    // True while a "set default" request is in flight / page is about to reload.
+    let addressChanging = false;
 
     function toast(msg, type = 'info') {
       if (typeof showToast === 'function') showToast(msg, type);
@@ -447,7 +455,8 @@
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.success === false) {
+      // Backend may answer { success: false } or { status: false } — treat both as failure.
+      if (!res.ok || data.success === false || data.status === false) {
         const firstError = data.errors ? Object.values(data.errors)[0][0] : null;
         throw new Error(firstError || data.message || 'Something went wrong. Please try again.');
       }
@@ -467,63 +476,89 @@
 
     function setContactLocked(locked) {
       ['chk-name', 'chk-phone', 'chk-email'].forEach(id => {
-        const el = $(id);
+        const el = byId(id);
         el.readOnly = locked;
         el.classList.toggle('opacity-70', locked);
         el.classList.toggle('cursor-not-allowed', locked);
       });
-      $('contact-lock-note').classList.toggle('hidden', !locked);
+      byId('contact-lock-note').classList.toggle('hidden', !locked);
     }
 
-    function setBusy(busy) {
+    function fillContactFrom(radio) {
+      const card = radio.closest('.js-address-card');
+      byId('chk-name').value = card.dataset.name || '';
+      byId('chk-phone').value = card.dataset.phone || '';
+      byId('chk-email').value = card.dataset.email || '';
+    }
+
+    function setAddressBusy(busy) {
+      addressChanging = busy;
       document.querySelectorAll('input[name="address_id"]').forEach(r => r.disabled = busy);
+      const submit = document.querySelector('#checkout-form button[type="submit"]');
+      submit.disabled = busy;
+      submit.classList.toggle('opacity-70', busy);
     }
 
-    async function makeDefault(addressId) {
-      setBusy(true);
+    // Fresh navigation (not location.reload()) so the browser does not restore old form state.
+    function reloadFresh() {
+      window.location.replace(window.location.pathname + window.location.search);
+    }
+
+    function selectSavedAddress(id) {
+      const radio = document.querySelector(`input[name="address_id"][value="${id}"]`);
+      if (!radio) return null;
+      radio.checked = true;
+      refreshAddressCards();
+      byId('new-address-form').classList.add('hidden');
+      fillContactFrom(radio);
+      setContactLocked(true);
+      return radio;
+    }
+
+    async function makeDefault(addressId, previousId) {
+      if (addressChanging) return;
+      setAddressBusy(true);
       try {
         await postJson(CHECKOUT.routes.setDefault, { address_id: addressId });
-        location.reload(); // GST in Order Review + contact prefill depend on the default address
+        currentAddressId = String(addressId);
+        reloadFresh(); // GST/shipping in Order Review + contact prefill depend on the default address
       } catch (e) {
         toast(e.message, 'error');
-        setBusy(false);
+        // Roll the UI back so it matches what the server really has selected.
+        if (previousId) selectSavedAddress(previousId);
+        setAddressBusy(false);
       }
     }
 
     function onAddressChange(radio) {
+      if (addressChanging) return;
       refreshAddressCards();
 
       if (radio.value === 'new') {
-        $('new-address-form').classList.remove('hidden');
+        byId('new-address-form').classList.remove('hidden');
         setContactLocked(false);
-        $('new-address-line-1').focus();
+        byId('new-address-line-1').focus();
         return;
       }
 
-      $('new-address-form').classList.add('hidden');
-
-      // Reflect the chosen address's contact details right away, then persist + reload
-      const card = radio.closest('.js-address-card');
-      $('chk-name').value = card.dataset.name || '';
-      $('chk-phone').value = card.dataset.phone || '';
-      $('chk-email').value = card.dataset.email || '';
+      byId('new-address-form').classList.add('hidden');
+      fillContactFrom(radio);
       setContactLocked(true);
 
-      makeDefault(radio.value);
+      // Same address as the one already selected on the server: nothing to save.
+      if (String(radio.value) === currentAddressId) return;
+
+      makeDefault(radio.value, currentAddressId);
     }
 
     function cancelNewAddress() {
-      const selected = document.querySelector(`input[name="address_id"][value="${CHECKOUT.selectedId}"]`);
-      if (selected) {
-        selected.checked = true;
-        onAddressChange(selected);
-      }
+      if (currentAddressId) selectSavedAddress(currentAddressId);
     }
 
     /* ---------- New address form ---------- */
 
     async function loadCities(stateId) {
-      const citySel = $('new-city');
+      const citySel = byId('new-city');
       citySel.innerHTML = '<option value="">Select city</option>';
       citySel.disabled = true;
       if (!stateId) {
@@ -546,15 +581,15 @@
 
     async function saveNewAddress() {
       const payload = {
-        name: $('chk-name').value.trim(),
-        phone: $('chk-phone').value.trim(),
-        email: $('chk-email').value.trim(),
-        address_line_1: $('new-address-line-1').value.trim(),
-        address_line_2: $('new-address-line-2').value.trim(),
-        state_id: $('new-state').value,
-        city_id: $('new-city').value,
-        pincode: $('new-pincode').value.trim(),
-        address_type: $('new-address-type').value,
+        name: byId('chk-name').value.trim(),
+        phone: byId('chk-phone').value.trim(),
+        email: byId('chk-email').value.trim(),
+        address_line_1: byId('new-address-line-1').value.trim(),
+        address_line_2: byId('new-address-line-2').value.trim(),
+        state_id: byId('new-state').value,
+        city_id: byId('new-city').value,
+        pincode: byId('new-pincode').value.trim(),
+        address_type: byId('new-address-type').value,
       };
 
       if (!payload.name || !payload.phone || !payload.email) {
@@ -568,11 +603,11 @@
       if (!payload.city_id) { toast('Please select a city.', 'error'); return; }
       if (!/^\d{6}$/.test(payload.pincode)) { toast('Please enter a valid 6-digit PIN code.', 'error'); return; }
 
-      const btn = $('save-address-btn');
+      const btn = byId('save-address-btn');
       btn.disabled = true;
       try {
         await postJson(CHECKOUT.routes.storeAddress, payload);
-        location.reload(); // new address becomes default → GST + selection refresh
+        reloadFresh(); // new address becomes default → GST + selection refresh
       } catch (e) {
         toast(e.message, 'error');
         btn.disabled = false;
@@ -580,9 +615,17 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      // No default address saved yet but the customer has addresses: make the shown one the default
-      if (CHECKOUT.hasAddresses && CHECKOUT.needsDefault && CHECKOUT.selectedId) {
-        makeDefault(CHECKOUT.selectedId);
+      // Customer has addresses but none is the default yet: promote the shown one.
+      // Radios are locked while this runs, so a quick click can't race it, and the
+      // sessionStorage guard stops an endless reload loop if the backend doesn't persist it.
+      if (CHECKOUT.hasAddresses && CHECKOUT.needsDefault && currentAddressId) {
+        let alreadyTried = false;
+        try {
+          alreadyTried = sessionStorage.getItem('chk_auto_default') === currentAddressId;
+          if (!alreadyTried) sessionStorage.setItem('chk_auto_default', currentAddressId);
+        } catch (e) { /* storage blocked: fall through and try once */ }
+
+        if (!alreadyTried) makeDefault(currentAddressId, null);
       }
     });
 
@@ -612,6 +655,12 @@
 
     async function handlePlaceOrder(event) {
       event.preventDefault();
+
+      // Address change still saving: totals on screen are for the old address.
+      if (addressChanging) {
+        toast('Updating your delivery address, please wait a moment.', 'info');
+        return;
+      }
 
       const selected = document.querySelector('input[name="address_id"]:checked');
       if (!selected || selected.value === 'new') {

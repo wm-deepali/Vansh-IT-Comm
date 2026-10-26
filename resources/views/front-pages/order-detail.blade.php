@@ -183,10 +183,8 @@
                     <img src="{{ $thumb }}" alt="{{ $itemName }}"
                       class="w-16 h-16 rounded-xl object-cover border border-slate-200 flex-shrink-0">
                   @else
-                    <div
-                      class="w-16 h-16 rounded-xl bg-slate-50 border border-slate-200 text-slate-300 flex items-center justify-center text-xl flex-shrink-0">
-                      <i class="fa-regular fa-image"></i>
-                    </div>
+                     <img src="{{ asset('assets/img/product-1588872657578-7efd1f1555ed.jpg') }}" alt="{{ $itemName }}"
+                      class="w-16 h-16 rounded-xl object-cover border border-slate-200 flex-shrink-0">
                   @endif
 
                   <div class="min-w-0 flex-1 space-y-0.5">

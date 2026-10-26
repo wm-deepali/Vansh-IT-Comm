@@ -109,7 +109,7 @@ class AccountController extends Controller
                 'dpi' => 150,
             ]);
 
-        return $pdf->download('Invoice-' . $order->invoice->invoice_number . '.pdf');
+        return $pdf->download($this->invoiceFileName($order));
     }
 
     public function cities($stateId)
@@ -235,6 +235,19 @@ class AccountController extends Controller
         return Order::with($with)
             ->where('customer_id', auth('customer')->id())
             ->findOrFail($id);
+    }
+
+    /**
+     * Safe PDF filename. Invoice numbers like "INV/2026/001" contain "/" which
+     * Symfony's Content-Disposition rejects ("filename and the fallback cannot
+     * contain the '/' and '\' characters"), so strip anything unsafe.
+     */
+    private function invoiceFileName(Order $order): string
+    {
+        $number = (string) $order->invoice->invoice_number;
+        $safe = trim(preg_replace('/[^A-Za-z0-9._-]+/', '-', $number), '-');
+
+        return 'Invoice-' . ($safe !== '' ? $safe : $order->id) . '.pdf';
     }
 
     /**
