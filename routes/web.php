@@ -74,7 +74,6 @@ use App\Http\Controllers\TrackOrderController;
 use App\Http\Controllers\RazorpayWebhookController;
 use App\Http\Controllers\Auth\CustomerAuthController;
 
-
 Route::post('/razorpay/webhook', [RazorpayWebhookController::class, 'handle'])->name('razorpay.webhook');
 
 Route::middleware('maintenance.mode')->group(function () {
@@ -160,7 +159,7 @@ Route::middleware('maintenance.mode')->group(function () {
 
 });
 
-Route::post('/razorpay/webhook', [RazorpayWebhookController::class, 'handle'])->name('razorpay.webhook');
+
 
 // Admin Routes list
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');

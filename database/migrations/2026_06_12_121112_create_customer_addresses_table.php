@@ -37,7 +37,7 @@ return new class extends Migration
 
             $table->enum('address_type', [
                 'home',
-                'office',
+                'work',
                 'other'
             ])->default('home');
 

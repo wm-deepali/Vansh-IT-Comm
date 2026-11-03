@@ -316,7 +316,7 @@ class ProductController extends Controller
                     : $this->generateUniqueSlug($request->name),
                 'short_description' => $request->short_description,
                 'description' => $request->description,
-                'weight' => $request->weight,
+                'weight' => $request->filled('weight') ? $request->weight : 0,
 
                 // ✅ electronics fields
                 'condition' => $request->condition ?: null,
@@ -660,7 +660,7 @@ class ProductController extends Controller
 
                 'short_description' => $request->short_description,
                 'description' => $request->description,
-                'weight' => $request->weight,
+                'weight' => $request->filled('weight') ? $request->weight : 0,
 
                 // ✅ electronics fields
                 'condition' => $request->condition ?: null,
